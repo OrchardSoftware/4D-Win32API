@@ -1,0 +1,128 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "comdlg32.h"
+#include "dlgs.h"
+#include "winnt.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""comdlg32.h""\r\n"
+    "#include ""dlgs.h""\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_COMDLG32 DIALOG DISCARDABLE  0, 0, 305, 74
+STYLE DS_3DLOOK | DS_CONTROL | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Path Select:",-1,10,51,43,8
+    EDITTEXT        IDE_SELECTED,58,50,156,12,ES_AUTOHSCROLL
+    LTEXT           "",stc32,5,1,286,45
+    PUSHBUTTON      "Select",IDC_SELECT,226,49,52,15
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_COMDLG32, DIALOG
+    BEGIN
+        RIGHTMARGIN, 304
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_DIALOGFAILURE       "Creation of CD failed on call to DialogBox()"
+    IDS_STRUCTSIZE          "Invalid structure size passed to CD"
+    IDS_INITIALIZATION      "Failure initializing CD.  Possibly\n\r do to insufficient memory."
+    IDS_NOTEMPLATE          "Failure finding custom template for CD"
+    IDS_NOHINSTANCE         "Instance handle not passed to CD"
+    IDS_LOADSTRFAILURE      "Failure loading specified string"
+    IDS_FINDRESFAILURE      "Failure finding specified resource"
+    IDS_LOADRESFAILURE      "Failure loading specified resource"
+    IDS_LOCKRESFAILURE      "Failure locking specified resource"
+    IDS_MEMALLOCFAILURE     "Failure allocating memory for internal CD structure"
+    IDS_MEMLOCKFAILURE      "Failure locking memory for internal CD structure"
+    IDS_NOHOOK              "No hook function passed to CD but ENABLEHOOK\n\r was passed as a flag"
+    IDS_SETUPFAILURE        "Failure setting up resources for CD"
+    IDS_PARSEFAILURE        "Failure parsing strings in [devices]\n\rsection of WIN.INI"
+    IDS_RETDEFFAILURE       "PD_RETURNDEFAULT flag was set but either the \n\rhDevMode or hDevNames field was nonzero"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_LOADDRVFAILURE      "Failure loading the printers device driver"
+    IDS_GETDEVMODEFAIL      "The printer driver failed to initialize a DEVMODE data structure"
+    IDS_INITFAILURE         "Print CD failed during initialization"
+    IDS_NODEVICES           "No printer device drivers were found"
+    IDS_NODEFAULTPRN        "No default printer was found"
+    IDS_DNDMMISMATCH        "Data in DEVMODE contradicts data in DEVNAMES"
+    IDS_CREATEICFAILURE     "Failure creating an IC"
+    IDS_PRINTERNOTFOUND     "Printer not found"
+    IDS_NOFONTS             "No fonts exist"
+    IDS_SUBCLASSFAILURE     "Failure subclassing during initialization of CD"
+    IDS_INVALIDFILENAME     "Invalide filename passed to FileOpen or FileSave"
+    IDS_BUFFERTOOSMALL      "Buffer passed to CD too small to accomodate string"
+    IDS_FILTERSTRING        "Write Files(*.WRI)|*.WRI|Word  Files(*.DOC; *.TXT)|*.doc;*.txt|"
+    IDS_UNKNOWNERROR        "Unknown error."
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+

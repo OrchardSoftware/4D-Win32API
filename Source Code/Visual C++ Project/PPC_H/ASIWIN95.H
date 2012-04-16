@@ -1,0 +1,21 @@
+#ifndef OFN_EXPLORER
+#define OFN_EXPLORER 0x00080000
+#endif
+
+
+#ifndef SS_ETCHEDFRAME
+#define SS_ETCHEDFRAME 0x00000012L
+#endif
+
+#ifndef DEFAULT_GUI_FONT
+#define DEFAULT_GUI_FONT 17
+#endif
+
+#ifndef COLOR_3DFACE
+#define COLOR_3DFACE 15 /*COLOR_BTNFACE*/
+#endif
+
+#ifndef SM_CXMENUCHECK
+#define SM_CXMENUCHECK 	71
+#define SM_CYMENUCHECK 	72
+#endif

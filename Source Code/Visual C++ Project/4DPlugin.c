@@ -167,7 +167,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 {
 
-	HWND				hWnd;
+	HWND				hWnd, w;
+	HINSTANCE			h;
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
 
@@ -183,7 +184,25 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			// REB 3/24/10 It appears that PA_GetHWND(0) works again, at least in Win7, but I'm leaving this change in place.
 			// REB 4/20/11 #27322 Support for the GetMainWindow and GetMDIClientWindow commands is no longer available in the new 4D API. Also PA_GetHWND seems to not work when
 			//    there is no focused window in 4D.  Instead I'll use the server workaround.
-			windowHandles.MDIs_4DhWnd = (HWND)PA_GetHWND(0); 
+
+			h = (HINSTANCE)PA_Get4DHInstance(); 
+			hWnd = NULL; 
+      
+			w = FindWindow(NULL, NULL); 
+      
+			do { 
+			 if(!GetParent(w)){ 
+				  if(h == (HINSTANCE)GetClassLongPtr(w, GCLP_HMODULE)){ 
+				     hWnd = w; 
+					  break; 
+				 } 
+				} 
+          
+				w = GetWindow(w, GW_HWNDNEXT); 
+          
+		   } while (w); 
+      
+			windowHandles.MDIs_4DhWnd = hWnd;//(HWND)PA_GetHWND(0); 
 			if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
 				Unistring = PA_GetApplicationFullPath();
 				pathName = UnistringToCString(&Unistring);
@@ -195,7 +214,8 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); 
 			//windowHandles.fourDhWnd = GetMainWindow();
 			//windowHandles.MDIhWnd = GetMDIClientWindow();
-			windowHandles.MDIs_4DhWnd = GetWindow(windowHandles.MDIhWnd, GW_CHILD); //REB 3/26/10 #22878 Get the correct child handle so toolbars work correctly.
+			// REB 8/30/11 #28504 We already have this handle now.
+			//windowHandles.MDIs_4DhWnd = GetWindow(windowHandles.MDIhWnd, GW_CHILD); //REB 3/26/10 #22878 Get the correct child handle so toolbars work correctly.
 
 			SystemParametersInfo(SPI_GETDRAGFULLWINDOWS, 0, &g_bDragFull, 0);
 			hSubclassMutex = CreateMutex(NULL, FALSE, "Win32APIMutexToProtect4DProc");  // MJG 3/26/04
@@ -1391,14 +1411,46 @@ void gui_SetWndRect( PA_PluginParameters params )
 	LONG_PTR y;
 	LONG_PTR w;
 	LONG_PTR h;
-	LONG_PTR returnValue;
-	HWND WindowhWnd;
+	LONG_PTR returnValue, tbHeight, tbWidth, respectTB = 0;
+	HWND WindowhWnd, hWndTaskBar;
+	RECT taskBarCoords;
 
 	hWnd = PA_GetLongParameter( params, 1 );
 	x = PA_GetLongParameter( params, 2 );
 	y = PA_GetLongParameter( params, 3 );
 	w = PA_GetLongParameter( params, 4 );
 	h = PA_GetLongParameter( params, 5 );
+	respectTB = PA_GetLongParameter( params, 6);
+
+	// REB 11/10/11 #28503 Prevent them from making the window so large that it
+	// hides the task bar.  I'm hesitant to change this because people may rely on 
+	// this command to work as is.
+	if (respectTB > 0){
+		hWndTaskBar = FindWindow("Shell_TrayWnd", NULL); // Get a handle to the taskbar.
+		if(GetWindowRect(hWndTaskBar, &taskBarCoords)){
+			// We're going to assume that if height < width the taskbar is at the top or bottom.
+			tbHeight = (taskBarCoords.bottom - taskBarCoords.top);
+			tbWidth = (taskBarCoords.right - taskBarCoords.left);
+
+			// Adjust the specified window size to prevent it from covering the taskbar.
+			if((taskBarCoords.top == 0)&(taskBarCoords.left == 0)){
+				if(tbHeight < tbWidth){ // Top
+					if (y < taskBarCoords.bottom) 
+						y = taskBarCoords.bottom; 
+				}else{ // Left
+					if(x < taskBarCoords.right)
+						x = taskBarCoords.right;
+				}
+			}else if(taskBarCoords.top == 0){ // Right
+				if ((x + w) > taskBarCoords.left)
+					w = taskBarCoords.left - x;
+
+			}else { // Bottom
+				if((y + h) > taskBarCoords.top)
+					h = taskBarCoords.top - y;
+			}
+		}
+	}
 
 	WindowhWnd = (HWND)hWnd;
 	if(IsWindow(WindowhWnd)) {
@@ -2240,7 +2292,7 @@ void sys_GetTimeZone( PA_PluginParameters params )
 void sys_GetUTCOffset ( PA_PluginParameters params )
 {
 	LONG_PTR					returnValue = 0;
-	LONG_PTR					bias = 0;
+	LONG_PTR					bias = 0, weekNum = 0;
 
 	//struct _timeb tstruct;
 	TIME_ZONE_INFORMATION TimeZoneInformation; // REB 1/21/09 #19035
@@ -2251,33 +2303,65 @@ void sys_GetUTCOffset ( PA_PluginParameters params )
 
 	bias = TimeZoneInformation.Bias;
 
+	//TimeZoneInformation.DaylightDate.wDayOfWeek // Sun - Sat
+	//TimeZoneInformation.DaylightDate.wDay // 1 -5 occurance of above day
+
+	// Calculate which occurance of the current day we are on.  Basically which week in the month we are on.
+	weekNum = ((SystemTime.wDay - 1)/7) + 1; // Between 1 and 5
+
 
 	if(SystemTime.wMonth == TimeZoneInformation.StandardDate.wMonth){ 
 		// We are in the month when we change back to standard
-		if(SystemTime.wDay == TimeZoneInformation.StandardDate.wDay){
-			if(SystemTime.wHour >= TimeZoneInformation.StandardDate.wHour){
+		if (SystemTime.wDayOfWeek == TimeZoneInformation.StandardDate.wDayOfWeek){
+			// We are in the Week that the time changes
+			if(weekNum == TimeZoneInformation.StandardDate.wDay){
+				// This is the Day the time changes
+				if(SystemTime.wHour >= TimeZoneInformation.StandardDate.wHour){
+					bias += TimeZoneInformation.StandardBias;
+				}else{
+					bias += TimeZoneInformation.DaylightBias;
+				};
+			}else if(weekNum > TimeZoneInformation.StandardDate.wDay){ 
 				bias += TimeZoneInformation.StandardBias;
 			}else{
 				bias += TimeZoneInformation.DaylightBias;
 			};
-		}else if(SystemTime.wDay > TimeZoneInformation.StandardDate.wDay){ 
-			bias += TimeZoneInformation.StandardBias;
+		}else if (SystemTime.wDayOfWeek > TimeZoneInformation.StandardDate.wDayOfWeek){
+			if(weekNum > TimeZoneInformation.StandardDate.wDay){ 
+				bias += TimeZoneInformation.StandardBias;
+			}else{
+				bias += TimeZoneInformation.DaylightBias;
+			};
 		}else{
 			bias += TimeZoneInformation.DaylightBias;
 		};
+
 	}else if(SystemTime.wMonth == TimeZoneInformation.DaylightDate.wMonth){ 
-		// We are in the month we change to daylight savings
-		if(SystemTime.wDay == TimeZoneInformation.DaylightDate.wDay){
-			if(SystemTime.wHour >= TimeZoneInformation.DaylightDate.wHour){
+		// We are in the month when we change back to standard
+		if (SystemTime.wDayOfWeek == TimeZoneInformation.DaylightDate.wDayOfWeek){
+			// We are in the Week that the time changes
+			if(weekNum == TimeZoneInformation.DaylightDate.wDay){
+				// This is the Day the time changes
+				if(SystemTime.wHour >= TimeZoneInformation.DaylightDate.wHour){
+					bias += TimeZoneInformation.DaylightBias;
+				}else{
+					bias += TimeZoneInformation.StandardBias;
+				};
+			}else if(weekNum > TimeZoneInformation.DaylightDate.wDay){ 
 				bias += TimeZoneInformation.DaylightBias;
 			}else{
 				bias += TimeZoneInformation.StandardBias;
 			};
-		}else if(SystemTime.wDay > TimeZoneInformation.DaylightDate.wDay){ 
-			bias += TimeZoneInformation.DaylightBias;
+		}else if (SystemTime.wDayOfWeek > TimeZoneInformation.DaylightDate.wDayOfWeek){
+			if(weekNum > TimeZoneInformation.DaylightDate.wDay){ 
+				bias += TimeZoneInformation.DaylightBias;
+			}else{
+				bias += TimeZoneInformation.StandardBias;
+			};
 		}else{
 			bias += TimeZoneInformation.StandardBias;
 		};
+
 	}else if(TimeZoneInformation.StandardDate.wMonth > TimeZoneInformation.DaylightDate.wMonth){ 
 		// The period of daylight savings time uccurs within a single year.
 		if((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) && (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
@@ -2438,6 +2522,7 @@ void sys_SetDefPrinter( PA_PluginParameters params )
 //
 //	MODIFICATIONS: 12/1/03 Added check for Windows Server 2003.
 //				   7/15/09 Added check for Windows 7 
+//				   10/31/12 Added support for Windows 8 and Server 2012
 //            
 //
 LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
@@ -2473,7 +2558,12 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		returnValue = OS_WIN7;
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 1) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2K8R2;
+	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
+		returnValue = OS_WIN8; // REB 10/31/12 #34333
+	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
+		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
 	}
+
 
 
 	if (!bInternalCall) {
@@ -4154,12 +4244,18 @@ void sys_SetRegKey( PA_PluginParameters params, LONG_PTR selector )
 	// Open the registry key.
 	retErr = RegOpenKeyEx(hRootKey, regSub, 0, KEY_ALL_ACCESS, &hOpenKey);
 	
+	returnValue = -99;
+
 	// If the key does not exist create it now.
 	if(retErr == ERROR_FILE_NOT_FOUND){
+		returnValue = -98;
+		//retErr = RegCreateKeyEx(hRootKey, regSub, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hOpenKey, &keyState);
 		retErr = RegCreateKeyEx(hRootKey, regSub, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hOpenKey, &keyState);
 	}
 
 	if(retErr == ERROR_SUCCESS){
+
+		returnValue = -97;
 
 		// Get the value type from the registry.
 		retErr = RegQueryValueEx(hOpenKey, regName, NULL, &dwDataType, NULL, &dataSize);

@@ -18,7 +18,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 3.6.4
+#define WIN32API_VERSION 5.1
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2
@@ -92,6 +92,8 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define OS_SERVER2K8	601 // REB 7/15/09 #20729
 #define OS_WIN7			610 // REB 7/15/09 #20729
 #define OS_SERVER2K8R2	611 // REB 7/15/09 #20729
+#define OS_WIN8			620 // REB 10/31/12 #34333
+#define OS_SERVER2012	621 // REB 10/31/12 #34333
 
 #define BM_TILE				1
 #define BM_SCALE			2

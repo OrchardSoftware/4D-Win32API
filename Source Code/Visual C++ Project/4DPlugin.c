@@ -194,7 +194,7 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			 if(!GetParent(w)){ 
 				  if(h == (HINSTANCE)GetClassLongPtr(w, GCLP_HMODULE)){ 
 				     hWnd = w; 
-					  break; 
+					 break; 
 				 } 
 				} 
           
@@ -203,6 +203,7 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		   } while (w); 
       
 			windowHandles.MDIs_4DhWnd = hWnd;//(HWND)PA_GetHWND(0); 
+
 			if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
 				Unistring = PA_GetApplicationFullPath();
 				pathName = UnistringToCString(&Unistring);
@@ -244,16 +245,17 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		  //Blk4D.fHandle = NULL;  OBSOLETE
 		  //Call4D (EX_GET_HWND, &Blk4D);
 		  //hWnd = (HWND)Blk4D.fHandle;
-			hWnd = PA_GetHWND(NULL); // the current frontmost window
-			if(!(IsWindow(hWnd))){
+			//hWnd = PA_GetHWND(NULL); // the current frontmost window
+			//if(!(IsWindow(hWnd))){
+			// Always get the frontmost window in this way.
 				 Unistring = PA_GetApplicationFullPath();
 				 pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
 				 charPos = strrchr(pathName,'\\');
 				 *charPos = 0;
 				 hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-			}else{
+			//}else{
 				//hWnd = PA_GetHWND(NULL); // the current frontmost window
-			}
+			//}
 		
 			// while this is all we need to get frontmost window, we are probably looking for a titled window
 			gui_GetWindow( params, hWnd );

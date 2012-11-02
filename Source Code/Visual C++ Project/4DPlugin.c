@@ -204,15 +204,20 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
       
 			windowHandles.MDIs_4DhWnd = hWnd;//(HWND)PA_GetHWND(0); 
 
-			if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
+			// REB 11/2/12 #34333
+			//if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
 				Unistring = PA_GetApplicationFullPath();
 				pathName = UnistringToCString(&Unistring);
 				charPos = strrchr(pathName,'\\');
 				*charPos = 0;
-				windowHandles.MDIs_4DhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-			}
+				//windowHandles.MDIs_4DhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+				hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+			//}
 
-			windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); 
+			//windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); 
+			windowHandles.fourDhWnd = getWindowHandle("", hWnd); 
+
+
 			//windowHandles.fourDhWnd = GetMainWindow();
 			//windowHandles.MDIhWnd = GetMDIClientWindow();
 			// REB 8/30/11 #28504 We already have this handle now.

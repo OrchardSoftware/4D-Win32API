@@ -167,8 +167,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 {
 
-	HWND				hWnd, w;
-	HINSTANCE			h;
+	HWND				hWnd;
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
 
@@ -185,11 +184,13 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			// REB 4/20/11 #27322 Support for the GetMainWindow and GetMDIClientWindow commands is no longer available in the new 4D API. Also PA_GetHWND seems to not work when
 			//    there is no focused window in 4D.  Instead I'll use the server workaround.
 
+			// This logic fails if there is a separate application running that returns the same value from GetClassLongPtr as PA_Get4DHInstance returns.
+			/*
 			h = (HINSTANCE)PA_Get4DHInstance(); 
 			hWnd = NULL; 
       
 			w = FindWindow(NULL, NULL); 
-      
+			      
 			do { 
 			 if(!GetParent(w)){ 
 				  if(h == (HINSTANCE)GetClassLongPtr(w, GCLP_HMODULE)){ 
@@ -202,22 +203,20 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
           
 		   } while (w); 
       
-			windowHandles.MDIs_4DhWnd = hWnd;//(HWND)PA_GetHWND(0); 
+			windowHandles.MDIs_4DhWnd = w; 
+
+			*/
 
 			// REB 11/2/12 #34333
-			//if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
-				Unistring = PA_GetApplicationFullPath();
-				pathName = UnistringToCString(&Unistring);
-				charPos = strrchr(pathName,'\\');
-				*charPos = 0;
-				//windowHandles.MDIs_4DhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-				hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-			//}
+			Unistring = PA_GetApplicationFullPath();
+			pathName = UnistringToCString(&Unistring);
+			charPos = strrchr(pathName,'\\');
+			*charPos = 0;
+			windowHandles.MDIs_4DhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+			//hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 
-			//windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); 
-			windowHandles.fourDhWnd = getWindowHandle("", hWnd); 
-
-
+			windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); // This will return windowHandles.MDIs_4DhWnd at this point.
+			
 			//windowHandles.fourDhWnd = GetMainWindow();
 			//windowHandles.MDIhWnd = GetMDIClientWindow();
 			// REB 8/30/11 #28504 We already have this handle now.

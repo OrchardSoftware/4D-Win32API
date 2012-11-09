@@ -167,9 +167,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 {
 
-	HWND				hWnd;
+	HWND				hWnd, NexthWnd;
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
+	char			WindowName[255];
+	char			szClassName[255];
 
 	switch( selector )
 	{
@@ -212,11 +214,24 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			pathName = UnistringToCString(&Unistring);
 			charPos = strrchr(pathName,'\\');
 			*charPos = 0;
-			windowHandles.MDIs_4DhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-			//hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-
-			windowHandles.fourDhWnd = getWindowHandle("", windowHandles.MDIs_4DhWnd); // This will return windowHandles.MDIs_4DhWnd at this point.
+			windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 			
+			NexthWnd = GetWindow(windowHandles.fourDhWnd,GW_CHILD);
+			do {
+				if(IsWindow(NexthWnd)){
+					GetWindowText(NexthWnd,WindowName,255);
+					GetClassName(NexthWnd, szClassName, 255);
+					if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+						windowHandles.MDIs_4DhWnd =  NexthWnd;
+						break;
+					}
+					NexthWnd = GetNextWindow(NexthWnd,GW_HWNDNEXT);
+				}
+			} while(IsWindow(NexthWnd));
+		
+
+
+
 			//windowHandles.fourDhWnd = GetMainWindow();
 			//windowHandles.MDIhWnd = GetMDIClientWindow();
 			// REB 8/30/11 #28504 We already have this handle now.
@@ -249,20 +264,22 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		  //Blk4D.fHandle = NULL;  OBSOLETE
 		  //Call4D (EX_GET_HWND, &Blk4D);
 		  //hWnd = (HWND)Blk4D.fHandle;
-			//hWnd = PA_GetHWND(NULL); // the current frontmost window
-			//if(!(IsWindow(hWnd))){
+			hWnd = PA_GetHWND(NULL); // the current frontmost window
+			if(!(IsWindow(hWnd))){
 			// Always get the frontmost window in this way.
-				 Unistring = PA_GetApplicationFullPath();
-				 pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
-				 charPos = strrchr(pathName,'\\');
-				 *charPos = 0;
-				 hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-			//}else{
+				 //Unistring = PA_GetApplicationFullPath();
+				 //pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
+				 //charPos = strrchr(pathName,'\\');
+				 //*charPos = 0;
+				 //hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+				 hWnd = windowHandles.MDIs_4DhWnd;
+			}//else{
 				//hWnd = PA_GetHWND(NULL); // the current frontmost window
 			//}
 		
 			// while this is all we need to get frontmost window, we are probably looking for a titled window
 			gui_GetWindow( params, hWnd );
+			
 			break;
 
 		case 2 :
@@ -619,6 +636,10 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 
 		case 94:
 			sys_IsAppRunningAsService( params ); // REB 1/12/11 #25587
+			break;
+
+		case 95:
+			sys_CompareBLOBs( params ); // REB 11/9/12 TESTING
 			break;
 
 	}
@@ -4441,6 +4462,45 @@ void sys_IsAppRunningAsService( PA_PluginParameters params )
    PA_ReturnShort( params, serviceInd ); 
 
 }
+
+
+
+// ------------------------------------------------
+// 
+//  FUNCTION: sys_CompareBLOBs( PA_PluginParameters params )
+//
+//  PURPOSE:  Compare two BLOBs and return 1 if they are equal and 0 if they are not.
+//        
+//	DATE:	  // REB 11/9/12 TESTING
+//
+void sys_CompareBLOBs( PA_PluginParameters params )
+{
+	LONG_PTR returnValue = 0;
+	LONG_PTR len1, len2;
+	char *BLOB1  = NULL;
+	char *BLOB2  = NULL;
+
+	len1 = PA_GetBlobParameter( params, 1, NULL);
+	BLOB1 = malloc(len1);
+	len1 = PA_GetBlobParameter( params, 1, BLOB1);
+
+	len2 = PA_GetBlobParameter( params, 2, NULL);
+	BLOB2 = malloc(len2);
+	len2 = PA_GetBlobParameter( params, 2, BLOB2);
+	
+	if(len1 == len2){
+		returnValue = memcmp(BLOB1, BLOB2, len1);
+	}else{
+		returnValue = -1;
+	}
+
+	free(BLOB1);
+	free(BLOB2);
+
+   PA_ReturnLong( params, returnValue ); 
+
+}
+
 
 //----------------------------------------------------------------------
 //

@@ -179,6 +179,7 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 
 
 		case kInitPlugin :
+		case kServerInitPlugin:
 
 			// get MDI & parent window on init 4/15/02
 			// REB 2/20/09 #19122 Use new method to get handles.  PA_GetHWND(0) does not work in v11 like it did in previous version.
@@ -272,6 +273,27 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 				 //charPos = strrchr(pathName,'\\');
 				 //*charPos = 0;
 				 //hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+				if(!(IsWindow(windowHandles.MDIs_4DhWnd))){
+					Unistring = PA_GetApplicationFullPath();
+					pathName = UnistringToCString(&Unistring);
+					charPos = strrchr(pathName,'\\');
+					*charPos = 0;
+					windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+			
+					NexthWnd = GetWindow(windowHandles.fourDhWnd,GW_CHILD);
+					do {
+						if(IsWindow(NexthWnd)){
+							GetWindowText(NexthWnd,WindowName,255);
+							GetClassName(NexthWnd, szClassName, 255);
+							if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+								windowHandles.MDIs_4DhWnd =  NexthWnd;
+								break;
+							}
+							NexthWnd = GetNextWindow(NexthWnd,GW_HWNDNEXT);
+						}
+					} while(IsWindow(NexthWnd));
+
+				}
 				 hWnd = windowHandles.MDIs_4DhWnd;
 			}//else{
 				//hWnd = PA_GetHWND(NULL); // the current frontmost window

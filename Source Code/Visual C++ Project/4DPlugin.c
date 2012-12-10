@@ -255,10 +255,11 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			}
 			CloseHandle(hSubclassMutex); // MJG 3/26/04
 			// REB 1/8/10 #22389
-			sys_EnableTaskManager( params );
-			gui_ShowTaskBar( params );
-			gui_ShowTitleBar( params );
-			gui_SetMDIOpaque( params );
+			// REB 12/10/12 #34565
+			//sys_EnableTaskManager( params );
+			//gui_ShowTaskBar( params );
+			//gui_ShowTitleBar( params );
+			//gui_SetMDIOpaque( params );
 			break;
 
 		case 1 :
@@ -4225,7 +4226,7 @@ void sys_DisableTaskManager (PA_PluginParameters params)
 //
 // FUNCTION:	sys_EnableTaskManager
 //
-// PURPOSE:		Restore the MDI window.
+// PURPOSE:		Enable task manager.
 //
 // REB 1/8/10 #22389 Code contributed by miyako
 //

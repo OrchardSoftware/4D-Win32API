@@ -284,7 +284,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
-				AdditionalDependencies="odbc32.lib odbccp32.lib rpcrt4.lib IphlpApi.lib ppc_h\asintppc.lib Winmm.lib Comctl32.lib Wininet.lib  Vfw32.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib rpcrt4.lib IphlpApi.lib ppc_h\asintppc.lib Winmm.lib Comctl32.lib Wininet.lib Vfw32.lib Version.lib"
 				OutputFile="Win32API.bundle\Contents\Windows\Win32API.4DX"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -586,7 +586,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="true"
-				AdditionalDependencies="odbc32.lib odbccp32.lib rpcrt4.lib IphlpApi.lib ppc_h\asintppc.lib Winmm.lib Comctl32.lib Wininet.lib  Vfw32.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib rpcrt4.lib IphlpApi.lib ppc_h\asintppc.lib Winmm.lib Comctl32.lib Wininet.lib Vfw32.lib Version.lib"
 				OutputFile="Win32API.bundle\Contents\Windows64\Win32API.4DX"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

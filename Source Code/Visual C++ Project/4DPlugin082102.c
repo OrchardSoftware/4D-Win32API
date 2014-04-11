@@ -150,7 +150,7 @@ void sys_ShellExecute( PA_PluginParameters params )
 			} while (*pChar++ != '\0');
 		}
 		
-		returnValue = (LONG_PTR) ShellExecute(NULL, operation, file, parameters, directory, howToShow);
+		returnValue = (LONG_PTR) ShellExecuteW(NULL, operation, file, parameters, directory, howToShow);
 		
 		strcpy(returnText, "");
 		if (returnValue <= 32) { // error occurred

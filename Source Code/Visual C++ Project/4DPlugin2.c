@@ -647,6 +647,9 @@ void gui_LoadBackground( PA_PluginParameters params, BOOL DeInit )
 	char						windowTitle[] =  "MDI"; 
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
+	HWND NexthWnd;
+	char			WindowName[255];
+	char			szClassName[255];
 
 	//EngineBlock			Blk4D;
 
@@ -712,18 +715,42 @@ void gui_LoadBackground( PA_PluginParameters params, BOOL DeInit )
 		//Blk4D.fHandle = NULL; // 09/09/02
 		//Call4D (EX_GET_HWND, &Blk4D);
 		//hWnd = (HWND)Blk4D.fHandle;
+
 		// REB 4/20/11 #27322
-		if(PA_Is4DServer()){
-			Unistring = PA_GetApplicationFullPath();
-			pathName = UnistringToCString(&Unistring); 
-			charPos = strrchr(pathName,'\\');
-			*charPos = 0;
-			hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-		}else{
-			hWnd = PA_GetHWND(NULL); // the current frontmost window
-		}
-		//hWnd = (HWND)PA_GetHWND(0); //09/09/02
-		hWnd = getWindowHandle(windowTitle, hWnd);
+		//if(PA_Is4DServer()){
+		//	Unistring = PA_GetApplicationFullPath();
+		//	pathName = UnistringToCString(&Unistring); 
+		//	charPos = strrchr(pathName,'\\');
+		//	*charPos = 0;
+		//	hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+		//}else{
+		//	hWnd = PA_GetHWND(NULL); // the current frontmost window
+		//}
+		////hWnd = (HWND)PA_GetHWND(0); //09/09/02
+		//hWnd = getWindowHandle(windowTitle, hWnd);
+
+		// AMS 4/29/14 #39196 Replaced the code above. It seems as if PA_GetHWND(0) is no longer working correctly in v14. 
+		Unistring = PA_GetApplicationFullPath();
+		pathName = UnistringToCString(&Unistring);
+		charPos = strrchr(pathName, '\\');
+		*charPos = 0;
+		windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+
+		NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
+		do {
+			if (IsWindow(NexthWnd)){
+				GetWindowText(NexthWnd, WindowName, 255);
+				GetClassName(NexthWnd, szClassName, 255);
+				if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+					windowHandles.MDIs_4DhWnd = NexthWnd;
+					break;
+				}
+				NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
+			}
+		} while (IsWindow(NexthWnd));
+
+		hWnd = windowHandles.MDIs_4DhWnd;
+
 	} else {
 		hWnd = windowHandles.MDIhWnd;
 	}

@@ -150,6 +150,8 @@ void sys_ShellExecute( PA_PluginParameters params )
 			} while (*pChar++ != '\0');
 		}
 		
+		CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); // AMS 5/6/14 #38727
+
 		returnValue = (LONG_PTR) ShellExecuteW(NULL, operation, file, parameters, directory, howToShow);
 		
 		strcpy(returnText, "");

@@ -2193,8 +2193,15 @@ void gui_GetWindowFrom4DWin( PA_PluginParameters params )
 
 	h4DWnd = PA_GetLongParameter( params, 1 );
 
-	returnValue = PA_GetHWND( h4DWnd );
-
+	if (PA_Is4DServer) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server 
+	{
+		returnValue = PA_GetHWND(PA_GetWindowFocused());
+	}
+	else
+	{
+		returnValue = PA_GetHWND(h4DWnd);
+	}
+	
 	PA_ReturnLong( params, returnValue );
 }
 

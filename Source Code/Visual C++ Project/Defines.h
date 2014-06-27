@@ -1,7 +1,7 @@
 // --- defines etc
 
 typedef BOOL (CALLBACK* LPFNDLLFUNC1) (PFLASHWINFO);
-typedef DWORD (CALLBACK* LPFNDLLFUNC2) (PFIXED_INFO, PULONG);
+typedef DWORD (CALLBACK* LPFNDLLFUNC2) (PFIXED_INFO, PULOBG);
 typedef DWORD (CALLBACK* LPFNDLLFUNC3) (PMIB_IPFORWARDTABLE, PULONG, BOOL);
 typedef BOOL (CALLBACK* LPFNDLLFUNC4) (LPDWORD, DWORD);
 
@@ -18,7 +18,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 6.2.1 // AMS 6/23/14 #39916 Update this constant with each version update
+#define WIN32API_VERSION 5.1
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2

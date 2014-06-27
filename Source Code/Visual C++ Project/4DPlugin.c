@@ -2190,12 +2190,10 @@ void gui_GetWindowFrom4DWin( PA_PluginParameters params )
 {
 	LONG_PTR h4DWnd;
 	LONG_PTR returnValue;
-	LONG_PTR serverValue;
 
 	h4DWnd = PA_GetLongParameter( params, 1 );
-	serverValue = PA_GetLongParameter( params, 2 );
 
-	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
+	if (PA_Is4DServer) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server 
 	{
 		returnValue = PA_GetHWND(PA_GetWindowFocused());
 	}

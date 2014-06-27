@@ -4686,11 +4686,11 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 
 	free( file ); 
 
-	PA_SetLongParameter( params, 2, (LONG)major );
-	PA_SetLongParameter( params, 3, (LONG)minor );
-	PA_SetLongParameter( params, 4, (LONG)build );
-	PA_SetLongParameter( params, 5, (LONG)rev );
+	PA_SetLongParameter( params, 2, major );
+	PA_SetLongParameter( params, 3, minor );
+	PA_SetLongParameter( params, 4, build );
+	PA_SetLongParameter( params, 5, rev );
 
-	PA_ReturnLong( params, (LONG)ret);
+	PA_ReturnLong( params, ret);
 
 }

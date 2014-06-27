@@ -86,7 +86,7 @@ void sys_ShellExecute( PA_PluginParameters params )
 	//char *parameters = NULL;
 	//char *directory = NULL;
 
-	PA_Unistring *UnistringFile;
+	PA_Unistring *UnistringFile; 
 	PA_Unistring *UnistringOperation; 
 	PA_Unistring *UnistringParameters; 
 	PA_Unistring *UnistringDirectory; 

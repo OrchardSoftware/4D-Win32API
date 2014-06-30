@@ -120,7 +120,6 @@ void sys_EnableTaskManager (PA_PluginParameters params); // REB 1/8/10 #22389
 void sys_SetRegKey( PA_PluginParameters params, LONG_PTR selector ); // REB 11/17/10 #25402
 void sys_IsAppRunningAsService( PA_PluginParameters params ); // REB 1/12/11 #25587
 void sys_CompareBLOBs( PA_PluginParameters params); // REB 11/9/12 TESTING
-void sys_GetFileVersionInfo( PA_PluginParameters params); // AMS 2/10/14 #36899
 
 // ----- Other modules -------
 //window background-related

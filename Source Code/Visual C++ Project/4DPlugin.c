@@ -677,9 +677,6 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			sys_CompareBLOBs( params ); // REB 11/9/12 TESTING
 			break;
 
-		case 96:
-			sys_GetFileVersionInfo( params ); // AMS 2/10/14 #36899
-			break;
 	}
 }
 
@@ -4622,75 +4619,3 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 }
 
 
-//----------------------------------------------------------------------
-//
-// FUNCTION:	sys_GetFileVersionInfo
-//
-// PURPOSE:		Return file version information 
-//
-// AMS 2/14/10 #36899
-//
-void sys_GetFileVersionInfo( PA_PluginParameters params )
-{
-	char *verData = NULL;
-	char *file = NULL;
-	DWORD verHandle = NULL;
-	DWORD verSize = NULL;	
-
-	LONG_PTR ret=0;
-	LONG_PTR major = 0;
-	LONG_PTR minor = 0;
-	LONG_PTR rev  = 0;
-	LONG_PTR build = 0;
-
-	UINT size = 0;
-	LPBYTE *lpBuffer = NULL;
-
-	file = getTextParameter( params, 1 );
-
-	verSize = GetFileVersionInfoSize( file, &verHandle );
-
-	if( 0 != verSize )
-	{
-		verData = malloc(verSize);
-		if( GetFileVersionInfo( file, verHandle, verSize, verData) )
-		{
-			ret = 1;
-			if( VerQueryValue(verData, "\\", (VOID FAR* FAR*)&lpBuffer, &size) )
-			{
-				if(size)
-				{
-					VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
-					if(verInfo->dwSignature == 0xfeef04bd)
-					{
-						major = HIWORD(verInfo->dwFileVersionMS);
-					    minor = LOWORD(verInfo->dwFileVersionMS);
-						build = HIWORD(verInfo->dwFileVersionLS);
-						rev   = LOWORD(verInfo->dwFileVersionLS);
-					}
-
-				}
-
-			}
-
-		}
-	
-		else
-		{
-			ret = GetLastError();
-		}
-
-		free( verData );	
-	
-	}
-
-	free( file ); 
-
-	PA_SetLongParameter( params, 2, major );
-	PA_SetLongParameter( params, 3, minor );
-	PA_SetLongParameter( params, 4, build );
-	PA_SetLongParameter( params, 5, rev );
-
-	PA_ReturnLong( params, ret);
-
-}

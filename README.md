@@ -12,4 +12,4 @@ Win32API 6.2.1 has been tested with 4D v11 SQL and 4D v12 on Windows XP SP3, Vis
 Win32API 5.0 has been tested with 4D v11 SQL and 4D v12 on Windows XP SP3, Vista, 7, Server 2003, and Server 2008. If you need to support older versions of 4D or older versions of Windows, please use an older version of Win32API.
 >>>>>>> parent of 45b067c... 6.0 Release
 
-Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Debbie Schilling](mailto:dschilling@orchardsoft.com).
+Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Jeffrey Kain](mailto:jkain@orchardsoft.com).

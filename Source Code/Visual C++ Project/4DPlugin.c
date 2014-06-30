@@ -41,17 +41,16 @@
 #include "EZTWAIN.h" // REB 6/23/09 #14151
 #include "TWAIN.h" // REB 6/23/09 #14151
 #include "utilities.h" // REB 3/28/11 #25290
-#include "process.h" // REB 2/25/13 #35165
 
-char		g_methodText[255]; // holds method name to execute on tool tip action
-char		intrProcStr1[MAX_PATH], intrProcStr2[MAX_PATH];
-BOOL		g_bDragFull;
-pLL			startOfList = NULL; // unordered linked list for restictWindow
-HANDLE		hSubclassMutex;  // MJG 3/26/04
-BOOL		g_FolderSelected;  // MJG 6/15/05
-char		pathName[512]; // MWD 10/21/05 #9246 holds path to Win32API.4DX
-LPCWSTR		KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
-LPCWSTR		VAL_DisableTaskMgr = "DisableTaskMgr";
+char	g_methodText[255]; // holds method name to execute on tool tip action
+char	intrProcStr1[MAX_PATH], intrProcStr2[MAX_PATH];
+BOOL	g_bDragFull;
+pLL		startOfList = NULL; // unordered linked list for restictWindow
+HANDLE	hSubclassMutex;  // MJG 3/26/04
+BOOL	g_FolderSelected;  // MJG 6/15/05
+char pathName[512]; // MWD 10/21/05 #9246 holds path to Win32API.4DX
+LPCWSTR KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
+LPCWSTR VAL_DisableTaskMgr = "DisableTaskMgr";
 LONG_PTR	windowStyle = 0; // REB 3/11/10 #23109 To hold the default window style.
 
 struct		HOOKHANDLES
@@ -144,17 +143,6 @@ extern struct		TOOLBARRESTRICT
 	char		minimizedWindows[SMLBUF][SMLBUF]; // REB 8/11/08 #16207 
 	RECT		previousWindowRect; // REB 3/26/10
 } toolBarRestrictions;
-
-
-// REB 2/26/13 #35165 Structure to communicate with the helper thread
-typedef struct	_TWAIN_CAPTURE
-{
-	LONG_PTR	returnValue;
-	HANDLE		DIBHandle;
-	BOOL		done;
-
-} TWAIN_CAPTURE;
-
 
 // MWD 10/21/05 #9246
 // Use the DllMain function to get the path to the calling DLL and store it in a global for further use.
@@ -3751,7 +3739,6 @@ void TWAIN_GetSources ( PA_PluginParameters params )
     memset(&NewSourceId, 0, sizeof NewSourceId);
 
 	state = TWAIN_State();
-
 	if (state >= TWAIN_SM_OPEN || TWAIN_OpenSourceManager(windowHandles.fourDhWnd)) {
 		OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, &NewSourceId);
 		if(!(debug)){
@@ -3810,25 +3797,10 @@ void TWAIN_SetSource ( PA_PluginParameters params )
 
 
 
-// REB 2/26/13 #35165 Intermediary method we can call as a new thread.
-unsigned __stdcall TWAIN_GetImage (void *arg)
-{
-	LONG_PTR		returnValue = 0;
-	TWAIN_CAPTURE*	TWAINCapture;
-
-	TWAINCapture = (TWAIN_CAPTURE*)arg;
-	TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
-	TWAINCapture->DIBHandle = TWAIN_AcquireNative( NULL, TWAIN_ANYTYPE, &returnValue);
-
-	TWAINCapture->done = TRUE;
-	TWAINCapture->returnValue = returnValue;
-	
-}
-
 void TWAIN_AcquireImage ( PA_PluginParameters params )
 {
 
-	LONG_PTR		returnValue = 0, showDialog, threadID;
+	LONG_PTR		returnValue = 0, showDialog;
 	char*			charPos;
 	char			fileName[255] = "";
 	char			fileName2[255] = "";
@@ -3836,9 +3808,7 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 	char			command[255] = "";
 	char			pathChar[1] = "\\";
 	HANDLE			DIBHandle = NULL;
-	HANDLE			CaptureThread;
 	PA_Unistring	Unistring;
-	TWAIN_CAPTURE	TWAINCapture; // REB 2/26/13 #35165
 
 	showDialog = PA_GetLongParameter( params, 1 );
 
@@ -3864,6 +3834,8 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 		}
 	}
 
+
+
 	// Allow the image dialog to display if so desired.
 	if (showDialog){
 		TWAIN_SetHideUI(0); 
@@ -3871,30 +3843,7 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 		TWAIN_SetHideUI(1); 
 	}	
 
-	// REB 2/26/13 #35165 Load our variables into the structure we can pass to the new thread
-	TWAINCapture.returnValue = 0;
-	TWAINCapture.DIBHandle = DIBHandle;
-	TWAINCapture.done = FALSE;
-	
-	//DIBHandle = TWAIN_AcquireNative( windowHandles.fourDhWnd, TWAIN_ANYTYPE, &returnValue);
-	// REB 2/26/13 #35165 Start a new thread to handle the image acquisition so that we can yield time
-	// back to 4D to prevent an application timeout.
-	CaptureThread = (HANDLE)_beginthreadex(NULL, 0, TWAIN_GetImage, &TWAINCapture, 0, &threadID);
-
-	// REB 2/26/13 #35165 4D says to call this at least three times when starting an external process.
-	// That's not exactly what we're doing but I'll err on the side of caution.
-	PA_YieldAbsolute();
-	PA_YieldAbsolute();
-	PA_YieldAbsolute();
-
-	// Yield time back to 4D until the capture is finished.
-	while(TWAINCapture.done == FALSE){
-		PA_YieldAbsolute();
-	}
-
-	// REB 2/26/13 #35165 Now get the values from the structure
-	DIBHandle = TWAINCapture.DIBHandle;
-	returnValue = TWAINCapture.returnValue;
+	DIBHandle = TWAIN_AcquireNative( windowHandles.fourDhWnd, TWAIN_ANYTYPE, &returnValue);
 
 
 	// Updated so that return code is 1 for success, 0 for cancel and negative for error codes.
@@ -4609,5 +4558,4 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 	}
 	return CallNextHookEx( hookHandles.keyboardLLHook, code, wParam, lParam );
 }
-
 

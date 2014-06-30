@@ -358,7 +358,7 @@ void EZTAPI TWAIN_WaitForXfer(HWND hwnd, LONG_PTR *lErr)
    hwnd = GetValidHwnd(hwnd);
    // Disable the parent window during the modal acquire
    // REB #14151 Leave the parent window alone!
-   //bWasEnabled = (EnableWindow(hwnd, FALSE) == 0);
+   // bWasEnabled = (EnableWindow(hwnd, FALSE) == 0);
 
    if (nState == TWAIN_TRANSFER_READY) {
       DoOneTransfer();
@@ -373,7 +373,7 @@ void EZTAPI TWAIN_WaitForXfer(HWND hwnd, LONG_PTR *lErr)
 
    // Re-enable the parent window if it was enabled
    // REB #14151 Leave the parent window alone!
-   //EnableWindow(hwnd, bWasEnabled);
+  // EnableWindow(hwnd, bWasEnabled);
 } // TWAIN_WaitForXfer
 
 
@@ -995,14 +995,16 @@ static TW_INT32 hwnd32SM;
 
 INT_PTR EZTAPI TWAIN_OpenSourceManager(HWND hwnd)
 {
-   hwnd32SM = (TW_INT32)GetValidHwnd(hwnd);
+	hwnd32SM = (TW_INT32)GetValidHwnd(hwnd);
+
    if (nState < TWAIN_SM_OPEN) {
 	   if (TWAIN_LoadSourceManager() &&
 		   TWAIN_Mgr(DG_CONTROL, DAT_PARENT, MSG_OPENDSM, &hwnd32SM)) {
 		   assert(nState == TWAIN_SM_OPEN);
 	   }
    }
-   return (nState >= TWAIN_SM_OPEN);
+
+	return (nState >= TWAIN_SM_OPEN);
 } // TWAIN_OpenSourceManager
 
 
@@ -1031,6 +1033,7 @@ INT_PTR EZTAPI TWAIN_EnableSource(HWND hwnd)
    if (nState < TWAIN_SOURCE_OPEN && !TWAIN_OpenDefaultSource()) {
       return FALSE;
    }
+
 	twUI.ShowUI = !bHideUI;
 	twUI.hParent = (TW_HANDLE)GetValidHwnd(hwnd);
 	TWAIN_DS(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, &twUI);
@@ -1056,15 +1059,13 @@ INT_PTR EZTAPI TWAIN_CloseSource(void)
 	if (nState == TWAIN_SOURCE_OPEN &&
 		TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &SourceId)) {
 		assert(nState == TWAIN_SM_OPEN);
-	}	
+	}
 	return (nState <= TWAIN_SM_OPEN);
 } // TWAIN_CloseSource
 
 
 INT_PTR EZTAPI TWAIN_CloseSourceManager(HWND hwnd)
 {
-
-
 	if (nState > TWAIN_SM_OPEN) {
 		TWAIN_CloseSource();
 	}
@@ -1075,10 +1076,6 @@ INT_PTR EZTAPI TWAIN_CloseSourceManager(HWND hwnd)
 			assert(nState == TWAIN_SM_LOADED);
 		}
 	}
-	// REB 2/28/13 #35165 Let's try clearing this here.
-	DestroyWindow(hwndProxy);
-	hwndProxy = NULL; 
-
 	return (nState <= TWAIN_SM_LOADED);
 } // TWAIN_CloseSourceManager
 

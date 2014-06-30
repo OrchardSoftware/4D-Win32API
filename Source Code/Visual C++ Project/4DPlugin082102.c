@@ -71,31 +71,62 @@ extern struct		PROCESSHANDLES
 //	MODIFICATIONS: 10/28/02 replace forward slashes in a provided UNC with backslashes (3.5.2)
 //				   11/21/01 made parameters longer for LONG_PTR urls etc (3.5.3)
 //                 08/08/04 Removed the limit on the length of the parameters.
+//				   03/03/14 Rewrote method to accept Unicode parameters // AMS #38727
+
 void sys_ShellExecute( PA_PluginParameters params )
 {
 	LONG_PTR returnValue = 0;
+	LONG_PTR len = 0;
 	char returnText[255]; // MWD & Mark De Wever #12225
 	INT_PTR	 howToShow;
-	char *pChar;
+	//char *pChar;
 
-	char *operation = NULL;
-	char *file = NULL;
-	char *parameters = NULL;
-	char *directory = NULL;
+	//char *operation = NULL;
+	//char *file = NULL;
+	//char *parameters = NULL;
+	//char *directory = NULL;
+
+	PA_Unistring *UnistringFile;
+	PA_Unistring *UnistringOperation; 
+	PA_Unistring *UnistringParameters; 
+	PA_Unistring *UnistringDirectory; 
+
+	PA_Unichar *file; 
+	PA_Unichar *operation; 
+	PA_Unichar *parameters; 
+	PA_Unichar *directory; 
+	PA_Unichar *pChar; 
 
 	// Get the function parameters.
-	operation = getTextParameter(params, 1);
-	file = getTextParameter(params, 2);
-	parameters = getTextParameter(params, 3);
-	directory = getTextParameter(params, 4);
+	//operation = getTextParameter(params, 1);
+	//file = getTextParameter(params, 2);
+	//parameters = getTextParameter(params, 3);
+	//directory = getTextParameter(params, 4);
+
+	UnistringOperation = PA_GetStringParameter( params, 1); 
+	UnistringFile = PA_GetStringParameter( params, 2); 
+	UnistringParameters = PA_GetStringParameter( params, 3); 
+	UnistringDirectory = PA_GetStringParameter( params, 4); 
 	howToShow = PA_GetLongParameter( params, 5 ); 
 
-	if ((strcmp(_strlwr(operation), "open")			!= 0) &&
-		 (strcmp(_strlwr(operation),  "explore")	!= 0) &&
-		 (strcmp(_strlwr(operation),  "print")		!= 0) &&
-		 (file == NULL || strlen(file) == 0)) {
-		//strcpy(returnText, "Invalid Operation");
-		strncpy(returnText, message->InvalidOperation, 255); // Mark De Wever #12225 replaced the line above
+	operation = PA_GetUnistring(UnistringOperation); // AMS /28/14
+	file = PA_GetUnistring(UnistringFile); // AMS 2/28/14
+	len = (PA_GetUnistringLength(UnistringFile) + 1); // AMS 2/28/14
+	parameters = PA_GetUnistring(UnistringParameters); // AMS 2/28/14
+	directory = PA_GetUnistring(UnistringDirectory); // AMS 2/28/14
+
+	//if ((strcmp(_strlwr(operation), "open")			!= 0) &&
+	//	 (strcmp(_strlwr(operation),  "explore")	!= 0) &&
+	//	 (strcmp(_strlwr(operation),  "print")		!= 0) &&
+	//	 (file == NULL || strlen(file) == 0)) {
+	//	//strcpy(returnText, "Invalid Operation");
+	//	strncpy(returnText, message->InvalidOperation, 255); // Mark De Wever #12225 replaced the line above
+	//}
+	if((lstrcmpiW(operation, L"open")    != 0) &&
+	   (lstrcmpiW(operation, L"explore") != 0) &&
+	   (lstrcmpiW(operation, L"print")   != 0) &&
+	   (file == NULL || len == 0)) {
+		strncpy(returnText, message->InvalidOperation, 255); 
 	}
 	else if (howToShow > 11) {
 		//strcpy(returnText, "Invalid HowToShow Constant");
@@ -110,14 +141,18 @@ void sys_ShellExecute( PA_PluginParameters params )
 			}
 		} while (*pChar++ != '\0') ;
 		
-		pChar = directory;
-		do  {
-			if (*pChar == '/') {
-				*pChar = '\\';
-			}
-		} while (*pChar++ != '\0');
+		if (directory != NULL) {
+			pChar = directory;
+			do  {
+				if (*pChar == '/') {
+					*pChar = '\\';
+				}
+			} while (*pChar++ != '\0');
+		}
 		
-		returnValue = (LONG_PTR) ShellExecute(NULL, operation, file, parameters, directory, howToShow);
+		CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); // AMS 5/6/14 #38727
+
+		returnValue = (LONG_PTR) ShellExecuteW(NULL, operation, file, parameters, directory, howToShow);
 		
 		strcpy(returnText, "");
 		if (returnValue <= 32) { // error occurred
@@ -187,10 +222,10 @@ void sys_ShellExecute( PA_PluginParameters params )
 		}
 	}
 
-	freeTextParameter(operation);
-	freeTextParameter(file);
-	freeTextParameter(parameters);
-	freeTextParameter(directory);
+	//freeTextParameter(operation);
+	//freeTextParameter(file);
+	//freeTextParameter(parameters);
+	//freeTextParameter(directory);
 
 	PA_ReturnText( params, returnText, strlen(returnText));
 }

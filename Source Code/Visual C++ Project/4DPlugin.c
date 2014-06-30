@@ -677,6 +677,9 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			sys_CompareBLOBs( params ); // REB 11/9/12 TESTING
 			break;
 
+		case 96:
+			sys_GetFileVersionInfo( params ); // AMS 2/10/14 #36899
+			break;
 	}
 }
 
@@ -1360,11 +1363,17 @@ void sys_GetGUID( PA_PluginParameters params)
 void gui_GetWindow( PA_PluginParameters params, HWND hWnd )
 {
 	LONG_PTR			windowTitle_len;
-	char			windowTitle[255];
+	char				*windowTitle;
 	LONG_PTR			returnValue;
 
-	windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
-    windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
+	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
+    //windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
+
+	windowTitle_len = PA_GetTextParameter( params, 1, NULL) + 1;
+	windowTitle = malloc(windowTitle_len * sizeof(char));
+	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
+	windowTitle_len = PA_GetTextParameter( params, 1, windowTitle);
+	windowTitle[windowTitle_len] = '\0';
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		returnValue = (LONG_PTR) hWnd;
@@ -1381,6 +1390,8 @@ void gui_GetWindow( PA_PluginParameters params, HWND hWnd )
 			returnValue = -3;
 		}
 	}
+
+	free(windowTitle);
 
 	PA_ReturnLong( params, returnValue );
 }
@@ -2179,12 +2190,21 @@ void gui_GetWindowFrom4DWin( PA_PluginParameters params )
 {
 	LONG_PTR h4DWnd;
 	LONG_PTR returnValue;
+	LONG_PTR serverValue;
 
-	h4DWnd = PA_GetLongParameter( params, 1 );
+	h4DWnd = PA_GetLongParameter(params, 1);
+	serverValue = PA_GetLongParameter(params, 2);
 
-	returnValue = PA_GetHWND( h4DWnd );
+	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
+	{
+		returnValue = PA_GetHWND(PA_GetWindowFocused());
+	}
+	else
+	{
+		returnValue = PA_GetHWND(h4DWnd);
+	}
 
-	PA_ReturnLong( params, returnValue );
+	PA_ReturnLong(params, returnValue);
 }
 
 
@@ -4611,3 +4631,75 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 }
 
 
+//----------------------------------------------------------------------
+//
+// FUNCTION:	sys_GetFileVersionInfo
+//
+// PURPOSE:		Return file version information 
+//
+// AMS 2/14/10 #36899
+//
+void sys_GetFileVersionInfo( PA_PluginParameters params )
+{
+	char *verData = NULL;
+	char *file = NULL;
+	DWORD verHandle = NULL;
+	DWORD verSize = NULL;	
+
+	LONG_PTR ret=0;
+	LONG_PTR major = 0;
+	LONG_PTR minor = 0;
+	LONG_PTR rev  = 0;
+	LONG_PTR build = 0;
+
+	UINT size = 0;
+	LPBYTE *lpBuffer = NULL;
+
+	file = getTextParameter( params, 1 );
+
+	verSize = GetFileVersionInfoSize( file, &verHandle );
+
+	if( 0 != verSize )
+	{
+		verData = malloc(verSize);
+		if( GetFileVersionInfo( file, verHandle, verSize, verData) )
+		{
+			ret = 1;
+			if( VerQueryValue(verData, "\\", (VOID FAR* FAR*)&lpBuffer, &size) )
+			{
+				if(size)
+				{
+					VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+					if(verInfo->dwSignature == 0xfeef04bd)
+					{
+						major = HIWORD(verInfo->dwFileVersionMS);
+					    minor = LOWORD(verInfo->dwFileVersionMS);
+						build = HIWORD(verInfo->dwFileVersionLS);
+						rev   = LOWORD(verInfo->dwFileVersionLS);
+					}
+
+				}
+
+			}
+
+		}
+	
+		else
+		{
+			ret = GetLastError();
+		}
+
+		free( verData );	
+	
+	}
+
+	free( file ); 
+
+	PA_SetLongParameter( params, 2, (LONG)major );
+	PA_SetLongParameter( params, 3, (LONG)minor );
+	PA_SetLongParameter( params, 4, (LONG)build );
+	PA_SetLongParameter( params, 5, (LONG)rev );
+
+	PA_ReturnLong( params, (LONG)ret);
+
+}

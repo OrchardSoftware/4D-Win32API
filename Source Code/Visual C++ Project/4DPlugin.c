@@ -1360,11 +1360,17 @@ void sys_GetGUID( PA_PluginParameters params)
 void gui_GetWindow( PA_PluginParameters params, HWND hWnd )
 {
 	LONG_PTR			windowTitle_len;
-	char			windowTitle[255];
+	char				*windowTitle;
 	LONG_PTR			returnValue;
 
-	windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
-    windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
+	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
+    //windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
+
+	windowTitle_len = PA_GetTextParameter( params, 1, NULL) + 1;
+	windowTitle = malloc(windowTitle_len * sizeof(char));
+	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
+	windowTitle_len = PA_GetTextParameter( params, 1, windowTitle);
+	windowTitle[windowTitle_len] = '\0';
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		returnValue = (LONG_PTR) hWnd;
@@ -1381,6 +1387,8 @@ void gui_GetWindow( PA_PluginParameters params, HWND hWnd )
 			returnValue = -3;
 		}
 	}
+
+	free(windowTitle);
 
 	PA_ReturnLong( params, returnValue );
 }

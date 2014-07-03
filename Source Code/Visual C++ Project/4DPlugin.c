@@ -3859,8 +3859,16 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 	HANDLE			CaptureThread;
 	PA_Unistring	Unistring;
 	TWAIN_CAPTURE	TWAINCapture; // REB 2/26/13 #35165
+	char *BLOB = NULL; // AMS 7/3/14 #39391
+	LONG_PTR len = 0; // AMS 7/3/14 #39391
 
 	showDialog = PA_GetLongParameter( params, 1 );
+
+	// AMS 7/3/14 #39391 Get the blob parameter
+	BLOB = NULL;
+	len = PA_GetBlobParameter(params, 2, NULL);
+	BLOB = malloc(len);
+	len = PA_GetBlobParameter(params, 2, BLOB);
 
 	Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
 	pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
@@ -3927,15 +3935,43 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 
 			returnValue = 1;
 
-			strcpy(command, "DOCUMENT TO BLOB(\"");
-			strcat(command, fileName2);
-			strcat(command, "\";xTWAINBLOB)");
+			if (len == 0) // AMS 7/3/14 #39391 Use ExecuteCommandById if a blob parameter was passed in
+			{
 
-			// REB 4/20/11 #27322 Conver the C string to a Unistring
-			Unistring = CStringToUnistring(&command);
-			PA_ExecuteMethod(&Unistring);
-			//PA_ExecuteMethod(command, strlen(command));
+				strcpy(command, "DOCUMENT TO BLOB(\"");
+				strcat(command, fileName2);
+				strcat(command, "\";xTWAINBLOB)");
 
+				// REB 4/20/11 #27322 Conver the C string to a Unistring
+				Unistring = CStringToUnistring(&command);
+				PA_ExecuteMethod(&Unistring);
+				//PA_ExecuteMethod(command, strlen(command));
+			}
+			else
+			{
+
+				PA_Unistring _path = CStringToUnistring(fileName);
+				PA_Variable varArray[2];
+
+				varArray[0] = PA_CreateVariable(eVK_Unistring);
+				PA_SetStringVariable(&varArray[0], &_path);
+
+				varArray[1] = PA_CreateVariable(eVK_Blob);
+				varArray[1].fFiller = 0;
+
+				PA_ExecuteCommandByID(525, varArray, 2); 
+
+				char *twainBlob;
+				long blobSize;
+
+				blobSize = PA_GetBlobVariable(varArray[1], NULL);
+				twainBlob = malloc(blobSize);
+				blobSize = PA_GetBlobVariable(varArray[1], twainBlob);
+
+				PA_SetBlobParameter(params, 2, twainBlob, blobSize); 
+
+				free(twainBlob); 
+			}
 			DeleteFile(fileName);
 		}
 	}

@@ -313,11 +313,11 @@ BOOL reviewProcesses(HANDLE hPSapiDLL, LPFNENUMPROC lpfnEnumProc,	LPFNENUMPROCMO
 										 LPFNGETMODFNAME lpfnGetModFName, char *pAppName, BOOL bUseToolHelp)
 {
 	LONG_PTR					returnValue = 0;
-	DWORD					aProcesses[1024], cbNeeded, cProcesses, cMods;
+	DWORD					aProcesses[2048], cbNeeded, cProcesses, cMods; // AMS 7/7/14 #39738 Changed aProcesses value from 1024 to 2048 
 	UINT					i, j;
 	char					szProcessName[MAX_PATH] = "Unknown";
 	char					szModName[MAX_PATH];
-	HMODULE					hMods[1024];
+	HMODULE					hMods[2048]; // AMS 7/7/14 #39738 Changed 1024 to 2048
 	HANDLE					hProcess	 = NULL, hProcessSnap = NULL;
 	PROCESSENTRY32			pe32			 = {0};
 	BOOL					bFuncReturn = FALSE;

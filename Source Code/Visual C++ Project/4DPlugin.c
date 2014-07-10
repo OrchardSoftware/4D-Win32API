@@ -3955,6 +3955,8 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 					}
 				}
 
+				cName[(strlen(cName))] = '\0';
+
 				//strcpy(command, "DOCUMENT TO BLOB(\"");
 				strncpy(command, cName, sizeof(command));
 				strcat(command, "(\"");

@@ -3938,7 +3938,26 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 			if (len == 0) // AMS 7/3/14 #39391 Use ExecuteCommandById if a blob parameter was passed in
 			{
 
-				strcpy(command, "DOCUMENT TO BLOB(\"");
+				// AMS 7/10/14 #39391 Rewrote this portion of the method to use PA_GetCommandName. This allows users to not have to pass in an extra blob parameter. 
+				char cmdName[256] = "";
+				char cName[256] = "";
+
+				PA_GetCommandName(525, cmdName);
+
+				int j = 0;
+
+				for (int i = 0; i <= sizeof(cmdName); i++)
+				{
+					if (cmdName[i] != '\0')
+					{
+						cName[j] = cmdName[i];
+						j++;
+					}
+				}
+
+				//strcpy(command, "DOCUMENT TO BLOB(\"");
+				strncpy(command, cName, sizeof(command));
+				strcat(command, "(\"");
 				strcat(command, fileName2);
 				strcat(command, "\";xTWAINBLOB)");
 
@@ -3947,7 +3966,7 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 				PA_ExecuteMethod(&Unistring);
 				//PA_ExecuteMethod(command, strlen(command));
 			}
-			else
+			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
 			{
 
 				PA_Unistring _path = CStringToUnistring(fileName);
@@ -3975,6 +3994,8 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 			DeleteFile(fileName);
 		}
 	}
+
+	free(BLOB); // AMS 7/10/14 #39391
 
 	PA_ReturnLong( params, returnValue );
 

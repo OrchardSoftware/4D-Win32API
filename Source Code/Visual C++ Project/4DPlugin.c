@@ -235,7 +235,8 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 					GetWindowText(NexthWnd,WindowName,255);
 					GetClassName(NexthWnd, szClassName, 255);
 					if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
-						windowHandles.MDIs_4DhWnd =  NexthWnd;
+						//windowHandles.MDIs_4DhWnd =  NexthWnd; // AMS 8/12/14 #39693 This was not the correct handle to use for the MDI Client. It was causing toolbars to work incorrectly.  
+						windowHandles.MDIhWnd = NexthWnd; // AMS 8/12/14 #39693 This is the correct handle for the MDI Client.
 						break;
 					}
 					NexthWnd = GetNextWindow(NexthWnd,GW_HWNDNEXT);
@@ -248,7 +249,7 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			//windowHandles.fourDhWnd = GetMainWindow();
 			//windowHandles.MDIhWnd = GetMDIClientWindow();
 			// REB 8/30/11 #28504 We already have this handle now.
-			//windowHandles.MDIs_4DhWnd = GetWindow(windowHandles.MDIhWnd, GW_CHILD); //REB 3/26/10 #22878 Get the correct child handle so toolbars work correctly.
+			windowHandles.MDIs_4DhWnd = GetWindow(windowHandles.MDIhWnd, GW_CHILD); //REB 3/26/10 #22878 Get the correct child handle so toolbars work correctly. // AMS 8/12/14 #39693 Uncommented this line. This line is still needed in order for tollbars to work correctly.
 
 			SystemParametersInfo(SPI_GETDRAGFULLWINDOWS, 0, &g_bDragFull, 0);
 			hSubclassMutex = CreateMutex(NULL, FALSE, "Win32APIMutexToProtect4DProc");  // MJG 3/26/04
@@ -3946,6 +3947,8 @@ void TWAIN_AcquireImage ( PA_PluginParameters params )
 
 				int j = 0;
 
+				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+				// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
 				for (int i = 0; i <= sizeof(cmdName); i++)
 				{
 					if (cmdName[i] != '\0')

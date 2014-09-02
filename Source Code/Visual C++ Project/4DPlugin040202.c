@@ -593,6 +593,12 @@ LRESULT APIENTRY ProToolsProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 					lpwp->cy = rect.bottom - rect.top + (2 * yFrame) - toolBarRestrictions.top - toolBarRestrictions.bottom;
 					return 0;
 				}
+
+				if (toolBarRestrictions.top > 0){  // AMS 8/29/14 #39693 If its a top toolbar, prevent windows from being able to be placed behind the toolbar NOTE: This fix does not work in Windows versions 8 or newer
+					if (lpwp->y < toolBarRestrictions.top){
+						lpwp->y = toolBarRestrictions.top - 1;
+					}
+				}
 				break;
 
 			case WM_GETMINMAXINFO :

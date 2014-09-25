@@ -6,6 +6,7 @@
 
 char * getTextParameter(PA_PluginParameters, short);
 void freeTextParameter(char *);
+int compareFileTimeCreation(const void* p1, const void* p2);
 void setError (LONG_PTR value); // MJG 7/5/05 #8372
 LONG_PTR PA_GetTextParameter (PA_PluginParameters, short, char*); // REB 3/22/11 #25290
 void PA_SetTextParameter( PA_PluginParameters , short , char* , LONG_PTR ); // REB 3/22/11 #25290

@@ -16,6 +16,21 @@ void freeTextParameter(char *textParam)
 
 }
 
+int compareFileTimeCreation(WIN32_FIND_DATA* p1, WIN32_FIND_DATA* p2)
+{
+	
+	int temp;
+	FILETIME a;
+	FILETIME b;
+
+	a = p1->ftCreationTime;
+	b = p2->ftCreationTime;
+	temp = (int)CompareFileTime(&a, &b);
+	
+	return temp;
+}
+
+
 char * concatStr(const char *str1, const char *str2)
 {
 	char *newStr = NULL;

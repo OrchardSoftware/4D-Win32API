@@ -2606,6 +2606,7 @@ void sys_SetDefPrinter( PA_PluginParameters params )
 //	MODIFICATIONS: 12/1/03 Added check for Windows Server 2003.
 //				   7/15/09 Added check for Windows 7 
 //				   10/31/12 Added support for Windows 8 and Server 2012
+//				   AMS2 9/26/14 #37816 Added support for Windows 8.1 and Server 2012 R2
 //            
 //
 LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
@@ -2646,8 +2647,18 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
 	}
-
-
+	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
+	// Version numbers to for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
+	else if (IsWindows8Point1OrGreater()) 
+	{
+		if (IsWindowsServer())
+		{
+			returnValue = OS_SERVER2012R2;
+		}
+		else{
+			returnValue = OS_WIN81;
+		}
+	}
 
 	if (!bInternalCall) {
 		PA_SetLongParameter( params, 1, returnValue );

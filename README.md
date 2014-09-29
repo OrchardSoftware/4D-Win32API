@@ -1,4 +1,4 @@
-## New 6.4 ##
+## New in 6.4 ##
 
 Fixed the order that files are returned for sys_GetDocumentList to return the files by oldest creation date first. 
 

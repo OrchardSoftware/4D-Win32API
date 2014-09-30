@@ -6,8 +6,6 @@
 #include "EntryPoints.h"
 
 #include <Windows.h>
-//#include <stdlib.h>
-//#include <vector>
 
 
 //#include "psapi.h"  // for enumerating processes in NT & 2000
@@ -46,11 +44,12 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	HANDLE NextFind = 0;
 	BOOL getAllFiles = FALSE;
 	WIN32_FIND_DATA fileList[1000];
-	//_vectorcall 
+
 	// parameter variables
 	char *pathName = NULL;
 	char *filePattern = NULL;
 	LONG_PTR maxFilesToReturn = 0;
+	LONG_PTR fileSort = 0;
 	LONG_PTR startIndex = 0;
 	PA_Variable paReturnFileList;
 
@@ -60,7 +59,8 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	filePattern = getTextParameter(params, 2);
 	paReturnFileList = PA_GetVariableParameter(params, 3);
 	maxFilesToReturn = PA_GetLongParameter(params, 4);
-	startIndex = PA_GetLongParameter(params, 5);  // AMS2 9/16/14 #40405
+	fileSort = PA_GetLongParameter(params, 5);  // AMS2 9/30/14 #40405  Moved the sort parameter to be before start index
+	startIndex = PA_GetLongParameter(params, 6);  // AMS2 9/16/14 #40405
 
 	// Clear out the return array.
 	PA_ResizeArray(&paReturnFileList, 0);
@@ -71,6 +71,12 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	}
 	else{
 		startIndex = 0;
+	}
+
+	// AMS2 9/30/14 #40405  If they have not entered a sort option, default to the directory's sort. When adding more sort options other than by date, the method called by qsort will need to change.
+	if (fileSort == NULL)
+	{
+		fileSort = 0;
 	}
 
 	if (pathName != NULL && filePattern != NULL)
@@ -117,7 +123,9 @@ void sys_GetDocumentList(PA_PluginParameters params)
 				} // end while
 
 				// AMS2 9/18/14 #40405 Sort the array using compareFileTimeCreation which takes in two win32 find data variables and compares their creation dates.
-				qsort(fileList, fileCount, sizeof(WIN32_FIND_DATA), (int(*)(const void*, const void*))compareFileTimeCreation);
+				if (fileSort != 0){
+					qsort(fileList, fileCount, sizeof(WIN32_FIND_DATA), (int(*)(const void*, const void*))compareFileTimeCreation);
+				}
 
 				// AMS2 9/18/14 #40405 Get all of the files if 0 is passed for the max files parameter.
 				if (maxFilesToReturn == 0)

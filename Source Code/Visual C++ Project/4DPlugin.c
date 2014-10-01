@@ -2642,14 +2642,11 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		returnValue = OS_WIN7;
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 1) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2K8R2;
-	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
-		returnValue = OS_WIN8; // REB 10/31/12 #34333
-	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
-		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
-	}
+	} 	
+	
 	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
 	// Version numbers to for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-	else if (IsWindows8Point1OrGreater()) 
+	else if (IsWindows8Point1OrGreater())
 	{
 		if (IsWindowsServer())
 		{
@@ -2659,6 +2656,12 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 			returnValue = OS_WIN81;
 		}
 	}
+	else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
+		returnValue = OS_WIN8; // REB 10/31/12 #34333
+	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
+		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
+	}
+
 
 	if (!bInternalCall) {
 		PA_SetLongParameter( params, 1, returnValue );

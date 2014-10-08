@@ -78,6 +78,9 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	{
 		fileSort = 0;
 	}
+	else{
+		fileSort = 1;
+	}
 
 	if (pathName != NULL && filePattern != NULL)
 	{
@@ -123,7 +126,7 @@ void sys_GetDocumentList(PA_PluginParameters params)
 				} // end while
 
 				// AMS2 9/18/14 #40405 Sort the array using compareFileTimeCreation which takes in two win32 find data variables and compares their creation dates.
-				if (fileSort != 0){
+				if (fileSort == 1){
 					qsort(fileList, fileCount, sizeof(WIN32_FIND_DATA), (int(*)(const void*, const void*))compareFileTimeCreation);
 				}
 

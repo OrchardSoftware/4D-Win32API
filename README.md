@@ -8,4 +8,4 @@ Win32API 6.2.1 is developed in Visual Studio 2013 and is not compatible with old
 
 Win32API 6.2.1 has been tested with 4D v11 SQL, 4D v12, and 4D v13 on Windows XP SP3, Vista, 7, Server 2003, and Server 2008. If you need to support older versions of 4D or older versions of Windows, please use an older version of Win32API.
 
-Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Debbie Schilling](mailto:dschilling@orchardsoft.com).
+Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Drew Waddell](mailto:dwaddell@orchardsoft.com).

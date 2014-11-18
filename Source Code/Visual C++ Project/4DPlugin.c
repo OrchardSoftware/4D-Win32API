@@ -3270,6 +3270,10 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					do {
 						childhWnd = nexthWnd;
 						GetWindowText(childhWnd,windowName,256);
+						if (strcmp("Print", windowName) == 0){
+							strcpy(dlgCaption, "Print");
+							g_intrProcMsg = 1;
+						}
 						nexthWnd = GetNextWindow(childhWnd,GW_HWNDPREV);
 						if (nexthWnd == NULL) {
 							count += 1;
@@ -3436,6 +3440,7 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 	}
 	if (strcmp(_strlwr(szClassName), "button") == 0) {
 		ID = GetDlgCtrlID(hWnd);
+	
 		switch (ID)
 		{
 			case ID_BTN_PORTRAIT :
@@ -3476,6 +3481,9 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 				break;
 
 		}
+	}
+	if (strlen(printerSettings.printerSelection) != 0){
+		//DeviceCapabilities(printerSettings.printerSelection, );
 	}
 	return TRUE;
 }

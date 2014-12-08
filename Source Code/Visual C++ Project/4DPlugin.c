@@ -681,6 +681,10 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		case 96:
 			sys_GetFileVersionInfo( params ); // AMS 2/10/14 #36899
 			break;
+
+	//	case 97:
+		//	sys_GetOSVersionEX(0, params); // AMS2 12/5/14 #37816
+			//break;
 	}
 }
 
@@ -2609,7 +2613,7 @@ void sys_SetDefPrinter( PA_PluginParameters params )
 //	MODIFICATIONS: 12/1/03 Added check for Windows Server 2003.
 //				   7/15/09 Added check for Windows 7 
 //				   10/31/12 Added support for Windows 8 and Server 2012
-//				   AMS2 9/26/14 #37816 Added support for Windows 8.1 and Server 2012 R2
+//			       AMS2 9/26/14 #37816 Windows 8.1 and Server 2012 R2 and newer versions of Windows should use sys_GetOSVersionEX as GetVersionEX is deprecated
 //            
 //
 LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
@@ -4828,3 +4832,40 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 	PA_ReturnLong( params, (LONG)ret);
 
 }
+
+//----------------------------------------------------------------------
+//
+// FUNCTION:	sys_GetOSVersionEX
+//
+// PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
+//
+//
+// AMS2 12/5/10 #37816
+//
+/*
+LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
+{
+	LONG_PTR			returnValue = 0;
+
+
+	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
+	// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
+	if (IsWindows8Point1OrGreater())
+	{
+		printf("Detected Windows 8.1\n");
+		returnValue = OS_WIN81;
+	}
+	if (IsWindowsServer())
+	{
+		printf("Detected Windows Server 2012 R2\n");
+		returnValue = OS_SERVER2012R2;
+	}
+
+	if (!bInternalCall) {
+		PA_SetLongParameter(params, 1, returnValue);
+		PA_SetTextParameter(params, 2, osvinfo.szCSDVersion, strlen(osvinfo.szCSDVersion));
+		PA_ReturnLong(params, returnValue);
+	}
+	return returnValue;
+}
+*/

@@ -21,7 +21,6 @@
 #include <TlHelp32.h> // for snapshot of process in win95/98 etc
 #include <stdio.h> // for snapshot
 #include "Defines.h"
-#include <VersionHelpers.h>
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus

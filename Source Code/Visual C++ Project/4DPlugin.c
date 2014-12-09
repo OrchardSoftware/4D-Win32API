@@ -2621,14 +2621,9 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 
 	OSVERSIONINFOEX		osvinfo;
 	LONG_PTR			returnValue = 0;
-	FILE				*pLogFile;
-
-	pLogFile = fopen("log.txt", "w");
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx( &osvinfo );
-
-	printf("Deprecated code version#:\n %ld %ld %ld", osvinfo.dwMajorVersion, osvinfo.dwMinorVersion, osvinfo.dwPlatformId);
 
 	if ((osvinfo.dwMajorVersion == 4) & (osvinfo.dwMinorVersion == 0) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS)) {
 		returnValue = OS_WIN95;
@@ -2654,35 +2649,17 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		returnValue = OS_WIN7;
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 1) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2K8R2;
-	} 	
-	
-	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
-	// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-	else if (IsWindows8Point1OrGreater())
-	{		
-		printf("Detected Windows 8.1\n");
-		returnValue = OS_WIN81;
-	}
-	else if (IsWindowsServer())
-		{
-			printf("Detected Windows Server 2012 R2\n");
-			returnValue = OS_SERVER2012R2;
-		}
-
-	else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
+	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
 		returnValue = OS_WIN8; // REB 10/31/12 #34333
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
-		printf("Detected Windows Server 2012\n");
 		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
 	}
-
 
 	if (!bInternalCall) {
 		PA_SetLongParameter( params, 1, returnValue );
 		PA_SetTextParameter( params, 2, osvinfo.szCSDVersion, strlen(osvinfo.szCSDVersion) );
 		PA_ReturnLong( params, returnValue );
 	}
-	fclose(pLogFile);
 	return returnValue;	
 }
 

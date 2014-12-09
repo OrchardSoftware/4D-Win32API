@@ -681,6 +681,10 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		case 96:
 			sys_GetFileVersionInfo( params ); // AMS 2/10/14 #36899
 			break;
+
+	//	case 97:
+		//	sys_GetOSVersionEX(0, params); // AMS2 12/5/14 #37816
+			//break;
 	}
 }
 
@@ -956,6 +960,7 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	char								returnString[20];
 	LONG_PTR							printerName_len = 255, execCommand_len = 255;
 	PA_Unistring						Unistring;
+	
 
 	activeCalls.bPrinterCapture							= TRUE;
 
@@ -996,7 +1001,9 @@ void sys_GetPrintJob( PA_PluginParameters params)
 				strlen(printerSettings.printerSelection));
 		returnValue = 1;
 	} else {
-		PA_ResizeArray (&printer, 10);
+
+		PA_ResizeArray(&printer, 10);		
+		
 		PA_SetTextInArray (printer, 1, printerSettings.printerSelection,
 				strlen(printerSettings.printerSelection));
 		PA_SetTextInArray (printer, 2, printerSettings.size,
@@ -2606,13 +2613,14 @@ void sys_SetDefPrinter( PA_PluginParameters params )
 //	MODIFICATIONS: 12/1/03 Added check for Windows Server 2003.
 //				   7/15/09 Added check for Windows 7 
 //				   10/31/12 Added support for Windows 8 and Server 2012
+//			       AMS2 9/26/14 #37816 Windows 8.1 and Server 2012 R2 and newer versions of Windows should use sys_GetOSVersionEX as GetVersionEX is deprecated
 //            
 //
 LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 {
 
 	OSVERSIONINFOEX		osvinfo;
-	LONG_PTR				returnValue = 0;
+	LONG_PTR			returnValue = 0;
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx( &osvinfo );
@@ -2646,8 +2654,6 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
 	}
-
-
 
 	if (!bInternalCall) {
 		PA_SetLongParameter( params, 1, returnValue );
@@ -3247,6 +3253,10 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					do {
 						childhWnd = nexthWnd;
 						GetWindowText(childhWnd,windowName,256);
+						if (strcmp("Print", windowName) == 0){  // AMS2 11/19/14 #40697 Fixed detection of Print Job window, previously the method assumed that it would always see Print Setup before Print Job. 
+							strcpy(dlgCaption, "Print");
+							g_intrProcMsg = 1;
+						}
 						nexthWnd = GetNextWindow(childhWnd,GW_HWNDPREV);
 						if (nexthWnd == NULL) {
 							count += 1;
@@ -3385,10 +3395,20 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 {
 	char						szClassName[255];
 	char						comboText[80];
+	char						printerName[255];
+	LPCTSTR						capabilities[255];
 	LONG_PTR						comboText_len = strlen(comboText), ID;
 	LRESULT						ndx;
 	BOOL						bTrans = FALSE, bSigned = FALSE;
-
+	DEVMODE						*printerInfo;
+	DEVMODE						*printInput;
+	LPCTSTR						deviceName, pPort;
+	LPBYTE						printerBuffer;
+	PRINTER_INFO_2				*pInfo;
+	HANDLE						hPrintHandle = NULL;
+	DWORD						dwPrinterSize;
+	DWORD						dwLevel = 2;
+	DWORD						dwBuffer = sizeof(PRINTER_INFO_2);
 
 	GetClassName(hWnd, szClassName, 255);
 
@@ -3413,6 +3433,7 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 	}
 	if (strcmp(_strlwr(szClassName), "button") == 0) {
 		ID = GetDlgCtrlID(hWnd);
+	
 		switch (ID)
 		{
 			case ID_BTN_PORTRAIT :
@@ -3454,6 +3475,29 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 
 		}
 	}
+	
+	// AMS2 11/26/14 #40697 Below is an attempt to get the printer information that is not visible on the print job dialog with the scanner above.
+	// The part that is causing problems is the call to DocumentProperties. I'm not sure if that is the correct window handle to pass in, but the printer handle/device name and other parameters seem to be correct.
+	// The issue is that the printerInfo that is returned does not match the settings that are input. I attempted to move this to sys_getPrintSettings but the PA parameter for the return array seemed to be replaced with a null address instead of the array's address. 
+	/*
+		if (strlen(printerSettings.printerSelection) != 0){
+
+			strcpy(printerName, printerSettings.printerSelection);
+			OpenPrinter(printerName, &hPrintHandle, NULL); // get the handle
+			//printerBuffer = &pInfo;
+			LONG result = GetPrinter(hPrintHandle, dwLevel, NULL, 0, &dwPrinterSize); // get the info for the printer
+
+			PRINTER_INFO_2	*pInfo = (PRINTER_INFO_2*)malloc(dwPrinterSize);
+			GetPrinter(hPrintHandle, 2, (LPBYTE)pInfo, dwPrinterSize, &dwPrinterSize);
+
+			deviceName = pInfo->pPrinterName;
+			pPort = pInfo->pPortName;
+			//DeviceCapabilities(deviceName, pPort, DC_SIZE, capabilities, NULL);
+			//DocumentProperties(hWnd, hPrintHandle, deviceName, printerInfo, printInput, DM_OUT_BUFFER); //windowHandles.prthWnd
+			ClosePrinter(hPrintHandle);
+	
+		}
+	*/
 	return TRUE;
 }
 
@@ -4765,3 +4809,40 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 	PA_ReturnLong( params, (LONG)ret);
 
 }
+
+//----------------------------------------------------------------------
+//
+// FUNCTION:	sys_GetOSVersionEX
+//
+// PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
+//
+//
+// AMS2 12/5/10 #37816
+//
+/*
+LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
+{
+	LONG_PTR			returnValue = 0;
+
+
+	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
+	// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
+	if (IsWindows8Point1OrGreater())
+	{
+		printf("Detected Windows 8.1\n");
+		returnValue = OS_WIN81;
+	}
+	if (IsWindowsServer())
+	{
+		printf("Detected Windows Server 2012 R2\n");
+		returnValue = OS_SERVER2012R2;
+	}
+
+	if (!bInternalCall) {
+		PA_SetLongParameter(params, 1, returnValue);
+		PA_SetTextParameter(params, 2, osvinfo.szCSDVersion, strlen(osvinfo.szCSDVersion));
+		PA_ReturnLong(params, returnValue);
+	}
+	return returnValue;
+}
+*/

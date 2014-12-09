@@ -772,7 +772,10 @@ void sys_GetRegKey( PA_PluginParameters params )
 	DWORD dwReturnLong;
 	PA_Variable	paReturnArray;
 
-	returnValue = regKey = retErr = arraySize = expandDataSize = 0;
+	// AMS2 12/9/14 #41400 Initalized the dataSize variable. In 64 bit environments this can be randomly initalized to a size in bytes 
+	// that is larger than malloc can allot, causing it to return null and crash when returning to 4D. Remember class, always initialize your size variables.
+	dataSize = 0;
+	returnValue = regKey = retErr = arraySize = expandDataSize = 0; 
 	hRootKey = hOpenKey = 0;
 	ptrData = returnDataBuffer = NULL;
 	memset(regSub, 0, MAXBUF);
@@ -863,7 +866,7 @@ void sys_GetRegKey( PA_PluginParameters params )
 
 
 			case REG_SZ:
-				returnDataBuffer = malloc(dataSize);
+				returnDataBuffer = (char*)malloc(dataSize);
 				retErr = RegQueryValueEx(hOpenKey, regName, NULL, NULL, returnDataBuffer, &dataSize);
 
 				if(retErr == ERROR_SUCCESS){

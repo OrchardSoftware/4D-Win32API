@@ -4836,8 +4836,8 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 // PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
 //
 //  BOOL bInternalCall, PA_PluginParameters params
-// AMS2 12/5/10 #37816
 //
+//  AMS2 12/5/10 #37816
 
 LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
 {

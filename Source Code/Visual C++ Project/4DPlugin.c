@@ -682,8 +682,12 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			sys_GetFileVersionInfo( params ); // AMS 2/10/14 #36899
 			break;
 
-	//	case 97:
-		//	sys_GetOSVersionEX(0, params); // AMS2 12/5/14 #37816
+		case 97:
+			sys_GetOSVersionEX( 0, params ); // AMS2 12/5/14 #37816  0, params
+			break;
+
+			//case 98:
+			//sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 			//break;
 	}
 }
@@ -4812,37 +4816,69 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 
 //----------------------------------------------------------------------
 //
-// FUNCTION:	sys_GetOSVersionEX
+// FUNCTION:	sys_SendRawPrinterData
 //
-// PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
+// PURPOSE:		Sends binary data directly to a printer
 //
 //
 // AMS2 12/5/10 #37816
 //
 /*
+void sys_SendRawPrinterData(PA_PluginParameters params)
+{
+
+}
+*/
+//----------------------------------------------------------------------
+//
+// FUNCTION:	sys_GetOSVersionEX
+//
+// PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
+//
+//  BOOL bInternalCall, PA_PluginParameters params
+// AMS2 12/5/10 #37816
+//
+
 LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
 {
 	LONG_PTR			returnValue = 0;
 
-
 	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
 	// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-	if (IsWindows8Point1OrGreater())
+	if (IsWindowsXPOrGreater())
 	{
-		printf("Detected Windows 8.1\n");
-		returnValue = OS_WIN81;
-	}
-	if (IsWindowsServer())
-	{
-		printf("Detected Windows Server 2012 R2\n");
-		returnValue = OS_SERVER2012R2;
+		returnValue = OS_XP;  
 	}
 
+	if (IsWindowsVistaOrGreater())
+	{
+		returnValue = OS_VISTA_LONGHORN;
+	}
+
+	if (IsWindows7OrGreater())
+	{
+		returnValue = OS_WIN7;
+	}
+
+	if (IsWindows8OrGreater())
+	{
+		returnValue = OS_WIN8;
+	}
+
+	if (IsWindows8Point1OrGreater())
+	{
+		returnValue = OS_WIN81;
+	}
+
+	if (IsWindowsServer())
+	{
+		returnValue = returnValue + 1; // Server version numbers are the same as the OS version number but have a 1 added to them
+	}
+	
 	if (!bInternalCall) {
 		PA_SetLongParameter(params, 1, returnValue);
-		PA_SetTextParameter(params, 2, osvinfo.szCSDVersion, strlen(osvinfo.szCSDVersion));
 		PA_ReturnLong(params, returnValue);
 	}
 	return returnValue;
 }
-*/
+

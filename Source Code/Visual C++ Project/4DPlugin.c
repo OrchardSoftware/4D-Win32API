@@ -4816,21 +4816,6 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 
 //----------------------------------------------------------------------
 //
-// FUNCTION:	sys_SendRawPrinterData
-//
-// PURPOSE:		Sends binary data directly to a printer
-//
-//
-// AMS2 12/5/10 #37816
-//
-/*
-void sys_SendRawPrinterData(PA_PluginParameters params)
-{
-
-}
-*/
-//----------------------------------------------------------------------
-//
 // FUNCTION:	sys_GetOSVersionEX
 //
 // PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
@@ -4882,3 +4867,66 @@ LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
 	return returnValue;
 }
 
+//----------------------------------------------------------------------
+//
+// FUNCTION:	sys_SendRawPrinterData
+//
+// PURPOSE:		Sends raw printer data directly to a printer
+//
+//
+// AMS2 12/5/10 #37816
+//
+
+void sys_SendRawPrinterData(PA_PluginParameters params)
+{
+	// 4D Parameters
+	LPTSTR szPrinterName;  // Text printer name
+	LPBYTE lpData;  // Long printer data
+	DWORD dwCount;  // Long printer data length
+	LPTSTR szDocName;  // Text document name
+
+	BOOL       bStatus = FALSE;
+	HANDLE     hPrinter = NULL;
+	DOC_INFO_1 DocInfo;
+	DWORD      dwJob = 0L;
+	DWORD      dwBytesWritten = 0L;
+
+
+	PA_GetTextParameter(params, 1, szPrinterName);
+	PA_GetLongParameter(params, 2, lpData);
+	PA_GetLongParameter(params, 3, dwCount);
+	PA_GetTextParameter(params, 4, szDocName);
+
+	// Open a handle to the printer. 
+	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
+	if (bStatus) {
+		// Fill in the structure with info about this "document." 
+		DocInfo.pDocName = szDocName;
+		DocInfo.pOutputFile = NULL;
+		DocInfo.pDatatype = (LPTSTR)_T("RAW");
+
+		// Inform the spooler the document is beginning. 
+		dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+		if (dwJob > 0) {
+			// Start a page. 
+			bStatus = StartPagePrinter(hPrinter);
+			if (bStatus) {
+				// Send the data to the printer. 
+				bStatus = WritePrinter(hPrinter, lpData, dwCount, &dwBytesWritten);
+				EndPagePrinter(hPrinter);
+			}
+			// Inform the spooler that the document is ending. 
+			EndDocPrinter(hPrinter);
+		}
+		// Close the printer handle. 
+		ClosePrinter(hPrinter);
+	}
+	// Check to see if correct number of bytes were written. 
+	if (!bStatus || (dwBytesWritten != dwCount)) {
+		bStatus = FALSE;
+	}
+	else {
+		bStatus = TRUE;
+	}
+	PA_ReturnLong(params, (LONG_PTR)bStatus);
+}

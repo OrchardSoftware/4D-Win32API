@@ -4890,6 +4890,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	DOC_INFO_1 DocInfo;
 	DWORD      dwJob = 0L;
 	DWORD      dwBytesWritten = 0L;
+	LONG_PTR   lpReturn = 0;
 
 
 	PA_GetTextParameter(params, 1, szPrinterName);
@@ -4901,7 +4902,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
 	if (bStatus) {
 		// Fill in the structure with info about this "document." 
-		DocInfo.pDocName = szDocName;
+		DocInfo.pDocName = (LPTSTR)("My Document");//szDocName;
 		DocInfo.pOutputFile = NULL;
 		DocInfo.pDatatype = (LPTSTR)("RAW");
 
@@ -4924,9 +4925,12 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	// Check to see if correct number of bytes were written. 
 	if (!bStatus || (dwBytesWritten != dwCount)) {
 		bStatus = FALSE;
+		lpReturn = 0;
 	}
 	else {
 		bStatus = TRUE;
+		lpReturn = 1;
 	}
-	PA_ReturnLong(params, (LONG_PTR)bStatus);
+
+	PA_ReturnLong(params, lpReturn);
 }

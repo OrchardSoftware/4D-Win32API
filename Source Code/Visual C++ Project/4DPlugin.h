@@ -123,7 +123,7 @@ void sys_IsAppRunningAsService( PA_PluginParameters params ); // REB 1/12/11 #25
 void sys_CompareBLOBs( PA_PluginParameters params); // REB 11/9/12 TESTING
 void sys_GetFileVersionInfo( PA_PluginParameters params); // AMS 2/10/14 #36899
 LONG_PTR sys_GetOSVersionEX( BOOL bInternalCall, PA_PluginParameters params);  // AMS2 12/10/14 #37816
-//void sys_SendRawPrinterData( PA_PluginParameters params); // AMS2 12/9/14 #40598
+void sys_SendRawPrinterData( PA_PluginParameters params); // AMS2 12/9/14 #40598
 
 // ----- Other modules -------
 //window background-related

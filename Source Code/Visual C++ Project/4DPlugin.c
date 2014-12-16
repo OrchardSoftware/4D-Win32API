@@ -683,12 +683,12 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			break;
 
 		case 97:
-			sys_GetOSVersionEX( 0, params ); // AMS2 12/5/14 #37816  0, params
+			sys_GetOSVersionEX( 0, params ); // AMS2 12/5/14 #37816 
 			break;
 
-			//case 98:
-			//sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
-			//break;
+		case 98:
+			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
+			break;
 	}
 }
 
@@ -4903,7 +4903,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 		// Fill in the structure with info about this "document." 
 		DocInfo.pDocName = szDocName;
 		DocInfo.pOutputFile = NULL;
-		DocInfo.pDatatype = (LPTSTR)_T("RAW");
+		DocInfo.pDatatype = (LPTSTR)("RAW");
 
 		// Inform the spooler the document is beginning. 
 		dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);

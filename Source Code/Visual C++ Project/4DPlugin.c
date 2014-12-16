@@ -4880,10 +4880,10 @@ LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
 void sys_SendRawPrinterData(PA_PluginParameters params)
 {
 	// 4D Parameters
-	LPTSTR szPrinterName;  // Text printer name
-	LPBYTE lpData;  // Long printer data
-	DWORD dwCount;  // Long printer data length
-	LPTSTR szDocName;  // Text document name
+	char szPrinterName[255] = "";  // Text printer name
+	char szData[MAXLABELBUF] = "";  // Text printer data
+	DWORD dwCount = 0;  // Long printer data length
+	char szDocName[255] = "";  // Text document name
 
 	BOOL       bStatus = FALSE;
 	HANDLE     hPrinter = NULL;
@@ -4894,7 +4894,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 
 
 	PA_GetTextParameter(params, 1, szPrinterName);
-	PA_GetLongParameter(params, 2, lpData);
+	PA_GetTextParameter(params, 2, szData);
 	PA_GetLongParameter(params, 3, dwCount);
 	PA_GetTextParameter(params, 4, szDocName);
 
@@ -4902,7 +4902,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
 	if (bStatus) {
 		// Fill in the structure with info about this "document." 
-		DocInfo.pDocName = (LPTSTR)("My Document");//szDocName;
+		DocInfo.pDocName = (LPTSTR)szDocName;
 		DocInfo.pOutputFile = NULL;
 		DocInfo.pDatatype = (LPTSTR)("RAW");
 
@@ -4913,7 +4913,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 			bStatus = StartPagePrinter(hPrinter);
 			if (bStatus) {
 				// Send the data to the printer. 
-				bStatus = WritePrinter(hPrinter, lpData, dwCount, &dwBytesWritten);
+				bStatus = WritePrinter(hPrinter, szData, dwCount, &dwBytesWritten);
 				EndPagePrinter(hPrinter);
 			}
 			// Inform the spooler that the document is ending. 

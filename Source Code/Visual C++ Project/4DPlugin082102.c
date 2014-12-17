@@ -773,7 +773,7 @@ void sys_GetRegKey( PA_PluginParameters params )
 	PA_Variable	paReturnArray;
 
 	// AMS2 12/9/14 #41400 Initalized the dataSize variable. In 64 bit environments this can be randomly initalized to a size in bytes 
-	// that is larger than malloc can allot, causing it to return null and crash when returning to 4D. Remember class, always initialize your size variables.
+	// that is larger than malloc can allot, causing it to return null and crash when returning to 4D. Remember to always initialize your size variables.
 	dataSize = 0;
 	returnValue = regKey = retErr = arraySize = expandDataSize = 0; 
 	hRootKey = hOpenKey = 0;

@@ -683,12 +683,8 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			break;
 
 		case 97:
-			sys_GetOSVersionEX( 0, params ); // AMS2 12/5/14 #37816  0, params
+			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 			break;
-
-			//case 98:
-			//sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
-			//break;
 	}
 }
 
@@ -2625,6 +2621,7 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 
 	OSVERSIONINFOEX		osvinfo;
 	LONG_PTR			returnValue = 0;
+	char				servicePackInfo[255] = "";
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx( &osvinfo );
@@ -2653,15 +2650,31 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		returnValue = OS_WIN7;
 	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 1) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_NT) & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
 		returnValue = OS_SERVER2K8R2;
-	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType == VER_NT_WORKSTATION)) {
-		returnValue = OS_WIN8; // REB 10/31/12 #34333
-	} else if ((osvinfo.dwMajorVersion == 6) & (osvinfo.dwMinorVersion == 2)  & (osvinfo.wProductType != VER_NT_WORKSTATION)) {
-		returnValue = OS_SERVER2012; // REB 10/31/12 #34333
+	}
+	else
+	{
+		// AMS2 12/17/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
+		// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
+		if (IsWindows8OrGreater())
+		{
+			returnValue = OS_WIN8;
+		}
+
+		if (IsWindows8Point1OrGreater())
+		{
+			returnValue = OS_WIN81;
+		}
+
+		if (IsWindowsServer())
+		{
+			++returnValue; // Server version numbers are the same as the OS version number but are incremented by one
+		}
 	}
 
 	if (!bInternalCall) {
 		PA_SetLongParameter( params, 1, returnValue );
-		PA_SetTextParameter( params, 2, osvinfo.szCSDVersion, strlen(osvinfo.szCSDVersion) );
+		strcpy(servicePackInfo, osvinfo.szCSDVersion);
+		PA_SetTextParameter(params, 2, servicePackInfo, strlen(servicePackInfo));
 		PA_ReturnLong( params, returnValue );
 	}
 	return returnValue;	
@@ -4818,67 +4831,66 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 //
 // FUNCTION:	sys_SendRawPrinterData
 //
-// PURPOSE:		Sends binary data directly to a printer
+// PURPOSE:		Sends raw printer data directly to a printer. sys_PrintDirect2Driver
 //
 //
 // AMS2 12/5/10 #37816
 //
-/*
+
 void sys_SendRawPrinterData(PA_PluginParameters params)
 {
+	// 4D Parameters
+	char szPrinterName[255] = "";  // Text printer name
+	char szData[MAXLABELBUF] = "";  // Text printer data
+	DWORD dwCount = 0;  // Long printer data length
+	char szDocName[255] = "";  // Text document name
 
+	BOOL       bStatus = FALSE;
+	HANDLE     hPrinter = NULL;
+	DOC_INFO_1 DocInfo;
+	DWORD      dwJob = 0L;
+	DWORD      dwBytesWritten = 0L;
+	LONG_PTR   lpReturn = 0;
+
+
+	PA_GetTextParameter(params, 1, szPrinterName);
+	PA_GetTextParameter(params, 2, szData);
+	PA_GetLongParameter(params, 3, dwCount);
+	PA_GetTextParameter(params, 4, szDocName);
+
+	// Open a handle to the printer. 
+	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
+	if (bStatus) {
+		// Fill in the structure with info about this "document." 
+		DocInfo.pDocName = (LPTSTR)szDocName;
+		DocInfo.pOutputFile = NULL;
+		DocInfo.pDatatype = (LPTSTR)("RAW");
+
+		// Inform the spooler the document is beginning. 
+		dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+		if (dwJob > 0) {
+			// Start a page. 
+			bStatus = StartPagePrinter(hPrinter);
+			if (bStatus) {
+				// Send the data to the printer. 
+				bStatus = WritePrinter(hPrinter, szData, dwCount, &dwBytesWritten);
+				EndPagePrinter(hPrinter);
+			}
+			// Inform the spooler that the document is ending. 
+			EndDocPrinter(hPrinter);
+		}
+		// Close the printer handle. 
+		ClosePrinter(hPrinter);
+	}
+	// Check to see if correct number of bytes were written. 
+	if (!bStatus || (dwBytesWritten != dwCount)) {
+		bStatus = FALSE;
+		lpReturn = 1;
+	}
+	else {
+		bStatus = TRUE;
+		lpReturn = 0;
+	}
+
+	PA_ReturnLong(params, lpReturn);
 }
-*/
-//----------------------------------------------------------------------
-//
-// FUNCTION:	sys_GetOSVersionEX
-//
-// PURPOSE:		Get version of operating system. This uses the Version Helpers API that Windows wants to use in replacement of GetVersionInfo
-//
-//  BOOL bInternalCall, PA_PluginParameters params
-// AMS2 12/5/10 #37816
-//
-
-LONG_PTR sys_GetOSVersionEX(BOOL bInternalCall, PA_PluginParameters params)
-{
-	LONG_PTR			returnValue = 0;
-
-	// AMS2 9/26/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
-	// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-	if (IsWindowsXPOrGreater())
-	{
-		returnValue = OS_XP;  
-	}
-
-	if (IsWindowsVistaOrGreater())
-	{
-		returnValue = OS_VISTA_LONGHORN;
-	}
-
-	if (IsWindows7OrGreater())
-	{
-		returnValue = OS_WIN7;
-	}
-
-	if (IsWindows8OrGreater())
-	{
-		returnValue = OS_WIN8;
-	}
-
-	if (IsWindows8Point1OrGreater())
-	{
-		returnValue = OS_WIN81;
-	}
-
-	if (IsWindowsServer())
-	{
-		returnValue = returnValue + 1; // Server version numbers are the same as the OS version number but have a 1 added to them
-	}
-	
-	if (!bInternalCall) {
-		PA_SetLongParameter(params, 1, returnValue);
-		PA_ReturnLong(params, returnValue);
-	}
-	return returnValue;
-}
-

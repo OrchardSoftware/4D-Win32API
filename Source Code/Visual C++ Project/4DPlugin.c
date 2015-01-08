@@ -4845,52 +4845,241 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	DWORD dwCount = 0;  // Long printer data length
 	char szDocName[255] = "";  // Text document name
 
-	BOOL       bStatus = FALSE;
-	HANDLE     hPrinter = NULL;
-	DOC_INFO_1 DocInfo;
-	DWORD      dwJob = 0L;
-	DWORD      dwBytesWritten = 0L;
-	LONG_PTR   lpReturn = 0;
+	BOOL			bStatus = FALSE;
+	HANDLE			hPrinter = NULL;
+	DOC_INFO_1		DocInfo;
+	DWORD			dwJob = 0L;
+	DWORD			dwBytesWritten = 0L;
+	LONG_PTR		lpReturn = 0;
+	char			*origDefault;  // String to hold the original default printer
+	ULONG_PTR		ulBytesNeeded;      // Holds size information
 
+	// Set needed bytes to default value
+	ulBytesNeeded = MAXLABELBUF;
 
 	PA_GetTextParameter(params, 1, szPrinterName);
 	PA_GetTextParameter(params, 2, szData);
 	PA_GetLongParameter(params, 3, dwCount);
 	PA_GetTextParameter(params, 4, szDocName);
 
-	// Open a handle to the printer. 
-	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
-	if (bStatus) {
-		// Fill in the structure with info about this "document." 
-		DocInfo.pDocName = (LPTSTR)szDocName;
-		DocInfo.pOutputFile = NULL;
-		DocInfo.pDatatype = (LPTSTR)("RAW");
+	// Allocate memory for Storing string for Original Default Printer & pBuf
+	origDefault = (char *)malloc(ulBytesNeeded);
+	memset(origDefault, 0, ulBytesNeeded);
 
-		// Inform the spooler the document is beginning. 
-		dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
-		if (dwJob > 0) {
-			// Start a page. 
-			bStatus = StartPagePrinter(hPrinter);
-			if (bStatus) {
-				// Send the data to the printer. 
-				bStatus = WritePrinter(hPrinter, szData, dwCount, &dwBytesWritten);
-				EndPagePrinter(hPrinter);
+	GetDefaultPrinter(origDefault, &ulBytesNeeded);
+
+	// Set the new Default Printer to our label printer, with the name obtained from the registry
+	lpReturn = SetDefaultPrinter((char *)szPrinterName);
+	
+	if (lpReturn != 0)
+	{
+		// Open a handle to the printer. 
+		bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
+		if (bStatus) {
+			// Fill in the structure with info about this "document." 
+			DocInfo.pDocName = (LPTSTR)szDocName;
+			DocInfo.pOutputFile = NULL;
+			DocInfo.pDatatype = (LPTSTR)("RAW");
+
+			// Inform the spooler the document is beginning. 
+			dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+			if (dwJob > 0) {
+				// Start a page. 
+				bStatus = StartPagePrinter(hPrinter);
+				if (bStatus) {
+					// Send the data to the printer. 
+					bStatus = WritePrinter(hPrinter, szData, dwCount, &dwBytesWritten);
+					EndPagePrinter(hPrinter);
+				}
+				// Inform the spooler that the document is ending. 
+				EndDocPrinter(hPrinter);
 			}
-			// Inform the spooler that the document is ending. 
-			EndDocPrinter(hPrinter);
+			// Close the printer handle. 
+			ClosePrinter(hPrinter);
 		}
-		// Close the printer handle. 
-		ClosePrinter(hPrinter);
+		// Check to see if correct number of bytes were written. 
+		if (!bStatus || (dwBytesWritten != dwCount)) {
+			bStatus = FALSE;
+			lpReturn = 1;
+		}
+		else {
+			bStatus = TRUE;
+			lpReturn = 0;
+		}
+		lpReturn = SetDefaultPrinter(origDefault);
 	}
-	// Check to see if correct number of bytes were written. 
-	if (!bStatus || (dwBytesWritten != dwCount)) {
-		bStatus = FALSE;
-		lpReturn = 1;
-	}
-	else {
-		bStatus = TRUE;
-		lpReturn = 0;
-	}
-
 	PA_ReturnLong(params, lpReturn);
 }
+
+/*
+void sys_PrintDirect2Driver( PA_PluginParameters params )
+{
+	PRINTDLG pd;                      // Structure to hold information about printer
+	DOCINFO di;                       // Structure to hold "document" information
+	char printerName[MAXBUF] = "";    // String to hold the printerName param ($1)
+	char data[MAXLABELBUF] = "";      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big.
+	char *origDefault;                // String to hold the original default printer
+	INT_PTR printerName_len;              // Int to hold maximum length of printer name
+	INT_PTR ret;                          // Int to hold return value of functions                 
+	INT_PTR iErrCode = 0;                 // Int to hold the error code.
+	ULONG_PTR ulBytesNeeded;      // Holds size information
+
+	BOOL     bStatus = FALSE;
+	HANDLE     hPrinter = NULL;
+	DOC_INFO_1 DocInfo;
+	DWORD      dwJob = 0L;
+	DWORD      dwBytesWritten = 0L;
+
+
+	// Set needed bytes to default value
+	ulBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
+
+	// Set this to 255.
+	printerName_len = 255;
+
+	// Get the function parameters.
+	PA_GetTextParameter(params, 1, printerName);
+	PA_GetTextParameter(params, 2, data);
+
+	// Allocate memory for Storing string for Original Default Printer & pBuf
+	origDefault = (char *)malloc(ulBytesNeeded);
+	memset(origDefault, 0, ulBytesNeeded);
+
+    // Get name of current Default Printer
+	GetDefaultPrinter(origDefault, &ulBytesNeeded);
+    
+	// Set the new Default Printer to our label printer, with the name obtained from the registry
+	ret = SetDefaultPrinter((char *)printerName);
+	
+	// We set the default printer just fine, now let's do the printing.
+	if (ret != 0)
+	{
+
+		if (TRUE)
+		{
+			// Open a handle to the printer. 
+			bStatus = OpenPrinter(printerName, &hPrinter, NULL);
+			if (bStatus) 
+			{
+				// Fill in the structure with info about this "document." 
+				DocInfo.pDocName = (LPTSTR)("My Document");
+				DocInfo.pOutputFile = NULL;
+				DocInfo.pDatatype = (LPTSTR)("RAW");
+
+				// Inform the spooler the document is beginning. 
+				dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+				if (dwJob > 0) {
+					// Start a page. 
+					bStatus = StartPagePrinter(hPrinter);
+					if (bStatus) {
+						// Send the data to the printer. 
+						bStatus = WritePrinter(hPrinter, data, MAXLABELBUF, &dwBytesWritten);
+						EndPagePrinter(hPrinter);
+					}
+					// Inform the spooler that the document is ending. 
+					EndDocPrinter(hPrinter);
+				}
+				// Close the printer handle. 
+				ClosePrinter(hPrinter);
+			}
+			// Check to see if correct number of bytes were written. 
+			if (!bStatus || (dwBytesWritten != MAXLABELBUF))
+			{
+				bStatus = FALSE;
+				iErrCode = GetLastError();
+			}
+			else 
+			{
+				bStatus = TRUE;
+			}
+
+		}
+		else
+		{
+
+			// Allocate memory for PRINTDLG structure
+			memset(&pd, 0, sizeof(pd));
+
+			// Define properties of the PRINTDLG structure
+			pd.lStructSize = sizeof(pd);
+
+			// PD_RETURNDEFAULT causes the PrintDlg function to automatically use the properties from
+			// the default printer.  PD_RETURNDC causes the function to return the device context
+			// for the printer.  This device context allows us to print a label
+			pd.Flags = PD_RETURNDEFAULT | PD_RETURNDC;
+
+			// These two structures must be NULL to use the PD_RETURNDC flag.
+			// Do this explicitly, just in case
+			pd.hDevMode = NULL;
+			pd.hDevNames = NULL;
+
+			// Retrieve the Device Context.  It will be accessible as a member of the PRINTDLG structure
+			if (!PrintDlg(&pd))
+			{
+				// Get the error from the common dialog box
+				// Error code will not work properly with FormatMessage, so use this instead.
+				iErrCode = CommDlgExtendedError();
+			}
+
+			if (iErrCode == 0)
+			{
+				// Initialize the DOCINFO structure
+				memset(&di, 0, sizeof(di));
+				di.cbSize = sizeof(DOCINFO);
+				di.lpszDocName = "Label";
+				di.lpszOutput = (LPTSTR)NULL;
+				di.lpszDatatype = "raw";
+				di.fwType = 0;
+
+				// Start a document in the print spooler
+				if (!StartDoc(pd.hDC, &di))
+				{
+					iErrCode = GetLastError();
+				} // end if
+			}
+
+			if (iErrCode == 0)
+			{
+				// Start a new page in the print spooler
+				if (!StartPage(pd.hDC))
+				{
+					iErrCode = GetLastError();
+				} // end if !
+			}
+
+			if (iErrCode == 0)
+			{
+				if (!TextOut(pd.hDC, 1, 1, data, strlen(data)))
+				{
+					iErrCode = GetLastError();
+				}
+			}
+
+			// De-allocate commandList
+
+			// Let the print spooler know that the page is done
+			EndPage(pd.hDC);
+
+			// Let the print spooler know that the document is done
+			EndDoc(pd.hDC);
+
+
+			// Delete the Device Context
+			DeleteDC(pd.hDC);
+		}
+
+
+		
+		// Now reset our default printer.
+    
+		// Set the Default Printer back to the original.
+  		ret = SetDefaultPrinter(origDefault);
+
+		PA_ReturnLong(params, (LONG_PTR)iErrCode); 
+	} 
+	else 
+	{
+	  PA_ReturnLong(params, (LONG_PTR)GetLastError());
+	}	// end if
+}//end function
+*/

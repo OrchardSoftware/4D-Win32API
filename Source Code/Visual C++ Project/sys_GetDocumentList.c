@@ -23,7 +23,7 @@
 //  UPDATES:  MJG 7/5/05 (3.6.2)  Updated to set the 4D variable, Error, 
 //								  when an error occurs. 
 //
-//			  AMS2 9/16/14 #40405 (6.4)  Updated to return the oldest entries first 
+//			  AMS 9/16/14 #40405 (6.4)  Updated to return the oldest entries first 
 //		   								 and take in a starting index for specifying 
 //										 where the list of returned files begins.			
 //

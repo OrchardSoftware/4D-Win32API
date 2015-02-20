@@ -1868,7 +1868,9 @@ void gui_GetOpenFileName( PA_PluginParameters params )
 	char		plugInPath[255];
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
+	char				cCurrentPath[FILENAME_MAX];
 
+	_getcwd(cCurrentPath, sizeof(cCurrentPath)); // WJF 2/20/15 #41921 Back up the current working directory
 	g_FolderSelected = FALSE;  // MJG 6/15/05
 	windowHandles.openSaveTBhwnd = NULL;
 
@@ -1975,6 +1977,8 @@ void gui_GetOpenFileName( PA_PluginParameters params )
 	fileNameFull_len = strlen(fileNameFull);
 	PA_SetTextParameter( params, 5, fileNameShort, fileNameShort_len );
  	PA_SetTextParameter( params, 6, fileNameFull, fileNameFull_len );
+
+	_chdir(cCurrentPath); // WJF 2/20/15 #41921 Restoring the current working directory will prevent folders from becoming incorrectly locked
 
 	PA_ReturnLong( params, returnValue );
 }

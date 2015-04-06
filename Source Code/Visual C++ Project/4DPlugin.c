@@ -963,11 +963,6 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	PA_Unistring						Unistring;
 	DWORD								bytesRequired;
 	LPDEVMODE							pDevMode;
-	DWORD								size;
-	PRINTER_INFO_2*						pPrinterInfo;
-	char								bins[20][24];
-	WORD								binNums[20];
-	int									index = 0;
 	
 
 	activeCalls.bPrinterCapture							= TRUE;
@@ -1020,31 +1015,19 @@ void sys_GetPrintJob( PA_PluginParameters params)
 				bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
 				pDevMode = (LPDEVMODE)malloc(bytesRequired);
 				DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
-				GetPrinter(prntHndle, 2, 0, 0, &size); // Determine size required for printerInfo 
-				pPrinterInfo = (PRINTER_INFO_2*)malloc(size);
-				GetPrinter(prntHndle, 2, (LPBYTE)pPrinterInfo, size, &size); // Get printerInfo (printerport)
-				size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINNAMES, bins, NULL); // Get all tray names
-				size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINS, binNums, NULL); // Get all tray numbers
-				for (int i=0;i<size;i++) {
-					if (binNums[i] == pDevMode->dmDefaultSource){ 
-						index = i; // Find the index of the default tray since there is no way to determine selected tray
-						i = size + 1;
-					}
-				}
 				PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
-				PA_SetTextInArray(printer, 3, bins[index], strlen(bins[index])); // Store the default tray
 				
 				// Cleanup
 				free(pDevMode); 
-				free(pPrinterInfo);
 			}
 		}
 		else {
 			PA_SetTextInArray(printer, 2, printerSettings.size,
 				strlen(printerSettings.size));
+		}
 			PA_SetTextInArray(printer, 3, printerSettings.source,
 				strlen(printerSettings.source));
-		}
+		
 		PA_SetTextInArray (printer, 4, printerSettings.copies,
 				strlen(printerSettings.copies));
 		if (printerSettings.portraitLandscape == PS_PORTRAIT) {

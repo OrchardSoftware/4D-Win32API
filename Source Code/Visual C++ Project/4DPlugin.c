@@ -1019,13 +1019,14 @@ void sys_GetPrintJob( PA_PluginParameters params)
 				
 				// Cleanup
 				free(pDevMode); 
+				ClosePrinter(prntHndle);
 			}
 		}
 		else {
 			PA_SetTextInArray(printer, 2, printerSettings.size,
 				strlen(printerSettings.size));
 		}
-			PA_SetTextInArray(printer, 3, printerSettings.source,
+		PA_SetTextInArray(printer, 3, printerSettings.source,
 				strlen(printerSettings.source));
 		
 		PA_SetTextInArray (printer, 4, printerSettings.copies,

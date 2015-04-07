@@ -4868,71 +4868,52 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	DWORD dwCount = 0;  // Long printer data length
 	char szDocName[255] = "";  // Text document name
 
-	BOOL			bStatus = FALSE;
-	HANDLE			hPrinter = NULL;
-	DOC_INFO_1		DocInfo;
-	DWORD			dwJob = 0L;
-	DWORD			dwBytesWritten = 0L;
-	LONG_PTR		lpReturn = 0;
-	char			*origDefault;  // String to hold the original default printer
-	ULONG_PTR		ulBytesNeeded;      // Holds size information
-
+	BOOL     bStatus = FALSE;
+	HANDLE     hPrinter = NULL;
+	DOC_INFO_1 DocInfo;
+	DWORD      dwJob = 0L;
+	DWORD      dwBytesWritten = 0L;
 	// Set needed bytes to default value
-	ulBytesNeeded = MAXLABELBUF;
 
 	PA_GetTextParameter(params, 1, szPrinterName);
 	PA_GetTextParameter(params, 2, szData);
-	PA_GetLongParameter(params, 3, dwCount);
-	PA_GetTextParameter(params, 4, szDocName);
-
-	// Allocate memory for Storing string for Original Default Printer & pBuf
-	origDefault = (char *)malloc(ulBytesNeeded);
-	memset(origDefault, 0, ulBytesNeeded);
-
-	GetDefaultPrinter(origDefault, &ulBytesNeeded);
-
-	// Set the new Default Printer to our label printer, with the name obtained from the registry
-	lpReturn = SetDefaultPrinter((char *)szPrinterName);
 	
-	if (lpReturn != 0)
-	{
-		// Open a handle to the printer. 
-		bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
-		if (bStatus) {
-			// Fill in the structure with info about this "document." 
-			DocInfo.pDocName = (LPTSTR)szDocName;
-			DocInfo.pOutputFile = NULL;
-			DocInfo.pDatatype = (LPTSTR)("RAW");
+	dwCount = sizeof(szData);
+	// Open a handle to the printer. 
+	bStatus = OpenPrinter(szPrinterName, &hPrinter, NULL);
+	if (bStatus) {
+		// Fill in the structure with info about this "document." 
+		DocInfo.pDocName = (LPTSTR)("My Document");
+		DocInfo.pOutputFile = NULL;
+		DocInfo.pDatatype = (LPTSTR)("RAW");
 
-			// Inform the spooler the document is beginning. 
-			dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
-			if (dwJob > 0) {
-				// Start a page. 
-				bStatus = StartPagePrinter(hPrinter);
-				if (bStatus) {
-					// Send the data to the printer. 
-					bStatus = WritePrinter(hPrinter, szData, dwCount, &dwBytesWritten);
-					EndPagePrinter(hPrinter);
-				}
-				// Inform the spooler that the document is ending. 
-				EndDocPrinter(hPrinter);
+		// Inform the spooler the document is beginning. 
+		dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+		if (dwJob > 0) {
+			// Start a page. 
+			bStatus = StartPagePrinter(hPrinter);
+			if (bStatus) {
+				// Send the data to the printer. 
+				bStatus = WritePrinter(hPrinter, &szData, dwCount, &dwBytesWritten);
+				EndPagePrinter(hPrinter);
 			}
-			// Close the printer handle. 
-			ClosePrinter(hPrinter);
+			// Inform the spooler that the document is ending. 
+			EndDocPrinter(hPrinter);
 		}
-		// Check to see if correct number of bytes were written. 
-		if (!bStatus || (dwBytesWritten != dwCount)) {
-			bStatus = FALSE;
-			lpReturn = 1;
-		}
-		else {
-			bStatus = TRUE;
-			lpReturn = 0;
-		}
-		lpReturn = SetDefaultPrinter(origDefault);
+		// Close the printer handle. 
+		ClosePrinter(hPrinter);
 	}
-	PA_ReturnLong(params, lpReturn);
+	// Check to see if correct number of bytes were written. 
+	if (!bStatus || (dwBytesWritten != dwCount)) {
+		bStatus = FALSE;
+	}
+	else {
+		bStatus = TRUE;
+	}
+	
+	PA_ReturnLong(params, 0);
 }
+
 
 /*
 void sys_PrintDirect2Driver( PA_PluginParameters params )

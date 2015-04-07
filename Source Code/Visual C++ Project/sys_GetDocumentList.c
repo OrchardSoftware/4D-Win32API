@@ -44,7 +44,7 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	HANDLE NextFind = 0;
 	BOOL bGetAllFiles = FALSE;
 	WIN32_FIND_DATA fileList[1000];
-	
+
 	// parameter variables
 	char *patPathName = NULL;
 	char *patFilePattern = NULL;
@@ -74,13 +74,10 @@ void sys_GetDocumentList(PA_PluginParameters params)
 		palStartIndex = 0;
 	}
 
-	// AMS2 9/30/14 #40405  If they have not entered a sort option, default to the directory's sort. When adding more sort options other than by date, the method called by qsort will need to change.
-	if (palFileSort == NULL)
+	// WJF 4/7/15 #41624 If they haven't chosen a valid sort option, set to default
+	if ((palFileSort != 1) && (palFileSort != 2))
 	{
 		palFileSort = 0;
-	}
-	else{
-		palFileSort = 1;
 	}
 
 	if (patPathName != NULL && patFilePattern != NULL)
@@ -130,6 +127,10 @@ void sys_GetDocumentList(PA_PluginParameters params)
 				if (palFileSort == 1)
 				{
 					qsort(fileList, lFileCount, sizeof(WIN32_FIND_DATA), (int(*)(const void*, const void*))compareFileTimeCreation);
+				}
+				else if (palFileSort == 2) // WJF 4/7/15 #41624 Sorty by alphabetical order
+				{
+					qsort(fileList, lFileCount, sizeof(WIN32_FIND_DATA), (int(*)(const void*, const void*))compareAlphabetical);
 				}
 
 				// AMS2 9/18/14 #40405 Get all of the files if 0 is passed for the max files parameter.

@@ -963,7 +963,12 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	PA_Unistring						Unistring;
 	DWORD								bytesRequired;
 	LPDEVMODE							pDevMode;
-	
+	char*								emptyString = "";
+	DWORD								size;
+	PRINTER_INFO_2*						pPrinterInfo;
+	char								bins[20][24];
+	WORD								binNums[20];
+	int									index = 0;
 
 	activeCalls.bPrinterCapture							= TRUE;
 
@@ -995,13 +1000,56 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	printer = PA_GetVariableParameter( params, 1 );
 
 	if (strlen(printerSettings.printerSelection) == 0) {  
-		PA_ResizeArray (&printer, 1);
+		PA_ResizeArray (&printer, 10); // WJF 4/7/15 #41184 Changed from 1 -> 10
 		ret = GetProfileString("windows", "device", ",,,", printerName, printerName_len);
 		pComma = strstr(printerName, ",");
 		printerName[pComma - printerName] = '\0';
 		strcpy(printerSettings.printerSelection, printerName);
 		PA_SetTextInArray (printer, 1, printerSettings.printerSelection,
 				strlen(printerSettings.printerSelection));
+		// WJF 4/7/15 # 41884 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
+		if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
+			bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
+			pDevMode = (LPDEVMODE)malloc(bytesRequired);
+			DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
+			PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
+			// Store the orientation
+			if (pDevMode->dmOrientation = DMORIENT_PORTRAIT){
+				PA_SetTextInArray(printer, 5, "Portrait", strlen("Portrait")); 
+			} else {
+				PA_SetTextInArray(printer, 5, "Landscape", strlen("Landscape"));
+			}
+
+			GetPrinter(prntHndle, 2, 0, 0, &size); // Determine size required for printerInfo 
+			pPrinterInfo = (PRINTER_INFO_2*)malloc(size);
+			GetPrinter(prntHndle, 2, (LPBYTE)pPrinterInfo, size, &size); // Get printerInfo (printerport)
+			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINNAMES, bins, NULL); // Get all tray names
+			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINS, binNums, NULL); // Get all tray numbers
+			for (int i = 0; i<size; i++) {
+				if (binNums[i] == pDevMode->dmDefaultSource){
+					index = i; // Find the index of the default tray since there is no way to determine selected tray
+					i = size + 1;
+				}
+			}
+
+			PA_SetTextInArray(printer, 3, bins[index],
+				strlen(bins[index])); // Set to default bin
+
+			// Cleanup
+			free(pDevMode);
+			free(pPrinterInfo);
+			ClosePrinter(prntHndle);
+		} else {
+			PA_SetTextInArray(printer, 2, emptyString,
+				strlen(emptyString));
+			PA_SetTextInArray(printer, 3, emptyString,
+				strlen(emptyString));
+			PA_SetTextInArray(printer, 5, emptyString,
+				strlen(emptyString));
+		}
+		PA_SetTextInArray(printer, 4, "1", strlen("1"));  // Assume 1 copy
+		PA_SetTextInArray(printer, 6, emptyString, strlen(emptyString));
+		PA_SetTextInArray(printer, 7, emptyString, strlen(emptyString));
 		returnValue = 1;
 	} else {
 

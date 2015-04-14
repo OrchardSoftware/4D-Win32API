@@ -685,6 +685,19 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		case 97:
 			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 			break;
+		case 98:
+			sys_SetCursor(params); // WJF 4/13/15 #23512
+			break;
+		case 99:
+			sys_DeleteRegKey(params); // WJF 4/14/15 #27474
+			break;
+		case 100:
+			sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
+			break;
+		case 101:
+			sys_DeleteRegValue(params); // WJF 4/14/15 #27474
+			break;
+
 	}
 }
 
@@ -5155,3 +5168,213 @@ void sys_PrintDirect2Driver( PA_PluginParameters params )
 	}	// end if
 }//end function
 */
+
+//  FUNCTION: sys_setCursor(PA_PluginParameters params)
+//
+//  PURPOSE:	Sets the cursor based on the passed value
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 4/10/15 #23512
+void sys_SetCursor(PA_PluginParameters params){
+	
+	long lCursor = 0;
+	HCURSOR cursorHandle;
+
+	lCursor = PA_GetLongParameter(params, 1);
+
+	switch (lCursor)
+	{
+
+	case 1:
+		cursorHandle = LoadCursor(NULL, IDC_IBEAM);
+		break;
+	case 2:
+		cursorHandle = LoadCursor(NULL, IDC_CROSS);
+		break;
+	case 3:
+		cursorHandle = LoadCursor(NULL, IDC_SIZEALL);
+		break;
+	case 4:
+		cursorHandle = LoadCursor(NULL, IDC_WAIT);
+		break;
+	default:
+		cursorHandle = LoadCursor(NULL, IDC_ARROW);
+		break;
+	}
+
+	SetCursor(cursorHandle);
+
+	PA_ReturnLong(params, 0);
+}
+
+//  FUNCTION: sys_DeleteRegKey(PA_PluginParameters params)
+//
+//  PURPOSE:	Deletes a registry key
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 4/14/15 #27474
+void sys_DeleteRegKey(PA_PluginParameters params)
+{
+	HKEY hKey  = 0;
+	short baseKey = 0;
+	char subKey[255];
+	long errorCode = 0;
+
+	baseKey = PA_GetLongParameter(params, 1);
+	PA_GetTextParameter(params, 2, subKey);
+
+	switch (baseKey)
+	{
+	case 1:
+		hKey = HKEY_CLASSES_ROOT;
+		break;
+	case 2:
+		hKey = HKEY_CURRENT_USER;
+		break;
+	case 3:
+		hKey = HKEY_LOCAL_MACHINE;
+		break;
+	case 4:
+		hKey = HKEY_USERS;
+		break;
+	case 5: 
+		hKey = HKEY_CURRENT_CONFIG;
+		break;
+	default:
+		errorCode = -1;
+	}
+
+	if(hKey != 0)
+	{
+		errorCode = RegOpenKeyEx(hKey, NULL, 0, KEY_ALL_ACCESS, &hKey); // Open key
+
+		if (errorCode == ERROR_SUCCESS){
+			errorCode = RegDeleteKey(hKey, TEXT(subKey)); 
+		}
+		RegCloseKey(hKey); // Keys aren't deleted until they are closed
+	}
+
+	PA_ReturnLong(params, errorCode);
+}
+
+//  FUNCTION: sys_DeleteRegKey64(PA_PluginParameters params)
+//
+//  PURPOSE:	Deletes a registry key, used for 64-bit Windows
+//
+//  COMMENTS:	Passing non-1 values is the same as calling sys_DeleteRegKey on 64-bit
+//
+//	DATE:		WJF 4/14/15 #27474
+void sys_DeleteRegKey64(PA_PluginParameters params)
+{
+	HKEY hKey = 0;
+	short baseKey = 0;
+	char subKey[255];
+	long errorCode = 0;
+	REGSAM regView;
+	long view = 0;
+
+	baseKey = PA_GetLongParameter(params, 1);
+	PA_GetTextParameter(params, 2, subKey);
+	view = PA_GetLongParameter(params, 3);
+
+	switch (view)
+	{
+	case 1:
+		regView = KEY_WOW64_64KEY;
+		break;
+	default:
+		regView = KEY_WOW64_32KEY;
+	}
+
+	switch (baseKey)
+	{
+	case 1:
+		hKey = HKEY_CLASSES_ROOT;
+		break;
+	case 2:
+		hKey = HKEY_CURRENT_USER;
+		break;
+	case 3:
+		hKey = HKEY_LOCAL_MACHINE;
+		break;
+	case 4:
+		hKey = HKEY_USERS;
+		break;
+	case 5:
+		hKey = HKEY_CURRENT_CONFIG;
+		break;
+	default:
+		errorCode = -1;
+	}
+
+	if (errorCode != -1)
+	{
+		errorCode = RegOpenKeyEx(hKey, NULL, 0, KEY_ALL_ACCESS, &hKey); // Open Key
+		if (errorCode == ERROR_SUCCESS)
+		{
+			RegDeleteKeyEx(hKey, TEXT(subKey), regView, 0); 
+		}
+		RegCloseKey(hKey); // Keys aren't deleted until they are closed
+	}
+
+	PA_ReturnLong(params, errorCode);
+}
+
+//  FUNCTION: sys_DeleteRegValue(PA_PluginParameters params)
+//
+//  PURPOSE:	Deletes a registry value
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 4/14/15 #27474
+void sys_DeleteRegValue(PA_PluginParameters params)
+{
+	HKEY hKey = 0;
+	short baseKey = 0;
+	char subKey[255];
+	long errorCode = 0;
+	char keyValue[255];
+
+	baseKey = PA_GetLongParameter(params, 1);
+	PA_GetTextParameter(params, 2, subKey);
+	PA_GetTextParameter(params, 3, keyValue);
+
+	switch (baseKey)
+	{
+	case 1:
+		hKey = HKEY_CLASSES_ROOT;
+		break;
+	case 2:
+		hKey = HKEY_CURRENT_USER;
+		break;
+	case 3:
+		hKey = HKEY_LOCAL_MACHINE;
+		break;
+	case 4:
+		hKey = HKEY_USERS;
+		break;
+	case 5:
+		hKey = HKEY_CURRENT_CONFIG;
+		break;
+	default:
+		errorCode = -1;
+	}
+
+	if (hKey != 0)
+	{
+		errorCode = RegOpenKeyEx(hKey, TEXT(subKey), 0, KEY_ALL_ACCESS, &hKey);
+
+		if (errorCode == ERROR_SUCCESS){
+			errorCode = RegDeleteValue(hKey, TEXT(keyValue));
+		}
+		RegCloseKey(hKey); // Values aren't deleted until the key is closed
+	}
+
+	PA_ReturnLong(params, errorCode);
+}
+
+void detectVirtualMachine(PA_PluginParameters params)
+{
+}

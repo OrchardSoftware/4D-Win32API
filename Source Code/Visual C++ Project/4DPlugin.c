@@ -53,6 +53,8 @@ char		pathName[512]; // MWD 10/21/05 #9246 holds path to Win32API.4DX
 LPCWSTR		KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
 LPCWSTR		VAL_DisableTaskMgr = "DisableTaskMgr";
 LONG_PTR	windowStyle = 0; // REB 3/11/10 #23109 To hold the default window style.
+HCURSOR		cursorHandle; // WJF 4/20/15 #23512 Stores last set cursor handle
+BOOL        cursorHandleSet; // WJF 4/20/15 #23512 If sys_SetCursor has been called
 
 struct		HOOKHANDLES
 {
@@ -1000,6 +1002,10 @@ void sys_GetPrintJob( PA_PluginParameters params)
 		execCommand_len = strlen(executeCommand);
 	}
 	
+	//if ((activeCalls.bTrayIcons == FALSE) && (processHandles.wpFourDOrigProc == NULL)) { // same subclassed procedure used for trayIcons
+	//	processHandles.wpFourDOrigProc = (WNDPROC) SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) newProc);	
+	//}
+
 	subclass4DWindowProcess(); // MJG 3/26/04 Replaced code above with function call.
 
 	g_intrProcMsg = PS_SEARCH;
@@ -1007,6 +1013,7 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	// REB 4/20/11 #27322 Conver the C string to a Unistring
 	Unistring = CStringToUnistring(&executeCommand);
 	PA_ExecuteMethod(&Unistring);
+	//PA_ExecuteMethod(executeCommand, execCommand_len);
 
 	printer = PA_GetVariableParameter( params, 1 );
 
@@ -1116,6 +1123,11 @@ void sys_GetPrintJob( PA_PluginParameters params)
 		returnValue = strlen(printerSettings.printerSelection);
 	}
 
+	// restoreOrig4DWindowProcess(); // 01//21/03  // MJG 3/26/04 The 4D window will remain subclassed until the plug-in is unloaded.
+	//if (activeCalls.bTrayIcons == FALSE) { // 11/26/02 moved this below if statement
+	//SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) processHandles.wpFourDOrigProc);
+	//processHandles.wpFourDOrigProc = NULL;
+	//}
 	if (hookHandles.printSettingsHookHndl != NULL) {
 		UnhookWindowsHookEx(hookHandles.printSettingsHookHndl);
 		hookHandles.printSettingsHookHndl = NULL; // 08/08/02
@@ -3334,6 +3346,13 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 
+		case WM_SETCURSOR:
+			if (cursorHandleSet == TRUE)
+			{
+				SetCursor(cursorHandle);
+			}
+			break;
+
 		default :
 			// g_intrProcMsg will be PS_IDLE unless print dialogs have been requested
 			if ((g_intrProcMsg != PS_IDLE) && (count % 5 == 0) && (g_intrProcMsg < 2)) {
@@ -5084,31 +5103,35 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 void sys_SetCursor(PA_PluginParameters params){
 	
 	long lCursor = 0;
-	HCURSOR cursorHandle;
 
 	lCursor = PA_GetLongParameter(params, 1);
 
 	switch (lCursor)
 	{
-
 	case 1:
 		cursorHandle = LoadCursor(NULL, IDC_IBEAM);
+		cursorHandleSet = TRUE;
 		break;
 	case 2:
 		cursorHandle = LoadCursor(NULL, IDC_CROSS);
+		cursorHandleSet = TRUE;
 		break;
 	case 3:
 		cursorHandle = LoadCursor(NULL, IDC_SIZEALL);
+		cursorHandleSet = TRUE;
 		break;
 	case 4:
 		cursorHandle = LoadCursor(NULL, IDC_WAIT);
+		cursorHandleSet = TRUE;
 		break;
 	default:
 		cursorHandle = LoadCursor(NULL, IDC_ARROW);
+		cursorHandleSet = FALSE;
 		break;
 	}
 
 	SetCursor(cursorHandle);
+
 
 	PA_ReturnLong(params, 0);
 }
@@ -5279,3 +5302,24 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 
 	PA_ReturnLong(params, errorCode);
 }
+
+/*
+void CursorThreadManagement(HCURSOR cursor){
+
+	if (cursorThread == NULL){
+		cursorThread = CreateThread(NULL, 0, CursorThreadProcess, &cursor, 0, NULL);
+	}
+	else {
+
+	}
+}
+
+unsigned __stdcall CursorThreadProcess(LPVOID parameter) {
+	int flag = 0;
+	HCURSOR cursor = *((HCURSOR *)parameter);
+
+	while (flag == 0)
+	{
+		if (uMsg) 
+	}
+}*/

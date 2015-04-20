@@ -697,7 +697,6 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 		case 101:
 			sys_DeleteRegValue(params); // WJF 4/14/15 #27474
 			break;
-
 	}
 }
 
@@ -1070,7 +1069,7 @@ void sys_GetPrintJob( PA_PluginParameters params)
 		
 		PA_SetTextInArray (printer, 1, printerSettings.printerSelection,
 				strlen(printerSettings.printerSelection));
-		// WJF 4/6/15 #4067 If printerSettings.size is empty, we need to find the information another way (Happens when passed "PRINT SETTINGS(2)"
+		// WJF 4/6/15 #40697 If printerSettings.size is empty, we need to find the information another way (Happens when passed "PRINT SETTINGS(2)"
 		if (strcmp(printerSettings.size, "") == 0) {
 			if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
 				bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
@@ -1082,7 +1081,7 @@ void sys_GetPrintJob( PA_PluginParameters params)
 				free(pDevMode); 
 				ClosePrinter(prntHndle);
 			}
-		}
+		} // End WJF 4/6/15 #40697 Changes
 		else {
 			PA_SetTextInArray(printer, 2, printerSettings.size,
 				strlen(printerSettings.size));
@@ -4996,7 +4995,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 }
 
 
-/*
+
 void sys_PrintDirect2Driver( PA_PluginParameters params )
 {
 	PRINTDLG pd;                      // Structure to hold information about printer
@@ -5167,7 +5166,7 @@ void sys_PrintDirect2Driver( PA_PluginParameters params )
 	  PA_ReturnLong(params, (LONG_PTR)GetLastError());
 	}	// end if
 }//end function
-*/
+
 
 //  FUNCTION: sys_setCursor(PA_PluginParameters params)
 //
@@ -5373,8 +5372,4 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 	}
 
 	PA_ReturnLong(params, errorCode);
-}
-
-void detectVirtualMachine(PA_PluginParameters params)
-{
 }

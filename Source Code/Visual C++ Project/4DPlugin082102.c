@@ -1080,7 +1080,7 @@ void sys_SetPluginLanguage( PA_PluginParameters params )
 //		  REB 8/11/09 Removed support for Windows versions older than 2000.
 //
 //-------------------------------------------------
-/*
+
 void sys_PrintDirect2Driver( PA_PluginParameters params )
 {
 	PRINTDLG pd;                      // Structure to hold information about printer
@@ -1198,7 +1198,7 @@ void sys_PrintDirect2Driver( PA_PluginParameters params )
 	  PA_ReturnLong(params, (LONG_PTR)GetLastError());
 	}	// end if
 }//end function
-*/
+
 // ------------------------------------------------
 // 
 //  FUNCTION: sys_KillProcessByName(PA_PluginParameters params) 

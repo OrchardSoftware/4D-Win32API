@@ -683,19 +683,23 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			break;
 
 		case 97:
-			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
-			break;
-		case 98:
 			sys_SetCursor(params); // WJF 4/13/15 #23512
 			break;
-		case 99:
+
+		case 98:
 			sys_DeleteRegKey(params); // WJF 4/14/15 #27474
 			break;
-		case 100:
+
+		case 99:
 			sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
 			break;
-		case 101:
+
+		case 100:
 			sys_DeleteRegValue(params); // WJF 4/14/15 #27474
+			break;
+
+		case 101: // WJF 4/20/15 #40598 Redid paramaters
+			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 			break;
 	}
 }
@@ -996,10 +1000,6 @@ void sys_GetPrintJob( PA_PluginParameters params)
 		execCommand_len = strlen(executeCommand);
 	}
 	
-	
-	//if ((activeCalls.bTrayIcons == FALSE) && (processHandles.wpFourDOrigProc == NULL)) { // same subclassed procedure used for trayIcons
-	//	processHandles.wpFourDOrigProc = (WNDPROC) SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) newProc);	
-	//}
 	subclass4DWindowProcess(); // MJG 3/26/04 Replaced code above with function call.
 
 	g_intrProcMsg = PS_SEARCH;
@@ -1007,7 +1007,6 @@ void sys_GetPrintJob( PA_PluginParameters params)
 	// REB 4/20/11 #27322 Conver the C string to a Unistring
 	Unistring = CStringToUnistring(&executeCommand);
 	PA_ExecuteMethod(&Unistring);
-	//PA_ExecuteMethod(executeCommand, execCommand_len);
 
 	printer = PA_GetVariableParameter( params, 1 );
 
@@ -1117,11 +1116,6 @@ void sys_GetPrintJob( PA_PluginParameters params)
 		returnValue = strlen(printerSettings.printerSelection);
 	}
 
-	// restoreOrig4DWindowProcess(); // 01//21/03  // MJG 3/26/04 The 4D window will remain subclassed until the plug-in is unloaded.
-	//if (activeCalls.bTrayIcons == FALSE) { // 11/26/02 moved this below if statement
-		//SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) processHandles.wpFourDOrigProc);
-		//processHandles.wpFourDOrigProc = NULL;
-	//}
 	if (hookHandles.printSettingsHookHndl != NULL) {
 		UnhookWindowsHookEx(hookHandles.printSettingsHookHndl);
 		hookHandles.printSettingsHookHndl = NULL; // 08/08/02
@@ -4843,7 +4837,7 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 //
 // PURPOSE:		Return file version information 
 //
-// AMS 2/14/10 #36899
+// AMS 2/14/14 #36899
 //
 void sys_GetFileVersionInfo( PA_PluginParameters params )
 {
@@ -4917,9 +4911,94 @@ void sys_GetFileVersionInfo( PA_PluginParameters params )
 // PURPOSE:		Sends raw printer data directly to a printer. sys_PrintDirect2Driver
 //
 //
-// AMS2 12/5/10 #37816
+// AMS 12/5/14 #37816
 //
 
+void sys_SendRawPrinterData(PA_PluginParameters params){
+	PRINTDLG pd;                      // Structure to hold information about printer
+	DOCINFO di;                       // Structure to hold "document" information
+	char printerName[MAXBUF] = "";    // String to hold the printerName param ($1)
+	char data[MAXLABELBUF] = "";      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big.
+	char *origDefault;                // String to hold the original default printer
+	INT_PTR printerName_len;              // Int to hold maximum length of printer name
+	INT_PTR ret;                          // Int to hold return value of functions                 
+	INT_PTR iErrCode = 0;                 // Int to hold the error code.
+	ULONG_PTR ulBytesNeeded;      // Holds size information
+
+	BOOL     bStatus = FALSE;
+	HANDLE     hPrinter = NULL;
+	DOC_INFO_1 DocInfo;
+	DWORD      dwJob = 0L;
+	DWORD      dwBytesWritten = 0L;
+
+
+	// Set needed bytes to default value
+	ulBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
+
+	// Set this to 255.
+	printerName_len = 255;
+
+	// Get the function parameters.
+	PA_GetTextParameter(params, 1, printerName);
+	PA_GetTextParameter(params, 2, data);
+
+	// Allocate memory for Storing string for Original Default Printer & pBuf
+	origDefault = (char *)malloc(ulBytesNeeded);
+	memset(origDefault, 0, ulBytesNeeded);
+
+	// Get name of current Default Printer
+	GetDefaultPrinter(origDefault, &ulBytesNeeded);
+
+	// Set the new Default Printer to our label printer, with the name obtained from the registry
+	ret = SetDefaultPrinter((char *)printerName);
+
+	// We set the default printer just fine, now let's do the printing.
+	if (ret != 0)
+	{
+		// Open a handle to the printer. 
+		bStatus = OpenPrinter(printerName, &hPrinter, NULL);
+		if (bStatus)
+		{
+			// Fill in the structure with info about this "document." 
+			DocInfo.pDocName = (LPTSTR)("My Document");
+			DocInfo.pOutputFile = NULL;
+			DocInfo.pDatatype = (LPTSTR)("RAW");
+
+			// Inform the spooler the document is beginning. 
+			dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
+			if (dwJob > 0) {
+				// Start a page. 
+				bStatus = StartPagePrinter(hPrinter);
+				if (bStatus) {
+					// Send the data to the printer. 
+					bStatus = WritePrinter(hPrinter, data, MAXLABELBUF, &dwBytesWritten);
+					EndPagePrinter(hPrinter);
+				}
+				// Inform the spooler that the document is ending. 
+				EndDocPrinter(hPrinter);
+			}
+			// Close the printer handle. 
+			ClosePrinter(hPrinter);
+		}
+		// Check to see if correct number of bytes were written. 
+		if (!bStatus || (dwBytesWritten != MAXLABELBUF))
+		{
+			bStatus = FALSE;
+			iErrCode = GetLastError();
+		}
+		else
+		{
+			bStatus = TRUE;
+		}
+
+	}
+	else
+	{
+		PA_ReturnLong(params, (LONG_PTR)GetLastError());
+	}	// end if
+}
+
+/*
 void sys_SendRawPrinterData(PA_PluginParameters params)
 {
 	// 4D Parameters
@@ -4993,180 +5072,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 	}
 	PA_ReturnLong(params, lpReturn);
 }
-
-
-
-void sys_PrintDirect2Driver( PA_PluginParameters params )
-{
-	PRINTDLG pd;                      // Structure to hold information about printer
-	DOCINFO di;                       // Structure to hold "document" information
-	char printerName[MAXBUF] = "";    // String to hold the printerName param ($1)
-	char data[MAXLABELBUF] = "";      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big.
-	char *origDefault;                // String to hold the original default printer
-	INT_PTR printerName_len;              // Int to hold maximum length of printer name
-	INT_PTR ret;                          // Int to hold return value of functions                 
-	INT_PTR iErrCode = 0;                 // Int to hold the error code.
-	ULONG_PTR ulBytesNeeded;      // Holds size information
-
-	BOOL     bStatus = FALSE;
-	HANDLE     hPrinter = NULL;
-	DOC_INFO_1 DocInfo;
-	DWORD      dwJob = 0L;
-	DWORD      dwBytesWritten = 0L;
-
-
-	// Set needed bytes to default value
-	ulBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
-
-	// Set this to 255.
-	printerName_len = 255;
-
-	// Get the function parameters.
-	PA_GetTextParameter(params, 1, printerName);
-	PA_GetTextParameter(params, 2, data);
-
-	// Allocate memory for Storing string for Original Default Printer & pBuf
-	origDefault = (char *)malloc(ulBytesNeeded);
-	memset(origDefault, 0, ulBytesNeeded);
-
-    // Get name of current Default Printer
-	GetDefaultPrinter(origDefault, &ulBytesNeeded);
-    
-	// Set the new Default Printer to our label printer, with the name obtained from the registry
-	ret = SetDefaultPrinter((char *)printerName);
-	
-	// We set the default printer just fine, now let's do the printing.
-	if (ret != 0)
-	{
-
-		if (TRUE)
-		{
-			// Open a handle to the printer. 
-			bStatus = OpenPrinter(printerName, &hPrinter, NULL);
-			if (bStatus) 
-			{
-				// Fill in the structure with info about this "document." 
-				DocInfo.pDocName = (LPTSTR)("My Document");
-				DocInfo.pOutputFile = NULL;
-				DocInfo.pDatatype = (LPTSTR)("RAW");
-
-				// Inform the spooler the document is beginning. 
-				dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
-				if (dwJob > 0) {
-					// Start a page. 
-					bStatus = StartPagePrinter(hPrinter);
-					if (bStatus) {
-						// Send the data to the printer. 
-						bStatus = WritePrinter(hPrinter, data, MAXLABELBUF, &dwBytesWritten);
-						EndPagePrinter(hPrinter);
-					}
-					// Inform the spooler that the document is ending. 
-					EndDocPrinter(hPrinter);
-				}
-				// Close the printer handle. 
-				ClosePrinter(hPrinter);
-			}
-			// Check to see if correct number of bytes were written. 
-			if (!bStatus || (dwBytesWritten != MAXLABELBUF))
-			{
-				bStatus = FALSE;
-				iErrCode = GetLastError();
-			}
-			else 
-			{
-				bStatus = TRUE;
-			}
-
-		}
-		else
-		{
-
-			// Allocate memory for PRINTDLG structure
-			memset(&pd, 0, sizeof(pd));
-
-			// Define properties of the PRINTDLG structure
-			pd.lStructSize = sizeof(pd);
-
-			// PD_RETURNDEFAULT causes the PrintDlg function to automatically use the properties from
-			// the default printer.  PD_RETURNDC causes the function to return the device context
-			// for the printer.  This device context allows us to print a label
-			pd.Flags = PD_RETURNDEFAULT | PD_RETURNDC;
-
-			// These two structures must be NULL to use the PD_RETURNDC flag.
-			// Do this explicitly, just in case
-			pd.hDevMode = NULL;
-			pd.hDevNames = NULL;
-
-			// Retrieve the Device Context.  It will be accessible as a member of the PRINTDLG structure
-			if (!PrintDlg(&pd))
-			{
-				// Get the error from the common dialog box
-				// Error code will not work properly with FormatMessage, so use this instead.
-				iErrCode = CommDlgExtendedError();
-			}
-
-			if (iErrCode == 0)
-			{
-				// Initialize the DOCINFO structure
-				memset(&di, 0, sizeof(di));
-				di.cbSize = sizeof(DOCINFO);
-				di.lpszDocName = "Label";
-				di.lpszOutput = (LPTSTR)NULL;
-				di.lpszDatatype = "raw";
-				di.fwType = 0;
-
-				// Start a document in the print spooler
-				if (!StartDoc(pd.hDC, &di))
-				{
-					iErrCode = GetLastError();
-				} // end if
-			}
-
-			if (iErrCode == 0)
-			{
-				// Start a new page in the print spooler
-				if (!StartPage(pd.hDC))
-				{
-					iErrCode = GetLastError();
-				} // end if !
-			}
-
-			if (iErrCode == 0)
-			{
-				if (!TextOut(pd.hDC, 1, 1, data, strlen(data)))
-				{
-					iErrCode = GetLastError();
-				}
-			}
-
-			// De-allocate commandList
-
-			// Let the print spooler know that the page is done
-			EndPage(pd.hDC);
-
-			// Let the print spooler know that the document is done
-			EndDoc(pd.hDC);
-
-
-			// Delete the Device Context
-			DeleteDC(pd.hDC);
-		}
-
-
-		
-		// Now reset our default printer.
-    
-		// Set the Default Printer back to the original.
-  		ret = SetDefaultPrinter(origDefault);
-
-		PA_ReturnLong(params, (LONG_PTR)iErrCode); 
-	} 
-	else 
-	{
-	  PA_ReturnLong(params, (LONG_PTR)GetLastError());
-	}	// end if
-}//end function
-
+*/
 
 //  FUNCTION: sys_setCursor(PA_PluginParameters params)
 //

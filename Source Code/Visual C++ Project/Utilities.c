@@ -30,6 +30,20 @@ int compareFileTimeCreation(WIN32_FIND_DATA* p1, WIN32_FIND_DATA* p2)
 	return temp;
 }
 
+// WJF 4/7/15 #41624
+int compareAlphabetical(WIN32_FIND_DATA* p1, WIN32_FIND_DATA* p2)
+{
+	int ret;
+	char a[260];
+	char b[260];
+
+	strcpy(a, p1->cFileName);
+	strcpy(a, p2->cFileName);
+
+	ret = strcmp(a, b);
+
+	return ret;
+}
 
 char * concatStr(const char *str1, const char *str2)
 {

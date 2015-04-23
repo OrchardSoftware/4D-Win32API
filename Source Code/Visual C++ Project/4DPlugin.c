@@ -53,8 +53,6 @@ char		pathName[512]; // MWD 10/21/05 #9246 holds path to Win32API.4DX
 LPCWSTR		KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
 LPCWSTR		VAL_DisableTaskMgr = "DisableTaskMgr";
 LONG_PTR	windowStyle = 0; // REB 3/11/10 #23109 To hold the default window style.
-HCURSOR		cursorHandle; // WJF 4/20/15 #23512 Stores last set cursor handle
-BOOL        cursorHandleSet; // WJF 4/20/15 #23512 If sys_SetCursor has been called
 
 struct		HOOKHANDLES
 {
@@ -685,22 +683,18 @@ void PluginMain( LONG_PTR selector, PA_PluginParameters params )
 			break;
 
 		case 97:
-			sys_SetCursor(params); // WJF 4/13/15 #23512
-			break;
-
-		case 98:
 			sys_DeleteRegKey(params); // WJF 4/14/15 #27474
 			break;
 
-		case 99:
+		case 98:
 			sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
 			break;
 
-		case 100:
+		case 99:
 			sys_DeleteRegValue(params); // WJF 4/14/15 #27474
 			break;
 
-		case 101: // WJF 4/20/15 #40598 Redid paramaters
+		case 100: // WJF 4/20/15 #40598 Redid paramaters
 			sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 			break;
 	}
@@ -3345,14 +3339,6 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				processWindowMessage(RESPECT_TOOL_BAR_FUNCTION, toolBarRestrictions.appBeingMaxed, 0L, 0L);
 			}
 			break;
-
-		case WM_SETCURSOR:
-			if (cursorHandleSet == TRUE)
-			{
-				SetCursor(cursorHandle);
-			}
-			break;
-
 		default :
 			// g_intrProcMsg will be PS_IDLE unless print dialogs have been requested
 			if ((g_intrProcMsg != PS_IDLE) && (count % 5 == 0) && (g_intrProcMsg < 2)) {
@@ -4941,7 +4927,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 	char *origDefault;                // String to hold the original default printer
 	INT_PTR printerName_len;              // Int to hold maximum length of printer name
 	INT_PTR ret;                          // Int to hold return value of functions                 
-	INT_PTR iErrCode = 0;                 // Int to hold the error code.
+	INT_PTR iErrCode = 1;                 // Int to hold the error code.
 	ULONG_PTR ulBytesNeeded;      // Holds size information
 
 	BOOL     bStatus = FALSE;
@@ -5008,13 +4994,11 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 		else
 		{
 			bStatus = TRUE;
+			iErrCode = 0;
 		}
 
 	}
-	else
-	{
-		PA_ReturnLong(params, (LONG_PTR)GetLastError());
-	}	// end if
+		PA_ReturnLong(params, iErrCode);
 }
 
 /*
@@ -5100,6 +5084,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params)
 //  COMMENTS:	
 //
 //	DATE:		WJF 4/10/15 #23512
+/*
 void sys_SetCursor(PA_PluginParameters params){
 	
 	long lCursor = 0;
@@ -5130,11 +5115,12 @@ void sys_SetCursor(PA_PluginParameters params){
 		break;
 	}
 
+	SetClassLong(windowHandles.MDIhWnd, GCL_HCURSOR, NULL);
 	SetCursor(cursorHandle);
 
 
 	PA_ReturnLong(params, 0);
-}
+}*/
 
 //  FUNCTION: sys_DeleteRegKey(PA_PluginParameters params)
 //
@@ -5153,26 +5139,7 @@ void sys_DeleteRegKey(PA_PluginParameters params)
 	baseKey = PA_GetLongParameter(params, 1);
 	PA_GetTextParameter(params, 2, subKey);
 
-	switch (baseKey)
-	{
-	case 1:
-		hKey = HKEY_CLASSES_ROOT;
-		break;
-	case 2:
-		hKey = HKEY_CURRENT_USER;
-		break;
-	case 3:
-		hKey = HKEY_LOCAL_MACHINE;
-		break;
-	case 4:
-		hKey = HKEY_USERS;
-		break;
-	case 5: 
-		hKey = HKEY_CURRENT_CONFIG;
-		break;
-	default:
-		errorCode = -1;
-	}
+	hKey = getRootKey(baseKey);
 
 	if(hKey != 0)
 	{
@@ -5216,26 +5183,7 @@ void sys_DeleteRegKey64(PA_PluginParameters params)
 		regView = KEY_WOW64_32KEY;
 	}
 
-	switch (baseKey)
-	{
-	case 1:
-		hKey = HKEY_CLASSES_ROOT;
-		break;
-	case 2:
-		hKey = HKEY_CURRENT_USER;
-		break;
-	case 3:
-		hKey = HKEY_LOCAL_MACHINE;
-		break;
-	case 4:
-		hKey = HKEY_USERS;
-		break;
-	case 5:
-		hKey = HKEY_CURRENT_CONFIG;
-		break;
-	default:
-		errorCode = -1;
-	}
+	hKey = getRootKey(baseKey);
 
 	if (errorCode != -1)
 	{
@@ -5269,26 +5217,7 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 	PA_GetTextParameter(params, 2, subKey);
 	PA_GetTextParameter(params, 3, keyValue);
 
-	switch (baseKey)
-	{
-	case 1:
-		hKey = HKEY_CLASSES_ROOT;
-		break;
-	case 2:
-		hKey = HKEY_CURRENT_USER;
-		break;
-	case 3:
-		hKey = HKEY_LOCAL_MACHINE;
-		break;
-	case 4:
-		hKey = HKEY_USERS;
-		break;
-	case 5:
-		hKey = HKEY_CURRENT_CONFIG;
-		break;
-	default:
-		errorCode = -1;
-	}
+	hKey = getRootKey(baseKey);
 
 	if (hKey != 0)
 	{
@@ -5302,24 +5231,3 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 
 	PA_ReturnLong(params, errorCode);
 }
-
-/*
-void CursorThreadManagement(HCURSOR cursor){
-
-	if (cursorThread == NULL){
-		cursorThread = CreateThread(NULL, 0, CursorThreadProcess, &cursor, 0, NULL);
-	}
-	else {
-
-	}
-}
-
-unsigned __stdcall CursorThreadProcess(LPVOID parameter) {
-	int flag = 0;
-	HCURSOR cursor = *((HCURSOR *)parameter);
-
-	while (flag == 0)
-	{
-		if (uMsg) 
-	}
-}*/

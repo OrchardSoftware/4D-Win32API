@@ -22,6 +22,8 @@
 #include <stdio.h> // for snapshot
 #include "Defines.h"
 #include <VersionHelpers.h>
+#include <windows.security.cryptography.h>
+#include <wincrypt.h>
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus
@@ -127,6 +129,39 @@ void sys_SendRawPrinterData( PA_PluginParameters params); // AMS2 12/9/14 #40598
 void sys_DeleteRegValue(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey64(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
+void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
+void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
+HCRYPTKEY buildKey(HCRYPTKEY hKey);
+
+// ------- Encryption --------- // WJF 5/6/15 #42665
+BOOL CreatePrivateExponentOneKey(LPTSTR szProvider,
+	DWORD dwProvType,
+	LPTSTR szContainer,
+	DWORD dwKeySpec,
+	HCRYPTPROV *hProv,
+	HCRYPTKEY *hPrivateKey);
+
+BOOL GenerateSessionKeyWithAlgorithm(HCRYPTPROV hProv,
+	ALG_ID Alg,
+	HCRYPTKEY *hSessionKey);
+
+BOOL DeriveSessionKeyWithAlgorithm(HCRYPTPROV hProv,
+	ALG_ID Alg,
+	LPBYTE lpHashingData,
+	DWORD dwHashingData,
+	HCRYPTKEY *hSessionKey);
+
+BOOL ExportPlainSessionBlob(HCRYPTKEY hPublicKey,
+	HCRYPTKEY hSessionKey,
+	LPBYTE *pbKeyMaterial,
+	DWORD *dwKeyMaterial);
+
+BOOL ImportPlainSessionBlob(HCRYPTPROV hProv,
+	HCRYPTKEY hPrivateKey,
+	ALG_ID dwAlgId,
+	LPBYTE pbKeyMaterial,
+	DWORD dwKeyMaterial,
+	HCRYPTKEY *hSessionKey);
 
 // ----- Other modules -------
 //window background-related

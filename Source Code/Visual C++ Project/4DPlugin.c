@@ -5252,6 +5252,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	BOOL		bResult;
 	HCRYPTPROV	hProv;
 	HCRYPTHASH	hHash;
+	PBYTE		pbHash;
 	HCRYPTKEY	hKey;
 	PBYTE		pbBuffer;
 	DWORD		dwSize;
@@ -5261,6 +5262,19 @@ void sys_EncryptAES(PA_PluginParameters params)
 	DWORD		error;
 	HRESULT		hResult;
 	DWORD		dwMode = CRYPT_MODE_ECB;
+	BYTE		iv[16] = { 0 };
+
+	struct {
+		BLOBHEADER hdr;
+		DWORD len;
+		BYTE key[32];
+	} key_blob;
+
+	key_blob.hdr.bType = PLAINTEXTKEYBLOB;
+	key_blob.hdr.bVersion = CUR_BLOB_VERSION;
+	key_blob.hdr.reserved = 0;
+	key_blob.hdr.aiKeyAlg = CALG_AES_256;
+	key_blob.len = 32;
 
 	pbMessage = 0L;
 	dwSize = PA_GetTextParameter(params, 1, 0L);
@@ -5272,17 +5286,18 @@ void sys_EncryptAES(PA_PluginParameters params)
 	pbPass = malloc(dwPassLength);
 	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
+	
 	bResult = CryptAcquireContext(
-				&hProv,
-				NULL,
-				MS_ENH_RSA_AES_PROV,
-				PROV_RSA_AES,
-				0);
+		&hProv,
+		NULL,
+		MS_ENH_RSA_AES_PROV,
+		PROV_RSA_AES,
+		0);
 
 	error = GetLastError();
 	hResult = HRESULT_FROM_WIN32(error);
 
-	if (bResult = TRUE){
+	if (bResult == TRUE){
 		bResult = CryptCreateHash(
 			hProv,
 			CALG_SHA_256,
@@ -5294,7 +5309,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 		error = GetLastError();
 		hResult = HRESULT_FROM_WIN32(error);
 
-		if (bResult = TRUE) {
+		if (bResult == TRUE) {
 			bResult = CryptHashData(
 				hHash,
 				pbPass,
@@ -5304,29 +5319,35 @@ void sys_EncryptAES(PA_PluginParameters params)
 			error = GetLastError();
 			hResult = HRESULT_FROM_WIN32(error);
 
-			if (bResult = TRUE) {
+			if (bResult == TRUE) {
 				bResult = CryptDeriveKey(
 					hProv,
-					CALG_AES_128,
+					CALG_AES_256,
 					hHash,
 					CRYPT_EXPORTABLE,
 					&hKey);
-
+				
+				
 				error = GetLastError();
 				hResult = HRESULT_FROM_WIN32(error);
 
 				CryptDestroyHash(hHash);
 
-				if (bResult = TRUE){
+				if (bResult == TRUE){
+					CryptSetKeyParam(hKey, KP_IV, iv, 0);
 					CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0);
-					bResult = CryptEncrypt(
-						hKey,
-						0,
-						TRUE,
-						0,
-						NULL,
-						&dwSize,
-						dwSize);
+					pbBuffer = (PBYTE)malloc(16);
+					strcpy(pbBuffer, pbMessage);
+					bResult = CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, 16);
+
+					/*bResult = CryptEncrypt(
+					hKey,
+					0,
+					TRUE,
+					0,
+					NULL,
+					&dwSize,
+					dwSize);
 
 					error = GetLastError();
 					hResult = HRESULT_FROM_WIN32(error);
@@ -5334,13 +5355,13 @@ void sys_EncryptAES(PA_PluginParameters params)
 					pbBuffer = (PBYTE)malloc(dwSize);
 					strcpy(pbBuffer, pbMessage);
 					bResult = CryptEncrypt(
-						hKey,
-						0,
-						TRUE,
-						0,
-						pbBuffer,
-						&dwSize,
-						dwSize+(DWORD)AES_BLOCK_SIZE);
+					hKey,
+					0,
+					TRUE,
+					0,
+					pbBuffer,
+					&dwSize,
+					dwSize); */
 				}
 			}
 		}
@@ -5348,6 +5369,8 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 	error = GetLastError();
 	hResult = HRESULT_FROM_WIN32(error);
+
+	pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize);
 
 	FILE *fp;
 
@@ -5360,6 +5383,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 	CryptDestroyKey(hKey);
 	CryptReleaseContext(hProv, 0);
+
 }
 
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
@@ -5382,6 +5406,9 @@ void sys_DecryptAES(PA_PluginParameters params)
 	DWORD		dwMode = CRYPT_MODE_ECB;
 	DWORD		error;
 	HRESULT		hResult;
+	DWORD		dwRawKeyData;
+	PBYTE		pbRawKeyData;
+	BYTE		iv[16] = { 0 };
 
 	pbMessage = 0L;
 	dwSize = PA_GetTextParameter(params, 1, 0L);
@@ -5389,11 +5416,16 @@ void sys_DecryptAES(PA_PluginParameters params)
 	dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
 	pbPass = 0L;
-	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+	dwPassLength = PA_GetTextParameter(params, 2, 0L);
 	pbPass = malloc(dwPassLength);
 	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-	hKey = PA_GetLongParameter(params, 3);
+	pbRawKeyData = 0L;
+	dwRawKeyData = PA_GetTextParameter(params, 3, 0L);
+	pbRawKeyData = (PBYTE)malloc(dwRawKeyData);
+	dwRawKeyData = PA_GetTextParameter(params, 3, pbRawKeyData);
+
+
 
 	/*if (hKey > 0)
 	{
@@ -5410,20 +5442,8 @@ void sys_DecryptAES(PA_PluginParameters params)
 	error = GetLastError();
 	hResult = HRESULT_FROM_WIN32(error);
 
-	if (bResult = TRUE){
+	if (bResult == TRUE){
 
-	/*	if (hKey>0) {
-			CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0);
-			bResult = CryptDecrypt(
-				hKey,
-				0,
-				TRUE,
-				0,
-				pbMessage,
-				&dwSize);
-		}
-		else
-		{*/
 			bResult = CryptCreateHash(
 				hProv,
 				CALG_SHA_256,
@@ -5436,7 +5456,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 			error = GetLastError();
 			hResult = HRESULT_FROM_WIN32(error);
 
-			if (bResult = TRUE) {
+			if (bResult == TRUE) {
 				bResult = CryptHashData(
 					hHash,
 					pbPass,
@@ -5446,21 +5466,23 @@ void sys_DecryptAES(PA_PluginParameters params)
 				error = GetLastError();
 				hResult = HRESULT_FROM_WIN32(error);
 
-				if (bResult = TRUE) {
+				if (bResult == TRUE) {
 					bResult = CryptDeriveKey(
 						hProv,
-						CALG_AES_128,
+						CALG_AES_256,
 						hHash,
 						CRYPT_EXPORTABLE,
 						&hKey);
 
 					CryptDestroyHash(hHash);
-
+				
 					error = GetLastError();
 					hResult = HRESULT_FROM_WIN32(error);
 
-					if (bResult = TRUE){
+					if (bResult == TRUE){
+						CryptSetKeyParam(hKey, KP_IV, iv, 0);
 						CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0);
+						pbMessage = base64_decode(pbMessage, dwSize, &dwSize);
 						bResult = CryptDecrypt(
 							hKey,
 							0,
@@ -5471,440 +5493,228 @@ void sys_DecryptAES(PA_PluginParameters params)
 					}
 				}
 			}
-		//}
-	}
+		}
+
 
 	error = GetLastError();
 	hResult = HRESULT_FROM_WIN32(error);
+
 
 	PA_ReturnText(params, pbMessage, dwSize);
 
 	CryptDestroyKey(hKey);
 	CryptReleaseContext(hProv, 0);
 }
-/*
-BOOL CreatePrivateExponentOneKey(LPTSTR szProvider,
-	DWORD dwProvType,
-	LPTSTR szContainer,
-	DWORD dwKeySpec,
-	HCRYPTPROV *hProv,
-	HCRYPTKEY *hPrivateKey)
-{
-	BOOL fReturn = FALSE;
-	BOOL fResult;
-	int n;
-	LPBYTE keyblob = NULL;
-	DWORD dwkeyblob;
-	DWORD dwBitLen;
-	BYTE *ptr;
 
-	__try
-	{
-		*hProv = 0;
-		*hPrivateKey = 0;
+char *base64_encode(const unsigned char *data,
+	size_t input_length,
+	size_t *output_length) {
 
-		if ((dwKeySpec != AT_KEYEXCHANGE) && (dwKeySpec != AT_SIGNATURE))  __leave;
+	*output_length = 4 * ((input_length + 2) / 3);
 
-		// Try to create new container
-		fResult = CryptAcquireContext(hProv, szContainer, szProvider,
-			dwProvType, CRYPT_NEWKEYSET);
-		if (!fResult)
-		{
-			// If the container exists, open it
-			if (GetLastError() == NTE_EXISTS)
-			{
-				fResult = CryptAcquireContext(hProv, szContainer, szProvider, dwProvType, 0);
-				if (!fResult)
-				{
-					// No good, leave
-					__leave;
-				}
-			}
-			else
-			{
-				// No good, leave
-				__leave;
-			}
-		}
+	char *encoded_data = malloc(*output_length);
+	if (encoded_data == NULL) return NULL;
 
-		// Generate the private key
-		fResult = CryptGenKey(*hProv, dwKeySpec, CRYPT_EXPORTABLE, hPrivateKey);
-		if (!fResult) __leave;
+	for (int i = 0, j = 0; i < input_length;) {
 
-		// Export the private key, we'll convert it to a private
-		// exponent of one key
-		fResult = CryptExportKey(*hPrivateKey, 0, PRIVATEKEYBLOB, 0, NULL, &dwkeyblob);
-		if (!fResult) __leave;
+		uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
+		uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
+		uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
 
-		keyblob = (LPBYTE)LocalAlloc(LPTR, dwkeyblob);
-		if (!keyblob) __leave;
+		uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
 
-		fResult = CryptExportKey(*hPrivateKey, 0, PRIVATEKEYBLOB, 0, keyblob, &dwkeyblob);
-		if (!fResult) __leave;
-
-
-		CryptDestroyKey(*hPrivateKey);
-		*hPrivateKey = 0;
-
-		// Get the bit length of the key
-		memcpy(&dwBitLen, &keyblob[12], 4);
-
-		// Modify the Exponent in Key BLOB format
-		// Key BLOB format is documented in SDK
-
-		// Convert pubexp in rsapubkey to 1
-		ptr = &keyblob[16];
-		for (n = 0; n < 4; n++)
-		{
-			if (n == 0) ptr[n] = 1;
-			else ptr[n] = 0;
-		}
-
-		// Skip pubexp
-		ptr += 4;
-		// Skip modulus, prime1, prime2
-		ptr += (dwBitLen / 8);
-		ptr += (dwBitLen / 16);
-		ptr += (dwBitLen / 16);
-
-		// Convert exponent1 to 1
-		for (n = 0; n < (dwBitLen / 16); n++)
-		{
-			if (n == 0) ptr[n] = 1;
-			else ptr[n] = 0;
-		}
-
-		// Skip exponent1
-		ptr += (dwBitLen / 16);
-
-		// Convert exponent2 to 1
-		for (n = 0; n < (dwBitLen / 16); n++)
-		{
-			if (n == 0) ptr[n] = 1;
-			else ptr[n] = 0;
-		}
-
-		// Skip exponent2, coefficient
-		ptr += (dwBitLen / 16);
-		ptr += (dwBitLen / 16);
-
-		// Convert privateExponent to 1
-		for (n = 0; n < (dwBitLen / 8); n++)
-		{
-			if (n == 0) ptr[n] = 1;
-			else ptr[n] = 0;
-		}
-
-		// Import the exponent-of-one private key.      
-		if (!CryptImportKey(*hProv, keyblob, dwkeyblob, 0, 0, hPrivateKey))
-		{
-			__leave;
-		}
-
-		fReturn = TRUE;
-	}
-	__finally
-	{
-		if (keyblob) LocalFree(keyblob);
-
-		if (!fReturn)
-		{
-			if (*hPrivateKey) CryptDestroyKey(*hPrivateKey);
-			if (*hProv) CryptReleaseContext(*hProv, 0);
-		}
+		encoded_data[j++] = encoding_table[(triple >> 3 * 6) & 0x3F];
+		encoded_data[j++] = encoding_table[(triple >> 2 * 6) & 0x3F];
+		encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
+		encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
 	}
 
-	return fReturn;
+	for (int i = 0; i < mod_table[input_length % 3]; i++)
+		encoded_data[*output_length - 1 - i] = '=';
+
+	return encoded_data;
 }
 
-BOOL GenerateSessionKeyWithAlgorithm(HCRYPTPROV hProv,
-	ALG_ID Alg,
-	HCRYPTKEY *hSessionKey)
-{
-	BOOL fResult;
 
-	*hSessionKey = 0;
+unsigned char *base64_decode(const char *data,
+	size_t input_length,
+	size_t *output_length) {
 
-	fResult = CryptGenKey(hProv, Alg, CRYPT_EXPORTABLE, hSessionKey);
-	if (!fResult)
-	{
-		return FALSE;
+	if (decoding_table == NULL) build_decoding_table();
+
+	if (input_length % 4 != 0) return NULL;
+
+	*output_length = input_length / 4 * 3;
+	if (data[input_length - 1] == '=') (*output_length)--;
+	if (data[input_length - 2] == '=') (*output_length)--;
+
+	unsigned char *decoded_data = malloc(*output_length);
+	if (decoded_data == NULL) return NULL;
+
+	for (int i = 0, j = 0; i < input_length;) {
+
+		uint32_t sextet_a = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
+		uint32_t sextet_b = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
+		uint32_t sextet_c = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
+		uint32_t sextet_d = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
+
+		uint32_t triple = (sextet_a << 3 * 6)
+			+ (sextet_b << 2 * 6)
+			+ (sextet_c << 1 * 6)
+			+ (sextet_d << 0 * 6);
+
+		if (j < *output_length) decoded_data[j++] = (triple >> 2 * 8) & 0xFF;
+		if (j < *output_length) decoded_data[j++] = (triple >> 1 * 8) & 0xFF;
+		if (j < *output_length) decoded_data[j++] = (triple >> 0 * 8) & 0xFF;
 	}
 
-	return TRUE;
+	return decoded_data;
 }
 
-BOOL DeriveSessionKeyWithAlgorithm(HCRYPTPROV hProv,
-	ALG_ID Alg,
-	LPBYTE lpHashingData,
-	DWORD dwHashingData,
-	HCRYPTKEY *hSessionKey)
-{
-	BOOL fResult;
-	BOOL fReturn = FALSE;
-	HCRYPTHASH hHash = 0;
 
-	__try
-	{
-		*hSessionKey = 0;
+void build_decoding_table() {
 
-		fResult = CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash);
-		if (!fResult) __leave;
+	decoding_table = malloc(256);
 
-		fResult = CryptHashData(hHash, lpHashingData, dwHashingData, 0);
-		if (!fResult) __leave;
-
-		fResult = CryptDeriveKey(hProv, Alg, hHash, CRYPT_EXPORTABLE, hSessionKey);
-		if (!fResult) __leave;
-
-		fReturn = TRUE;
-	}
-	__finally
-	{
-		if (hHash) CryptDestroyHash(hHash);
-	}
-
-	return fReturn;
+	for (int i = 0; i < 64; i++)
+		decoding_table[(unsigned char)encoding_table[i]] = i;
 }
 
-BOOL ExportPlainSessionBlob(HCRYPTKEY hPublicKey,
-	HCRYPTKEY hSessionKey,
-	LPBYTE *pbKeyMaterial,
-	DWORD *dwKeyMaterial)
-{
-	BOOL fReturn = FALSE;
-	BOOL fResult;
-	DWORD dwSize, n;
-	LPBYTE pbSessionBlob = NULL;
-	DWORD dwSessionBlob;
-	LPBYTE pbPtr;
 
-	__try
-	{
-		*pbKeyMaterial = NULL;
-		*dwKeyMaterial = 0;
-
-		fResult = CryptExportKey(hSessionKey, hPublicKey, SIMPLEBLOB,
-			0, NULL, &dwSessionBlob);
-		if (!fResult) __leave;
-
-		pbSessionBlob = (LPBYTE)LocalAlloc(LPTR, dwSessionBlob);
-		if (!pbSessionBlob) __leave;
-
-		fResult = CryptExportKey(hSessionKey, hPublicKey, SIMPLEBLOB,
-			0, pbSessionBlob, &dwSessionBlob);
-		if (!fResult) __leave;
-
-		// Get session key size in bits
-		dwSize = sizeof(DWORD);
-		fResult = CryptGetKeyParam(hSessionKey, KP_KEYLEN, (LPBYTE)dwKeyMaterial, &dwSize, 0);
-		if (!fResult) __leave;
-
-		// Get the number of bytes and allocate buffer
-		*dwKeyMaterial /= 8;
-		*pbKeyMaterial = (LPBYTE)LocalAlloc(LPTR, *dwKeyMaterial);
-		if (!*pbKeyMaterial) __leave;
-
-		// Skip the header
-		pbPtr = pbSessionBlob;
-		pbPtr += sizeof(BLOBHEADER);
-		pbPtr += sizeof(ALG_ID);
-
-		// We are at the beginning of the key
-		// but we need to start at the end since 
-		// it's reversed
-		pbPtr += (*dwKeyMaterial - 1);
-
-		// Copy the raw key into our return buffer      
-		for (n = 0; n < *dwKeyMaterial; n++)
-		{
-			(*pbKeyMaterial)[n] = *pbPtr;
-			pbPtr--;
-		}
-
-		fReturn = TRUE;
-	}
-	__finally
-	{
-		if (pbSessionBlob) LocalFree(pbSessionBlob);
-
-		if ((!fReturn) && (*pbKeyMaterial))
-		{
-			LocalFree(*pbKeyMaterial);
-			*pbKeyMaterial = NULL;
-			*dwKeyMaterial = 0;
-		}
-	}
-
-	return fReturn;
+void base64_cleanup() {
+	free(decoding_table);
 }
 
-BOOL ImportPlainSessionBlob(HCRYPTPROV hProv,
-	HCRYPTKEY hPrivateKey,
-	ALG_ID dwAlgId,
-	LPBYTE pbKeyMaterial,
-	DWORD dwKeyMaterial,
-	HCRYPTKEY *hSessionKey)
+
+BOOL WINAPI hmacInit_sha1(
+	PRF_CTX*       pContext,   /* PRF context used in HMAC computation */
+	unsigned char* pbKey,      /* pointer to authentication key */
+	DWORD          cbKey       /* length of authentication key */
+	)
 {
-	BOOL fResult;
-	BOOL fReturn = FALSE;
-	BOOL fFound = FALSE;
-	LPBYTE pbSessionBlob = NULL;
-	DWORD dwSessionBlob, dwSize, n;
-	DWORD dwPublicKeySize;
-	DWORD dwProvSessionKeySize;
-	ALG_ID dwPrivKeyAlg;
-	LPBYTE pbPtr;
-	DWORD dwFlags = CRYPT_FIRST;
-	PROV_ENUMALGS_EX ProvEnum;
-	HCRYPTKEY hTempKey = 0;
+	HCRYPTPROV hProv = NULL;
+	HCRYPTKEY hKey = NULL;
+	HMAC_KEY_BLOB *pKeyBlob = (HMAC_KEY_BLOB *)LocalAlloc(0, sizeof(HMAC_KEY_BLOB)+cbKey + 20); // we put enough room for 0's padding
+	BOOL bStatus = FALSE;
+	DWORD dwError = 0, dwLen;
 
-	__try
+	pKeyBlob->hdr.bType = PLAINTEXTKEYBLOB;
+	pKeyBlob->hdr.bVersion = CUR_BLOB_VERSION;
+	pKeyBlob->hdr.reserved = 0;
+	pKeyBlob->hdr.aiKeyAlg = CALG_RC2;
+	pKeyBlob->cbKeySize = cbKey;
+	memcpy(((LPBYTE)pKeyBlob) + sizeof(HMAC_KEY_BLOB), pbKey, cbKey);
+
+	if (!pContext)
 	{
-		// Double check to see if this provider supports this algorithm
-		// and key size
-		do
-		{
-			dwSize = sizeof(ProvEnum);
-			fResult = CryptGetProvParam(hProv, PP_ENUMALGS_EX, (LPBYTE)&ProvEnum,
-				&dwSize, dwFlags);
-			if (!fResult) break;
-
-			dwFlags = 0;
-
-			if (ProvEnum.aiAlgid == dwAlgId) fFound = TRUE;
-
-		} while (!fFound);
-
-		if (!fFound) __leave;
-
-		// We have to get the key size(including padding)
-		// from an HCRYPTKEY handle.  PP_ENUMALGS_EX contains
-		// the key size without the padding so we can't use it.
-		fResult = CryptGenKey(hProv, dwAlgId, 0, &hTempKey);
-		if (!fResult) __leave;
-
-		dwSize = sizeof(DWORD);
-		fResult = CryptGetKeyParam(hTempKey, KP_KEYLEN, (LPBYTE)&dwProvSessionKeySize,
-			&dwSize, 0);
-		if (!fResult) __leave;
-		CryptDestroyKey(hTempKey);
-		hTempKey = 0;
-
-		// Our key is too big, leave
-		if ((dwKeyMaterial * 8) > dwProvSessionKeySize) __leave;
-
-		// Get private key's algorithm
-		dwSize = sizeof(ALG_ID);
-		fResult = CryptGetKeyParam(hPrivateKey, KP_ALGID, (LPBYTE)&dwPrivKeyAlg, &dwSize, 0);
-		if (!fResult) __leave;
-
-		// Get private key's length in bits
-		dwSize = sizeof(DWORD);
-		fResult = CryptGetKeyParam(hPrivateKey, KP_KEYLEN, (LPBYTE)&dwPublicKeySize, &dwSize, 0);
-		if (!fResult) __leave;
-
-		// calculate Simple blob's length
-		dwSessionBlob = (dwPublicKeySize / 8) + sizeof(ALG_ID)+sizeof(BLOBHEADER);
-
-		// allocate simple blob buffer
-		pbSessionBlob = (LPBYTE)LocalAlloc(LPTR, dwSessionBlob);
-		if (!pbSessionBlob) __leave;
-
-		pbPtr = pbSessionBlob;
-
-		// SIMPLEBLOB Format is documented in SDK
-		// Copy header to buffer
-		((BLOBHEADER *)pbPtr)->bType = SIMPLEBLOB;
-		((BLOBHEADER *)pbPtr)->bVersion = 2;
-		((BLOBHEADER *)pbPtr)->reserved = 0;
-		((BLOBHEADER *)pbPtr)->aiKeyAlg = dwAlgId;
-		pbPtr += sizeof(BLOBHEADER);
-
-		// Copy private key algorithm to buffer
-		*((DWORD *)pbPtr) = dwPrivKeyAlg;
-		pbPtr += sizeof(ALG_ID);
-
-		// Place the key material in reverse order
-		for (n = 0; n < dwKeyMaterial; n++)
-		{
-			pbPtr[n] = pbKeyMaterial[dwKeyMaterial - n - 1];
-		}
-
-		// 3 is for the first reserved byte after the key material + the 2 reserved bytes at the end.
-		dwSize = dwSessionBlob - (sizeof(ALG_ID)+sizeof(BLOBHEADER)+dwKeyMaterial + 3);
-		pbPtr += (dwKeyMaterial + 1);
-
-		// Generate random data for the rest of the buffer
-		// (except that last two bytes)
-		fResult = CryptGenRandom(hProv, dwSize, pbPtr);
-		if (!fResult) __leave;
-
-		for (n = 0; n < dwSize; n++)
-		{
-			if (pbPtr[n] == 0) pbPtr[n] = 1;
-		}
-
-		pbSessionBlob[dwSessionBlob - 2] = 2;
-
-		fResult = CryptImportKey(hProv, pbSessionBlob, dwSessionBlob,
-			hPrivateKey, CRYPT_EXPORTABLE, hSessionKey);
-		if (!fResult) __leave;
-
-		fReturn = TRUE;
-	}
-	__finally
-	{
-		if (hTempKey) CryptDestroyKey(hTempKey);
-		if (pbSessionBlob) LocalFree(pbSessionBlob);
+		dwError = ERROR_BAD_ARGUMENTS;
+		goto hmacInit_end;
 	}
 
-	return fReturn;
+	if (!CryptAcquireContext(&hProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+	{
+		dwError = GetLastError();
+		goto hmacInit_end;
+	}
+
+	dwLen = sizeof(HMAC_KEY_BLOB)+cbKey;
+	if (dwLen < 20)
+	{
+		// we pad with zeros till the size of SHA1 digest.
+		// this is to avoid erros under Windows 8.1 wich doesn't accept 1-byte RC2 keys
+		// the result will be the same since the HMAC-SHA1 will perform the same padding
+		DWORD dwPad = 20 - dwLen;
+		memset(((LPBYTE)pKeyBlob) + dwLen, 0, dwPad);
+		dwLen += dwPad;
+		pKeyBlob->cbKeySize += dwPad;
+	}
+
+	if (!CryptImportKey(hProv, (LPBYTE)pKeyBlob, dwLen, NULL, CRYPT_IPSEC_HMAC_KEY, &hKey))
+	{
+		dwError = GetLastError();
+		goto hmacInit_end;
+	}
+
+	CAPI_CTX_PARAM* pParam = (CAPI_CTX_PARAM*)LocalAlloc(0, sizeof(CAPI_CTX_PARAM));
+	pParam->hProv = hProv;
+	pParam->hKey = hKey;
+
+	pContext->magic = HMAC_SHA1_MAGIC;
+	pContext->pParam = (void*)pParam;
+
+	hProv = NULL;
+	hKey = NULL;
+
+	bStatus = TRUE;
+
+hmacInit_end:
+
+	if (hKey) CryptDestroyKey(hKey);
+	if (hProv) CryptReleaseContext(hProv, 0);
+
+	if (pKeyBlob) LocalFree(pKeyBlob);
+
+	SetLastError(dwError);
+	return bStatus;
 }
 
-HCRYPTKEY buildKey(HCRYPTKEY hKey)
+BOOL WINAPI hmac_sha1(
+	PRF_CTX*       pContext,               /* PRF context used in HMAC computation */
+	unsigned char*  pbData,                /* pointer to data stream */
+	DWORD           cbData,                /* length of data stream */
+	unsigned char   pbDigest[20]           /* caller digest to be filled in */
+	)
 {
-	HCRYPTPROV hProv = 0;
-	HCRYPTKEY hPubPrivKey = 0;
-	HCRYPTKEY hSessionKey = 0;
-	BOOL fResult;
-	LPBYTE pbKeyMaterial = NULL;
-	DWORD dwKeyMaterial;
-	int n;
+	HCRYPTPROV hProv = NULL;
+	HCRYPTHASH hHash = NULL;
+	HCRYPTKEY hKey = NULL;
+	DWORD cbDigest = 20;
+	HMAC_INFO   HmacInfo;
+	BOOL bStatus = FALSE;
+	DWORD dwError = 0;
 
-	__try{
-		fResult = CreatePrivateExponentOneKey(MS_ENH_RSA_AES_PROV, PROV_RSA_AES, "TestContainer", AT_KEYEXCHANGE, &hProv, &hPubPrivKey);
-		if (!fResult){
-			__leave;
-		}
+	ZeroMemory(&HmacInfo, sizeof(HmacInfo));
+	HmacInfo.HashAlgid = CALG_SHA1;
 
-		pbKeyMaterial = (LPBYTE)LocalAlloc(LPTR, 128 / 8);
-		for (n = 0; n < 128 / 8; n++)
-			pbKeyMaterial[n] = n + 1;
-		dwKeyMaterial = 128 / 8;
-
-		if (!ImportPlainSessionBlob(hProv, hPubPrivKey, CALG_AES_128, pbKeyMaterial, dwKeyMaterial, &hSessionKey)){
-			__leave;
-		}
-
-		LocalFree(pbKeyMaterial);
-		pbKeyMaterial = NULL;
-
-		fResult = ExportPlainSessionBlob(hPubPrivKey, hSessionKey, &pbKeyMaterial, &dwKeyMaterial);
-
-		if (!fResult){
-			__leave;
-		}
+	if (!pContext || (pContext->magic != HMAC_SHA1_MAGIC) || (!pContext->pParam))
+	{
+		dwError = ERROR_BAD_ARGUMENTS;
+		goto hmac_end;
 	}
-	__finally {
-		if (pbKeyMaterial) LocalFree(pbKeyMaterial);
-		if (hPubPrivKey) CryptDestroyKey(hPubPrivKey);
-		if (hProv)
-		{
-			CryptReleaseContext(hProv, 0);
-			CryptAcquireContext(&hProv, "TestContainer", MS_ENH_RSA_AES_PROV,
-				PROV_RSA_AES, CRYPT_DELETEKEYSET);
-		}
+
+	hProv = ((CAPI_CTX_PARAM*)pContext->pParam)->hProv;
+	hKey = ((CAPI_CTX_PARAM*)pContext->pParam)->hKey;
+
+	if (!CryptCreateHash(hProv, CALG_HMAC, hKey, 0, &hHash))
+	{
+		dwError = GetLastError();
+		goto hmac_end;
 	}
-	return hSessionKey;
-}*/
+
+	if (!CryptSetHashParam(hHash, HP_HMAC_INFO, (BYTE*)&HmacInfo, 0))
+	{
+		dwError = GetLastError();
+		goto hmac_end;
+	}
+
+	if (!CryptHashData(hHash, pbData, cbData, 0))
+	{
+		dwError = GetLastError();
+		goto hmac_end;
+	}
+
+	if (!CryptGetHashParam(hHash, HP_HASHVAL, pbDigest, &cbDigest, 0))
+	{
+		dwError = GetLastError();
+		goto hmac_end;
+	}
+
+	bStatus = TRUE;
+
+hmac_end:
+
+	if (hHash) CryptDestroyHash(hHash);
+
+	SetLastError(dwError);
+	return bStatus;
+}

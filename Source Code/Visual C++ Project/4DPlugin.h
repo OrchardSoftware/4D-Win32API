@@ -22,7 +22,8 @@
 #include <stdio.h> // for snapshot
 #include "Defines.h"
 #include <VersionHelpers.h>
-#include <windows.security.cryptography.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <wincrypt.h>
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
@@ -131,7 +132,12 @@ void sys_DeleteRegKey64(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
-HCRYPTKEY buildKey(HCRYPTKEY hKey);
+HCRYPTKEY SpcGetExportableContext(void);
+HCRYPTKEY SpcImportKeyData(HCRYPTPROV, ALG_ID, BYTE *, DWORD);
+void build_decoding_table();
+void base64_cleanup();
+unsigned char * base64_decode(const char *input, size_t inputLength, size_t *outputLength);
+char * base64_encode(const unsigned char *input, size_t inputLength, size_t *outputLength);
 
 // ------- Encryption --------- // WJF 5/6/15 #42665
 BOOL CreatePrivateExponentOneKey(LPTSTR szProvider,
@@ -162,6 +168,70 @@ BOOL ImportPlainSessionBlob(HCRYPTPROV hProv,
 	LPBYTE pbKeyMaterial,
 	DWORD dwKeyMaterial,
 	HCRYPTKEY *hSessionKey);
+
+
+static char encoding_table[] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+'w', 'x', 'y', 'z', '0', '1', '2', '3',
+'4', '5', '6', '7', '8', '9', '+', '/' };
+static char *decoding_table = NULL;
+static int mod_table[] = { 0, 2, 1 };
+
+/* generic context used in HMAC calculation */
+typedef struct
+{
+	DWORD	magic;			/* used to help check that we are using the correct context */
+	void*	pParam;	      /* hold a custom pointer known to the implementation  */
+} PRF_CTX;
+
+typedef BOOL(WINAPI* PRF_HmacInitPtr)(
+	PRF_CTX*       pContext,   /* PRF context used in HMAC computation */
+	unsigned char* pbKey,      /* pointer to authentication key */
+	DWORD          cbKey       /* length of authentication key */
+	);
+
+typedef BOOL(WINAPI* PRF_HmacPtr)(
+	PRF_CTX*       pContext,   /* PRF context initialized by HmacInit */
+	unsigned char*  pbData,    /* pointer to data stream */
+	DWORD          cbData,     /* length of data stream */
+	unsigned char* pbDigest    /* caller digest to be filled in */
+	);
+
+typedef BOOL(WINAPI* PRF_HmacFreePtr)(
+	PRF_CTX*       pContext	/* PRF context initialized by HmacInit */
+	);
+
+
+/* PRF type definition */
+typedef struct
+{
+	PRF_HmacInitPtr   hmacInit;
+	PRF_HmacPtr       hmac;
+	PRF_HmacFreePtr	hmacFree;
+	DWORD             cbHmacLength;
+} PRF;
+
+
+/* Implementation of HMAC-SHA1 using CAPI */
+
+#define HMAC_SHA1_MAGIC 0x53484131
+
+typedef struct
+{
+	HCRYPTPROV hProv;
+	HCRYPTKEY hKey;
+} CAPI_CTX_PARAM;
+
+// Structure used by CAPI for HMAC computation
+typedef struct {
+	BLOBHEADER hdr;
+	DWORD cbKeySize;
+} HMAC_KEY_BLOB;
+
 
 // ----- Other modules -------
 //window background-related

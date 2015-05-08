@@ -5249,32 +5249,16 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 //	DATE:		WJF 5/5/15 #42665
 void sys_EncryptAES(PA_PluginParameters params)
 {
-	BOOL		bResult;
-	HCRYPTPROV	hProv;
-	HCRYPTHASH	hHash;
-	PBYTE		pbHash;
-	HCRYPTKEY	hKey;
+	HCRYPTPROV	hProv = 0;
+	HCRYPTHASH	hHash = 0;
+	HCRYPTKEY	hKey = 0;
 	PBYTE		pbBuffer;
-	DWORD		dwSize;
+	DWORD		dwSize = 0;
 	PBYTE		pbMessage;
 	PBYTE		pbPass;
-	DWORD		dwPassLength;
-	DWORD		error;
-	HRESULT		hResult;
+	DWORD		dwPassLength = 0;
 	DWORD		dwMode = CRYPT_MODE_ECB;
-	BYTE		iv[16] = { 0 };
-
-	struct {
-		BLOBHEADER hdr;
-		DWORD len;
-		BYTE key[32];
-	} key_blob;
-
-	key_blob.hdr.bType = PLAINTEXTKEYBLOB;
-	key_blob.hdr.bVersion = CUR_BLOB_VERSION;
-	key_blob.hdr.reserved = 0;
-	key_blob.hdr.aiKeyAlg = CALG_AES_256;
-	key_blob.len = 32;
+	const char * errorMessage = "An error occurred during encryption!";
 
 	pbMessage = 0L;
 	dwSize = PA_GetTextParameter(params, 1, 0L);
@@ -5286,104 +5270,67 @@ void sys_EncryptAES(PA_PluginParameters params)
 	pbPass = malloc(dwPassLength);
 	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-	
-	bResult = CryptAcquireContext(
-		&hProv,
-		NULL,
-		MS_ENH_RSA_AES_PROV,
-		PROV_RSA_AES,
-		0);
-
-	error = GetLastError();
-	hResult = HRESULT_FROM_WIN32(error);
-
-	if (bResult == TRUE){
-		bResult = CryptCreateHash(
-			hProv,
-			CALG_SHA_256,
-			0,
-			0,
-			&hHash
-			);
-
-		error = GetLastError();
-		hResult = HRESULT_FROM_WIN32(error);
-
-		if (bResult == TRUE) {
-			bResult = CryptHashData(
-				hHash,
-				pbPass,
-				dwPassLength,
-				0);
-
-			error = GetLastError();
-			hResult = HRESULT_FROM_WIN32(error);
-
-			if (bResult == TRUE) {
-				bResult = CryptDeriveKey(
-					hProv,
-					CALG_AES_256,
-					hHash,
-					CRYPT_EXPORTABLE,
-					&hKey);
-				
-				
-				error = GetLastError();
-				hResult = HRESULT_FROM_WIN32(error);
-
-				CryptDestroyHash(hHash);
-
-				if (bResult == TRUE){
-					CryptSetKeyParam(hKey, KP_IV, iv, 0);
-					CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0);
-					pbBuffer = (PBYTE)malloc(16);
-					strcpy(pbBuffer, pbMessage);
-					bResult = CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, 16);
-
-					/*bResult = CryptEncrypt(
-					hKey,
-					0,
-					TRUE,
-					0,
-					NULL,
-					&dwSize,
-					dwSize);
-
-					error = GetLastError();
-					hResult = HRESULT_FROM_WIN32(error);
-
-					pbBuffer = (PBYTE)malloc(dwSize);
-					strcpy(pbBuffer, pbMessage);
-					bResult = CryptEncrypt(
-					hKey,
-					0,
-					TRUE,
-					0,
-					pbBuffer,
-					&dwSize,
-					dwSize); */
-				}
-			}
+	__try{
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+			__leave;
 		}
+
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
+
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
+
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
+			__leave;
+		}
+		
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
+
+		// Set to ECB mode
+		if (!(CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0))){
+			__leave;
+		}
+		
+		pbBuffer = (PBYTE)malloc(16); // Allocate to AES block size
+		strcpy(pbBuffer, pbMessage);
+		
+		// Encrypt the message
+		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, 16))) {
+			__leave;
+		}
+
+		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
+		
+		PA_ReturnText(params, pbBuffer, dwSize);
+
+		CryptDestroyKey(hKey);
+		CryptReleaseContext(hProv, 0);
 	}
-
-	error = GetLastError();
-	hResult = HRESULT_FROM_WIN32(error);
-
-	pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize);
-
-	FILE *fp;
-
-	fp = fopen("c:\\users\\wford\\desktop\\output.txt", "w");
-	fputs(pbBuffer, fp);
-
-	fclose(fp);
-
-	PA_ReturnText(params, pbBuffer, dwSize);
-
-	CryptDestroyKey(hKey);
-	CryptReleaseContext(hProv, 0);
-
+	__except(GetExceptionCode()){
+		if (hProv){
+			CryptReleaseContext(hProv, 0);
+		}
+		if (hKey) {
+			CryptDestroyKey(hKey);
+		}
+		if (hHash) {
+			CryptDestroyHash(hHash);
+		}
+		free(pbBuffer);
+		free(pbMessage);
+		free(pbPass);
+		PA_ReturnText(params, errorMessage, strlen(errorMessage));
+	}
 }
 
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
@@ -5395,20 +5342,15 @@ void sys_EncryptAES(PA_PluginParameters params)
 //	DATE:		WJF 5/5/15 #42665
 void sys_DecryptAES(PA_PluginParameters params)
 {
-	BOOL		bResult;
-	HCRYPTPROV	hProv;
-	HCRYPTHASH	hHash;
-	HCRYPTKEY	hKey;
-	DWORD		dwSize;
-	PBYTE		pbMessage;
-	PBYTE		pbPass;
-	DWORD		dwPassLength;
-	DWORD		dwMode = CRYPT_MODE_ECB;
-	DWORD		error;
-	HRESULT		hResult;
-	DWORD		dwRawKeyData;
-	PBYTE		pbRawKeyData;
-	BYTE		iv[16] = { 0 };
+	HCRYPTPROV		hProv = 0;
+	HCRYPTHASH		hHash = 0;
+	HCRYPTKEY		hKey = 0;
+	DWORD			dwSize = 0;
+	PBYTE			pbMessage;
+	PBYTE			pbPass;
+	DWORD			dwPassLength = 0;
+	DWORD			dwMode = CRYPT_MODE_ECB;
+	const char *	 errorMessage = "An error occurred during decryption!";
 
 	pbMessage = 0L;
 	dwSize = PA_GetTextParameter(params, 1, 0L);
@@ -5416,305 +5358,65 @@ void sys_DecryptAES(PA_PluginParameters params)
 	dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
 	pbPass = 0L;
-	dwPassLength = PA_GetTextParameter(params, 2, 0L);
+	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 	pbPass = malloc(dwPassLength);
 	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-	pbRawKeyData = 0L;
-	dwRawKeyData = PA_GetTextParameter(params, 3, 0L);
-	pbRawKeyData = (PBYTE)malloc(dwRawKeyData);
-	dwRawKeyData = PA_GetTextParameter(params, 3, pbRawKeyData);
-
-
-
-	/*if (hKey > 0)
-	{
-		hKey = buildKey(hKey);
-	}*/
-
-	bResult = CryptAcquireContext(
-		&hProv,
-		NULL,
-		MS_ENH_RSA_AES_PROV,
-		PROV_RSA_AES,
-		0);
-
-	error = GetLastError();
-	hResult = HRESULT_FROM_WIN32(error);
-
-	if (bResult == TRUE){
-
-			bResult = CryptCreateHash(
-				hProv,
-				CALG_SHA_256,
-				0,
-				0,
-				&hHash
-				);
-
-
-			error = GetLastError();
-			hResult = HRESULT_FROM_WIN32(error);
-
-			if (bResult == TRUE) {
-				bResult = CryptHashData(
-					hHash,
-					pbPass,
-					dwPassLength,
-					0);
-
-				error = GetLastError();
-				hResult = HRESULT_FROM_WIN32(error);
-
-				if (bResult == TRUE) {
-					bResult = CryptDeriveKey(
-						hProv,
-						CALG_AES_256,
-						hHash,
-						CRYPT_EXPORTABLE,
-						&hKey);
-
-					CryptDestroyHash(hHash);
-				
-					error = GetLastError();
-					hResult = HRESULT_FROM_WIN32(error);
-
-					if (bResult == TRUE){
-						CryptSetKeyParam(hKey, KP_IV, iv, 0);
-						CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0);
-						pbMessage = base64_decode(pbMessage, dwSize, &dwSize);
-						bResult = CryptDecrypt(
-							hKey,
-							0,
-							TRUE,
-							0,
-							pbMessage,
-							&dwSize);
-					}
-				}
-			}
+	__try{
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+			__leave;
 		}
 
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
 
-	error = GetLastError();
-	hResult = HRESULT_FROM_WIN32(error);
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
 
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
+			__leave;
+		}
 
-	PA_ReturnText(params, pbMessage, dwSize);
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
 
-	CryptDestroyKey(hKey);
-	CryptReleaseContext(hProv, 0);
+		// Set to ECB mode
+		if (!(CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0))){
+			__leave;
+		}
+
+		pbMessage = base64_decode(pbMessage, dwSize, &dwSize); // Decode from base64
+
+		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbMessage,	&dwSize))){
+			__leave;
+		}
+
+		PA_ReturnText(params, pbMessage, dwSize);
+
+		CryptDestroyKey(hKey);
+		CryptReleaseContext(hProv, 0);
+	}
+	__except (GetExceptionCode()){
+		if (hProv){
+			CryptReleaseContext(hProv, 0);
+		}
+		if (hKey) {
+			CryptDestroyKey(hKey);
+		}
+		if (hHash) {
+			CryptDestroyHash(hHash);
+		}
+		free(pbMessage);
+		free(pbPass);
+		PA_ReturnText(params, errorMessage, strlen(errorMessage));
+	}
 }
 
-char *base64_encode(const unsigned char *data,
-	size_t input_length,
-	size_t *output_length) {
-
-	*output_length = 4 * ((input_length + 2) / 3);
-
-	char *encoded_data = malloc(*output_length);
-	if (encoded_data == NULL) return NULL;
-
-	for (int i = 0, j = 0; i < input_length;) {
-
-		uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
-		uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
-		uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
-
-		uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
-
-		encoded_data[j++] = encoding_table[(triple >> 3 * 6) & 0x3F];
-		encoded_data[j++] = encoding_table[(triple >> 2 * 6) & 0x3F];
-		encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
-		encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
-	}
-
-	for (int i = 0; i < mod_table[input_length % 3]; i++)
-		encoded_data[*output_length - 1 - i] = '=';
-
-	return encoded_data;
-}
-
-
-unsigned char *base64_decode(const char *data,
-	size_t input_length,
-	size_t *output_length) {
-
-	if (decoding_table == NULL) build_decoding_table();
-
-	if (input_length % 4 != 0) return NULL;
-
-	*output_length = input_length / 4 * 3;
-	if (data[input_length - 1] == '=') (*output_length)--;
-	if (data[input_length - 2] == '=') (*output_length)--;
-
-	unsigned char *decoded_data = malloc(*output_length);
-	if (decoded_data == NULL) return NULL;
-
-	for (int i = 0, j = 0; i < input_length;) {
-
-		uint32_t sextet_a = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-		uint32_t sextet_b = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-		uint32_t sextet_c = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-		uint32_t sextet_d = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
-
-		uint32_t triple = (sextet_a << 3 * 6)
-			+ (sextet_b << 2 * 6)
-			+ (sextet_c << 1 * 6)
-			+ (sextet_d << 0 * 6);
-
-		if (j < *output_length) decoded_data[j++] = (triple >> 2 * 8) & 0xFF;
-		if (j < *output_length) decoded_data[j++] = (triple >> 1 * 8) & 0xFF;
-		if (j < *output_length) decoded_data[j++] = (triple >> 0 * 8) & 0xFF;
-	}
-
-	return decoded_data;
-}
-
-
-void build_decoding_table() {
-
-	decoding_table = malloc(256);
-
-	for (int i = 0; i < 64; i++)
-		decoding_table[(unsigned char)encoding_table[i]] = i;
-}
-
-
-void base64_cleanup() {
-	free(decoding_table);
-}
-
-
-BOOL WINAPI hmacInit_sha1(
-	PRF_CTX*       pContext,   /* PRF context used in HMAC computation */
-	unsigned char* pbKey,      /* pointer to authentication key */
-	DWORD          cbKey       /* length of authentication key */
-	)
-{
-	HCRYPTPROV hProv = NULL;
-	HCRYPTKEY hKey = NULL;
-	HMAC_KEY_BLOB *pKeyBlob = (HMAC_KEY_BLOB *)LocalAlloc(0, sizeof(HMAC_KEY_BLOB)+cbKey + 20); // we put enough room for 0's padding
-	BOOL bStatus = FALSE;
-	DWORD dwError = 0, dwLen;
-
-	pKeyBlob->hdr.bType = PLAINTEXTKEYBLOB;
-	pKeyBlob->hdr.bVersion = CUR_BLOB_VERSION;
-	pKeyBlob->hdr.reserved = 0;
-	pKeyBlob->hdr.aiKeyAlg = CALG_RC2;
-	pKeyBlob->cbKeySize = cbKey;
-	memcpy(((LPBYTE)pKeyBlob) + sizeof(HMAC_KEY_BLOB), pbKey, cbKey);
-
-	if (!pContext)
-	{
-		dwError = ERROR_BAD_ARGUMENTS;
-		goto hmacInit_end;
-	}
-
-	if (!CryptAcquireContext(&hProv, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
-	{
-		dwError = GetLastError();
-		goto hmacInit_end;
-	}
-
-	dwLen = sizeof(HMAC_KEY_BLOB)+cbKey;
-	if (dwLen < 20)
-	{
-		// we pad with zeros till the size of SHA1 digest.
-		// this is to avoid erros under Windows 8.1 wich doesn't accept 1-byte RC2 keys
-		// the result will be the same since the HMAC-SHA1 will perform the same padding
-		DWORD dwPad = 20 - dwLen;
-		memset(((LPBYTE)pKeyBlob) + dwLen, 0, dwPad);
-		dwLen += dwPad;
-		pKeyBlob->cbKeySize += dwPad;
-	}
-
-	if (!CryptImportKey(hProv, (LPBYTE)pKeyBlob, dwLen, NULL, CRYPT_IPSEC_HMAC_KEY, &hKey))
-	{
-		dwError = GetLastError();
-		goto hmacInit_end;
-	}
-
-	CAPI_CTX_PARAM* pParam = (CAPI_CTX_PARAM*)LocalAlloc(0, sizeof(CAPI_CTX_PARAM));
-	pParam->hProv = hProv;
-	pParam->hKey = hKey;
-
-	pContext->magic = HMAC_SHA1_MAGIC;
-	pContext->pParam = (void*)pParam;
-
-	hProv = NULL;
-	hKey = NULL;
-
-	bStatus = TRUE;
-
-hmacInit_end:
-
-	if (hKey) CryptDestroyKey(hKey);
-	if (hProv) CryptReleaseContext(hProv, 0);
-
-	if (pKeyBlob) LocalFree(pKeyBlob);
-
-	SetLastError(dwError);
-	return bStatus;
-}
-
-BOOL WINAPI hmac_sha1(
-	PRF_CTX*       pContext,               /* PRF context used in HMAC computation */
-	unsigned char*  pbData,                /* pointer to data stream */
-	DWORD           cbData,                /* length of data stream */
-	unsigned char   pbDigest[20]           /* caller digest to be filled in */
-	)
-{
-	HCRYPTPROV hProv = NULL;
-	HCRYPTHASH hHash = NULL;
-	HCRYPTKEY hKey = NULL;
-	DWORD cbDigest = 20;
-	HMAC_INFO   HmacInfo;
-	BOOL bStatus = FALSE;
-	DWORD dwError = 0;
-
-	ZeroMemory(&HmacInfo, sizeof(HmacInfo));
-	HmacInfo.HashAlgid = CALG_SHA1;
-
-	if (!pContext || (pContext->magic != HMAC_SHA1_MAGIC) || (!pContext->pParam))
-	{
-		dwError = ERROR_BAD_ARGUMENTS;
-		goto hmac_end;
-	}
-
-	hProv = ((CAPI_CTX_PARAM*)pContext->pParam)->hProv;
-	hKey = ((CAPI_CTX_PARAM*)pContext->pParam)->hKey;
-
-	if (!CryptCreateHash(hProv, CALG_HMAC, hKey, 0, &hHash))
-	{
-		dwError = GetLastError();
-		goto hmac_end;
-	}
-
-	if (!CryptSetHashParam(hHash, HP_HMAC_INFO, (BYTE*)&HmacInfo, 0))
-	{
-		dwError = GetLastError();
-		goto hmac_end;
-	}
-
-	if (!CryptHashData(hHash, pbData, cbData, 0))
-	{
-		dwError = GetLastError();
-		goto hmac_end;
-	}
-
-	if (!CryptGetHashParam(hHash, HP_HASHVAL, pbDigest, &cbDigest, 0))
-	{
-		dwError = GetLastError();
-		goto hmac_end;
-	}
-
-	bStatus = TRUE;
-
-hmac_end:
-
-	if (hHash) CryptDestroyHash(hHash);
-
-	SetLastError(dwError);
-	return bStatus;
-}

@@ -6,7 +6,7 @@ char *base64_encode(const unsigned char *data,
 	size_t input_length,
 	size_t *output_length) {
 
-	*output_length = 4 * ((input_length + 2) / 3);
+	*output_length = ((input_length - 1) / 3) * 4 + 4;
 
 	char *encoded_data = malloc(*output_length);
 	if (encoded_data == NULL) return NULL;

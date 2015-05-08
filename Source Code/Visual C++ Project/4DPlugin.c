@@ -5258,19 +5258,38 @@ void sys_EncryptAES(PA_PluginParameters params)
 	PBYTE		pbPass;
 	DWORD		dwPassLength = 0;
 	DWORD		dwMode = CRYPT_MODE_ECB;
+	DWORD		BUFFER_SIZE;
+	BYTE		IV[16] = { 1 };
+	PA_Variable IVarray;
+
 	const char * errorMessage = "An error occurred during encryption!";
 
-	pbMessage = 0L;
-	dwSize = PA_GetTextParameter(params, 1, 0L);
-	pbMessage = malloc(dwSize);
-	dwSize = PA_GetTextParameter(params, 1, pbMessage);
-
-	pbPass = 0L;
-	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-	pbPass = malloc(dwPassLength);
-	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-
 	__try{
+
+		pbMessage = 0L;
+		dwSize = PA_GetTextParameter(params, 1, 0L);
+		pbMessage = malloc(dwSize);
+		dwSize = PA_GetTextParameter(params, 1, pbMessage);
+
+		pbPass = 0L;
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+		pbPass = malloc(dwPassLength);
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+
+		IVarray = PA_GetVariableParameter(params, 3);
+
+		for (int i = 0; i<16; i++){
+			PA_GetTextInArray(IVarray, i+1, &IV[i]);
+		}
+
+		if (dwSize > 15){
+			__leave;
+		}
+		else {
+			BUFFER_SIZE = AES_BLOCK_SIZE;
+		}
+
+
 		// Get security provider
 		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
 			__leave;
@@ -5301,11 +5320,15 @@ void sys_EncryptAES(PA_PluginParameters params)
 			__leave;
 		}
 		
-		pbBuffer = (PBYTE)malloc(16); // Allocate to AES block size
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+			__leave;
+		}
+
+		pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
 		strcpy(pbBuffer, pbMessage);
 		
 		// Encrypt the message
-		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, 16))) {
+		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, AES_BLOCK_SIZE))) {
 			__leave;
 		}
 
@@ -5351,18 +5374,28 @@ void sys_DecryptAES(PA_PluginParameters params)
 	DWORD			dwPassLength = 0;
 	DWORD			dwMode = CRYPT_MODE_ECB;
 	const char *	 errorMessage = "An error occurred during decryption!";
-
-	pbMessage = 0L;
-	dwSize = PA_GetTextParameter(params, 1, 0L);
-	pbMessage = malloc(dwSize);
-	dwSize = PA_GetTextParameter(params, 1, pbMessage);
-
-	pbPass = 0L;
-	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-	pbPass = malloc(dwPassLength);
-	dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+	BYTE		IV[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+	PA_Variable IVarray;
 
 	__try{
+
+		pbMessage = 0L;
+		dwSize = PA_GetTextParameter(params, 1, 0L);
+		pbMessage = malloc(dwSize);
+		dwSize = PA_GetTextParameter(params, 1, pbMessage);
+
+		pbPass = 0L;
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+		pbPass = malloc(dwPassLength);
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+
+		
+	/*	IVarray = PA_GetVariableParameter(params, 3);
+
+		for (int i = 0; i<16; i++){
+			PA_GetTextInArray(IVarray, i + 1, &IV[i]);
+		}*/
+
 		// Get security provider
 		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
 			__leave;
@@ -5390,6 +5423,11 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 		// Set to ECB mode
 		if (!(CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0))){
+			__leave;
+		}
+
+		// Set IV
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
 			__leave;
 		}
 

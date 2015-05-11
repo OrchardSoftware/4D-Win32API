@@ -5257,7 +5257,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	PBYTE		pbMessage;
 	PBYTE		pbPass;
 	DWORD		dwPassLength = 0;
-	DWORD		dwMode = CRYPT_MODE_ECB;
+	DWORD		dwMode = CRYPT_MODE_CBC;
 	DWORD		BUFFER_SIZE;
 	BYTE		IV[16] = { 1 };
 	PA_Variable IVarray;
@@ -5336,8 +5336,6 @@ void sys_EncryptAES(PA_PluginParameters params)
 		
 		PA_ReturnText(params, pbBuffer, dwSize);
 
-		CryptDestroyKey(hKey);
-		CryptReleaseContext(hProv, 0);
 	}
 	__except(GetExceptionCode()){
 		if (hProv){
@@ -5354,6 +5352,19 @@ void sys_EncryptAES(PA_PluginParameters params)
 		free(pbPass);
 		PA_ReturnText(params, errorMessage, strlen(errorMessage));
 	}
+
+	if (hProv){
+		CryptReleaseContext(hProv, 0);
+	}
+	if (hKey) {
+		CryptDestroyKey(hKey);
+	}
+	if (hHash) {
+		CryptDestroyHash(hHash);
+	}
+
+	free(pbMessage);
+	free(pbPass);
 }
 
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
@@ -5372,7 +5383,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 	PBYTE			pbMessage;
 	PBYTE			pbPass;
 	DWORD			dwPassLength = 0;
-	DWORD			dwMode = CRYPT_MODE_ECB;
+	DWORD			dwMode = CRYPT_MODE_CBC;
 	const char *	 errorMessage = "An error occurred during decryption!";
 	BYTE		IV[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 	PA_Variable IVarray;
@@ -5390,11 +5401,11 @@ void sys_DecryptAES(PA_PluginParameters params)
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
 		
-	/*	IVarray = PA_GetVariableParameter(params, 3);
+		IVarray = PA_GetVariableParameter(params, 3);
 
 		for (int i = 0; i<16; i++){
 			PA_GetTextInArray(IVarray, i + 1, &IV[i]);
-		}*/
+		}
 
 		// Get security provider
 		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
@@ -5439,8 +5450,6 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 		PA_ReturnText(params, pbMessage, dwSize);
 
-		CryptDestroyKey(hKey);
-		CryptReleaseContext(hProv, 0);
 	}
 	__except (GetExceptionCode()){
 		if (hProv){
@@ -5456,5 +5465,17 @@ void sys_DecryptAES(PA_PluginParameters params)
 		free(pbPass);
 		PA_ReturnText(params, errorMessage, strlen(errorMessage));
 	}
+
+	if (hProv){
+		CryptReleaseContext(hProv, 0);
+	}
+	if (hKey) {
+		CryptDestroyKey(hKey);
+	}
+	if (hHash) {
+		CryptDestroyHash(hHash);
+	}
+
+	free(pbPass);
 }
 

@@ -5240,6 +5240,7 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 	PA_ReturnLong(params, errorCode);
 }
 
+
 //  FUNCTION: sys_EncryptAES(PA_PluginParameters params)
 //
 //  PURPOSE:	Encrypts a message in AES
@@ -5254,90 +5255,90 @@ void sys_EncryptAES(PA_PluginParameters params)
 	HCRYPTKEY	hKey = 0;
 	PBYTE		pbBuffer;
 	DWORD		dwSize = 0;
-	PBYTE		pbMessage;
-	PBYTE		pbPass;
+	PBYTE		pbMessage = NULL;
+	PBYTE		pbPass = NULL;
 	DWORD		dwPassLength = 0;
-	DWORD		dwMode = CRYPT_MODE_CBC;
-	DWORD		BUFFER_SIZE;
-	BYTE		IV[16] = { 1 };
+	DWORD		BUFFER_SIZE = 0;
+	BYTE		IV[16];
 	PA_Variable IVarray;
-
-	const char * errorMessage = "An error occurred during encryption!";
+	DWORD		error;
+	HRESULT		hResult;
 
 	__try{
 
-		pbMessage = 0L;
-		dwSize = PA_GetTextParameter(params, 1, 0L);
-		pbMessage = malloc(dwSize);
-		dwSize = PA_GetTextParameter(params, 1, pbMessage);
+			pbMessage = 0L;
+			dwSize = PA_GetTextParameter(params, 1, 0L);
+			pbMessage = malloc(dwSize);
+			dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
-		pbPass = 0L;
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-		pbPass = malloc(dwPassLength);
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+			pbPass = 0L;
+			dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+			pbPass = malloc(dwPassLength);
+			dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-		IVarray = PA_GetVariableParameter(params, 3);
+			IVarray = PA_GetVariableParameter(params, 3);
 
-		for (int i = 0; i<16; i++){
-			PA_GetTextInArray(IVarray, i+1, &IV[i]);
+			for (int i = 0; i<16; i++){
+				PA_GetTextInArray(IVarray, i + 1, &IV[i]);
+			}
+
+			BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
+
+			// Get security provider
+			if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+				__leave;
+			}
+
+			// Create hash object
+			if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+				__leave;
+			}
+
+			// Hash the password
+			if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+				__leave;
+			}
+
+			// Derive the key from the hashed password
+			if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
+				__leave;
+			}
+
+			// Destroy the hash object
+			if (!(CryptDestroyHash(hHash))){
+				__leave;
+			}
+
+			if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+				__leave;
+			}
+
+			pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
+			
+			strcpy_s(pbBuffer, BUFFER_SIZE, pbMessage);
+
+			// Encrypt the message
+			if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
+				error = GetLastError();
+				hResult = HRESULT_FROM_WIN32(error);
+				__leave;
+			}
+
+			pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
+
+		}
+		__except (GetExceptionCode()){
+			if (hProv){
+				CryptReleaseContext(hProv, 0);
+			}
+			if (hKey) {
+				CryptDestroyKey(hKey);
+			}
+			if (hHash) {
+				CryptDestroyHash(hHash);
+			}
 		}
 
-		if (dwSize > 15){
-			__leave;
-		}
-		else {
-			BUFFER_SIZE = AES_BLOCK_SIZE;
-		}
-
-
-		// Get security provider
-		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-			__leave;
-		}
-
-		// Create hash object
-		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
-			__leave;
-		}
-
-		// Hash the password
-		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
-			__leave;
-		}
-
-		// Derive the key from the hashed password
-		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
-			__leave;
-		}
-		
-		// Destroy the hash object
-		if (!(CryptDestroyHash(hHash))){
-			__leave;
-		}
-
-		// Set to ECB mode
-		if (!(CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0))){
-			__leave;
-		}
-		
-		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
-			__leave;
-		}
-
-		pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
-		strcpy(pbBuffer, pbMessage);
-		
-		// Encrypt the message
-		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, AES_BLOCK_SIZE))) {
-			__leave;
-		}
-
-		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
-		
-		PA_ReturnText(params, pbBuffer, dwSize);
-
-	}
-	__except(GetExceptionCode()){
 		if (hProv){
 			CryptReleaseContext(hProv, 0);
 		}
@@ -5347,26 +5348,10 @@ void sys_EncryptAES(PA_PluginParameters params)
 		if (hHash) {
 			CryptDestroyHash(hHash);
 		}
-		free(pbBuffer);
-		free(pbMessage);
-		free(pbPass);
-		PA_ReturnText(params, errorMessage, strlen(errorMessage));
-	}
 
-	if (hProv){
-		CryptReleaseContext(hProv, 0);
-	}
-	if (hKey) {
-		CryptDestroyKey(hKey);
-	}
-	if (hHash) {
-		CryptDestroyHash(hHash);
-	}
+		PA_ReturnText(params, pbBuffer, dwSize);
 
-	free(pbMessage);
-	free(pbPass);
 }
-
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
 //
 //  PURPOSE:	Decrypts an AES message
@@ -5384,8 +5369,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 	PBYTE			pbPass;
 	DWORD			dwPassLength = 0;
 	DWORD			dwMode = CRYPT_MODE_CBC;
-	const char *	 errorMessage = "An error occurred during decryption!";
-	BYTE		IV[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+	BYTE		IV[16];
 	PA_Variable IVarray;
 
 	__try{
@@ -5431,10 +5415,8 @@ void sys_DecryptAES(PA_PluginParameters params)
 		if (!(CryptDestroyHash(hHash))){
 			__leave;
 		}
-
-		// Set to ECB mode
-		if (!(CryptSetKeyParam(hKey, KP_MODE, (PBYTE)&dwMode, 0))){
-			__leave;
+		else {
+			hHash = 0;
 		}
 
 		// Set IV
@@ -5452,30 +5434,21 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 	}
 	__except (GetExceptionCode()){
-		if (hProv){
-			CryptReleaseContext(hProv, 0);
-		}
-		if (hKey) {
-			CryptDestroyKey(hKey);
-		}
-		if (hHash) {
-			CryptDestroyHash(hHash);
-		}
-		free(pbMessage);
-		free(pbPass);
-		PA_ReturnText(params, errorMessage, strlen(errorMessage));
+
 	}
 
 	if (hProv){
 		CryptReleaseContext(hProv, 0);
+		hProv = 0;
 	}
 	if (hKey) {
 		CryptDestroyKey(hKey);
+		hKey = 0;
 	}
 	if (hHash) {
 		CryptDestroyHash(hHash);
+		hHash = 0;
 	}
 
-	free(pbPass);
 }
 

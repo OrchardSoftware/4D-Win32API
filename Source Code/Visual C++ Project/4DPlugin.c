@@ -5266,88 +5266,86 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 	__try{
 
-			pbMessage = 0L;
-			dwSize = PA_GetTextParameter(params, 1, 0L);
-			pbMessage = malloc(dwSize);
-			dwSize = PA_GetTextParameter(params, 1, pbMessage);
+		pbMessage = 0L;
+		dwSize = PA_GetTextParameter(params, 1, 0L);
+		pbMessage = malloc(dwSize);
+		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
-			pbPass = 0L;
-			dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-			pbPass = malloc(dwPassLength);
-			dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+		pbPass = 0L;
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+		pbPass = malloc(dwPassLength);
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-			IVarray = PA_GetVariableParameter(params, 3);
+		IVarray = PA_GetVariableParameter(params, 3);
 
-			for (int i = 0; i<16; i++){
-				PA_GetTextInArray(IVarray, i + 1, &IV[i]);
-			}
+		for (int i = 0; i<16; i++){
+			PA_GetTextInArray(IVarray, i + 1, &IV[i]);
+		}
 
-			BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
+		BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
 
-			// Get security provider
-			if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-				__leave;
-			}
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+			__leave;
+		}
 
-			// Create hash object
-			if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
-				__leave;
-			}
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
 
-			// Hash the password
-			if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
-				__leave;
-			}
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
 
-			// Derive the key from the hashed password
-			if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
-				__leave;
-			}
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
+			__leave;
+		}
 
-			// Destroy the hash object
-			if (!(CryptDestroyHash(hHash))){
-				__leave;
-			}
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
+		else {
+			hHash = 0;
+		}
 
-			if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
-				__leave;
-			}
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+			__leave;
+		}
 
-			pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
+		pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
 			
-			strcpy_s(pbBuffer, BUFFER_SIZE, pbMessage);
+		memcpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize);
 
-			// Encrypt the message
-			if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
-				error = GetLastError();
-				hResult = HRESULT_FROM_WIN32(error);
-				__leave;
-			}
-
-			pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
-
-		}
-		__except (GetExceptionCode()){
-			if (hProv){
-				CryptReleaseContext(hProv, 0);
-			}
-			if (hKey) {
-				CryptDestroyKey(hKey);
-			}
-			if (hHash) {
-				CryptDestroyHash(hHash);
-			}
+		// Encrypt the message
+		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
+			error = GetLastError();
+			hResult = HRESULT_FROM_WIN32(error);
+			__leave;
 		}
 
-		if (hProv){
-			CryptReleaseContext(hProv, 0);
-		}
-		if (hKey) {
-			CryptDestroyKey(hKey);
-		}
-		if (hHash) {
-			CryptDestroyHash(hHash);
-		}
+		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
+
+	}
+	__except (GetExceptionCode()){
+
+	}
+
+	if (hProv){
+		CryptReleaseContext(hProv, 0);
+		hProv = 0;
+	}
+	if (hKey) {
+		CryptDestroyKey(hKey);
+		hKey = 0;
+	}
+	if (hHash) {
+		CryptDestroyHash(hHash);
+		hHash = 0;
+	}
 
 		PA_ReturnText(params, pbBuffer, dwSize);
 

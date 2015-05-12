@@ -5261,6 +5261,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	DWORD		BUFFER_SIZE = 0;
 	BYTE		IV[16] = { '0' };
 	DWORD		dwIVLength;
+	BYTE		tempIV[16];
 
 	__try{
 
@@ -5268,7 +5269,21 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
-		dwIVLength = PA_GetTextParameter(params, 3, IV);
+		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
+
+		for (int i = 0; i < 16; i++){
+			if (i <= dwIVLength){
+				if (tempIV[i] == '\0'){
+					IV[i] = '0';
+				}
+				else {
+					IV[i] = tempIV[i];
+				}
+			}
+			else {
+				IV[i] = '0';
+			}
+		}
 
 		BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
 
@@ -5355,7 +5370,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 	PBYTE			pbBuffer = NULL;
 	DWORD			dwIVLength = 0;
 	BYTE			IV[16] = { '0' };
-	PA_Variable		IVarray;
+	BYTE			tempIV[16];
 
 	__try{
 
@@ -5363,7 +5378,21 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 		
-		dwIVLength = PA_GetTextParameter(params, 3, IV);
+		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
+
+		for (int i = 0; i < 16; i++){
+			if (i <= dwIVLength){
+				if (tempIV[i] == '\0'){
+					IV[i] = '0';
+				}
+				else {
+					IV[i] = tempIV[i];
+				}
+			}
+			else {
+				IV[i] = '0';
+			}
+		}
 
 		// Get security provider
 		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){

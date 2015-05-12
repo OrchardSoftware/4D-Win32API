@@ -5253,27 +5253,19 @@ void sys_EncryptAES(PA_PluginParameters params)
 	HCRYPTPROV	hProv = 0;
 	HCRYPTHASH	hHash = 0;
 	HCRYPTKEY	hKey = 0;
-	PBYTE		pbBuffer;
+	PBYTE		pbBuffer=NULL;
 	DWORD		dwSize = 0;
-	PBYTE		pbMessage = NULL;
-	PBYTE		pbPass = NULL;
+	BYTE		pbMessage[256] = { 0 };
+	BYTE		pbPass[16];
 	DWORD		dwPassLength = 0;
 	DWORD		BUFFER_SIZE = 0;
 	BYTE		IV[16];
 	PA_Variable IVarray;
-	DWORD		error;
-	HRESULT		hResult;
 
 	__try{
 
-		pbMessage = 0L;
-		dwSize = PA_GetTextParameter(params, 1, 0L);
-		pbMessage = malloc(dwSize);
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
-		pbPass = 0L;
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-		pbPass = malloc(dwPassLength);
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
 		IVarray = PA_GetVariableParameter(params, 3);
@@ -5316,14 +5308,12 @@ void sys_EncryptAES(PA_PluginParameters params)
 			__leave;
 		}
 
-		pbBuffer = (PBYTE)malloc(BUFFER_SIZE); // Allocate to AES block size
+		pbBuffer = malloc(BUFFER_SIZE); // Allocate to AES block size
 			
 		memcpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize);
 
 		// Encrypt the message
 		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
-			error = GetLastError();
-			hResult = HRESULT_FROM_WIN32(error);
 			__leave;
 		}
 
@@ -5347,7 +5337,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 		hHash = 0;
 	}
 
-		PA_ReturnText(params, pbBuffer, dwSize);
+	PA_ReturnText(params, pbBuffer, dwSize);
 
 }
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
@@ -5363,25 +5353,18 @@ void sys_DecryptAES(PA_PluginParameters params)
 	HCRYPTHASH		hHash = 0;
 	HCRYPTKEY		hKey = 0;
 	DWORD			dwSize = 0;
-	PBYTE			pbMessage;
-	PBYTE			pbPass;
+	BYTE			pbMessage[256];
+	BYTE			pbPass[16];
 	DWORD			dwPassLength = 0;
-	DWORD			dwMode = CRYPT_MODE_CBC;
+	PBYTE			pbBuffer = NULL;
 	BYTE		IV[16];
 	PA_Variable IVarray;
 
 	__try{
 
-		pbMessage = 0L;
-		dwSize = PA_GetTextParameter(params, 1, 0L);
-		pbMessage = malloc(dwSize);
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
-		pbPass = 0L;
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-		pbPass = malloc(dwPassLength);
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-
 		
 		IVarray = PA_GetVariableParameter(params, 3);
 
@@ -5422,13 +5405,16 @@ void sys_DecryptAES(PA_PluginParameters params)
 			__leave;
 		}
 
-		pbMessage = base64_decode(pbMessage, dwSize, &dwSize); // Decode from base64
+		pbBuffer = malloc(dwSize*sizeof(byte));
+		memcpy_s(pbBuffer, dwSize*sizeof(byte), pbMessage, dwSize);
 
-		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbMessage,	&dwSize))){
+		pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
+
+		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer,	&dwSize))){
 			__leave;
 		}
 
-		PA_ReturnText(params, pbMessage, dwSize);
+		PA_ReturnText(params, pbBuffer, dwSize);
 
 	}
 	__except (GetExceptionCode()){

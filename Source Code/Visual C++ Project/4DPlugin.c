@@ -5255,7 +5255,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	HCRYPTKEY	hKey = 0;
 	PBYTE		pbBuffer=NULL;
 	DWORD		dwSize = 0;
-	BYTE		pbMessage[256] = { 0 };
+	BYTE		pbMessage[256];
 	BYTE		pbPass[16];
 	DWORD		dwPassLength = 0;
 	DWORD		BUFFER_SIZE = 0;

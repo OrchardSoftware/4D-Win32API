@@ -5321,7 +5321,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		pbBuffer = malloc(BUFFER_SIZE); // Allocate to AES block size
 			
-		memcpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize);
+		memcpy(pbBuffer, pbMessage, dwSize);
 
 		// Encrypt the message
 		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
@@ -5427,8 +5427,8 @@ void sys_DecryptAES(PA_PluginParameters params)
 			__leave;
 		}
 
-		pbBuffer = malloc(dwSize*sizeof(byte));
-		memcpy_s(pbBuffer, dwSize*sizeof(byte), pbMessage, dwSize);
+		pbBuffer = malloc(dwSize);
+		memcpy(pbBuffer, pbMessage, dwSize);
 
 		pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
 

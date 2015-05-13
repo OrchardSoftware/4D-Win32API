@@ -5364,15 +5364,10 @@ void sys_EncryptAES(PA_PluginParameters params)
 	BYTE		IV[16] = { '0' };
 	DWORD		dwIVLength;
 	BYTE		tempIV[16];
-	FILE		*FP;
+	DWORD		error = 0;
+	LPCSTR		myContainer = "MyContainer";
 
 	__try{
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "--------------------------sys_EncryptAES--------------------------\nGetting parameters\n");
-
-		fclose(FP);
 
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
@@ -5396,55 +5391,33 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Acquiring Crypto Service Provider\n");
-
-		fclose(FP);
-
 		// Get security provider
-		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-			__leave;
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
 		}
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Creating hash object\n");
-
-		fclose(FP);
 
 		// Create hash object
 		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Hashing password\n");
-
-		fclose(FP);
-
 		// Hash the password
 		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Deriving key from hashed password\n");
-
-		fclose(FP);
-
 		// Derive the key from the hashed password
 		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
 			__leave;
 		}
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Destorying hash object\n");
-
-		fclose(FP);
 
 		// Destroy the hash object
 		if (!(CryptDestroyHash(hHash))){
@@ -5454,48 +5427,18 @@ void sys_EncryptAES(PA_PluginParameters params)
 			hHash = 0;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Setting IV\n");
-
-		fclose(FP);
-
 		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Allocating pbBuffer\n");
-
-		fclose(FP);
-
 		pbBuffer = malloc(BUFFER_SIZE); // Allocate to AES block size
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Copying message to buffer\n");
-
-		fclose(FP);
-
 		memcpy(pbBuffer, pbMessage, dwSize);
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Encrypting message\n");
-
-		fclose(FP);
 
 		// Encrypt the message
 		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
 			__leave;
 		}
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Encoding Base64\n");
-
-		fclose(FP);
 
 		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
 
@@ -5504,44 +5447,20 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 	}
 
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Releasing crypto service provider \n");
-
-	fclose(FP);
-
 	if (hProv){
 		CryptReleaseContext(hProv, 0);
 		hProv = 0;
 	}
-
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Destorying key\n");
-
-	fclose(FP);
 
 	if (hKey) {
 		CryptDestroyKey(hKey);
 		hKey = 0;
 	}
 
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Destroying hash\n");
-
-	fclose(FP);
-
 	if (hHash) {
 		CryptDestroyHash(hHash);
 		hHash = 0;
 	}
-
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Returning to 4D\n");
-
-	fclose(FP);
 
 	PA_ReturnText(params, pbBuffer, dwSize);
 
@@ -5566,15 +5485,10 @@ void sys_DecryptAES(PA_PluginParameters params)
 	DWORD			dwIVLength = 0;
 	BYTE			IV[16] = { '0' };
 	BYTE			tempIV[16];
-	FILE			*FP;
+	LPCSTR			myContainer = "myContainer";
+	DWORD			error = 0;
 
 	__try{
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "--------------------------sys_DecryptAES--------------------------\nGetting parameters\n");
-
-		fclose(FP);
 
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
@@ -5596,55 +5510,33 @@ void sys_DecryptAES(PA_PluginParameters params)
 			}
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Acquiring Crypto Service Provider\n");
-
-		fclose(FP);
-
 		// Get security provider
-		if (!(CryptAcquireContext(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-			__leave;
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
 		}
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Creating hash object\n");
-
-		fclose(FP);
 
 		// Create hash object
 		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Hashing password\n");
-
-		fclose(FP);
-
 		// Hash the password
 		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Deriving key from hashed password\n");
-
-		fclose(FP);
-
 		// Derive the key from the hashed password
 		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
 			__leave;
 		}
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Destroying hash object\n");
-
-		fclose(FP);
 
 		// Destroy the hash object
 		if (!(CryptDestroyHash(hHash))){
@@ -5654,46 +5546,16 @@ void sys_DecryptAES(PA_PluginParameters params)
 			hHash = 0;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Setting IV\n");
-
-		fclose(FP);
-
 		// Set IV
 		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
 			__leave;
 		}
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Allocating pbBuffer\n");
-
-		fclose(FP);
-
 		pbBuffer = malloc(dwSize);
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Copying encrypted text to pbBuffer\n");
-
-		fclose(FP);
 
 		memcpy(pbBuffer, pbMessage, dwSize);
 
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Decoding base64\n");
-
-		fclose(FP);
-
 		pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
-
-		FP = fopen("C:\\debug.txt", "a");
-
-		fprintf(FP, "Decrypting text\n");
-
-		fclose(FP);
 
 		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
 			__leave;
@@ -5704,44 +5566,20 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 	}
 
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Releasing CSP\n");
-
-	fclose(FP);
-
 	if (hProv){
 		CryptReleaseContext(hProv, 0);
 		hProv = 0;
 	}
-
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Destroying key\n");
-
-	fclose(FP);
 
 	if (hKey) {
 		CryptDestroyKey(hKey);
 		hKey = 0;
 	}
 
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Destroying hash (in case we failed an earlier step)\n");
-
-	fclose(FP);
-
 	if (hHash) {
 		CryptDestroyHash(hHash);
 		hHash = 0;
 	}
-
-	FP = fopen("C:\\debug.txt", "a");
-
-	fprintf(FP, "Returning to 4D\n");
-
-	fclose(FP);
 
 	PA_ReturnText(params, pbBuffer, dwSize);
 

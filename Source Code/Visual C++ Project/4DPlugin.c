@@ -5510,6 +5510,15 @@ void sys_DecryptAES(PA_PluginParameters params)
 			}
 		}
 
+		// Clean decryption input
+		for (int i = 0; i < strlen(pbMessage); i++){
+			if (pbMessage[i] <= 32) {
+				memmove(&pbMessage[i], &pbMessage[i + 1], strlen(pbMessage) - i);
+				dwSize--;
+				i--;
+			}
+		}
+
 		// Get security provider
 		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
 			error = GetLastError();

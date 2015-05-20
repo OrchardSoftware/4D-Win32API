@@ -28,6 +28,8 @@ char *base64_encode(const unsigned char *data,
 	for (int i = 0; i < mod_table[input_length % 3]; i++)
 		encoded_data[*output_length - 1 - i] = '=';
 
+	free(data); // WJF 5/20/15 #42772
+
 	return encoded_data;
 }
 
@@ -63,6 +65,8 @@ unsigned char *base64_decode(const char *data,
 		if (j < *output_length) decoded_data[j++] = (triple >> 1 * 8) & 0xFF;
 		if (j < *output_length) decoded_data[j++] = (triple >> 0 * 8) & 0xFF;
 	}
+
+	free(data); // WJF 5/20/15 #42772
 
 	return decoded_data;
 }

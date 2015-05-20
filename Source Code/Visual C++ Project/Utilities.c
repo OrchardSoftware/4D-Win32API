@@ -236,6 +236,7 @@ void PA_ReturnText (PA_PluginParameters params, char* text, LONG_PTR len){
 
 		PA_ReturnString(params, translatedText);
 
+		free(translatedText); // WJF 5/20/15 #42772
 	}
 
 }

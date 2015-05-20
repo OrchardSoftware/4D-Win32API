@@ -5366,6 +5366,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	BYTE		tempIV[16];
 	DWORD		error = 0;
 	LPCSTR		myContainer = "MyContainer";
+	BYTE		pbOutput[280] = { '0' };
 
 	__try{
 
@@ -5442,16 +5443,13 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
 
+		// WJF 5/20/15 #42772
+		memcpy(pbOutput, pbBuffer, dwSize); 
+		free(pbBuffer);
 	}
 	__except (GetExceptionCode()){
 
 	}
-
-	if (hProv){
-		CryptReleaseContext(hProv, 0);
-		hProv = 0;
-	}
-
 	if (hKey) {
 		CryptDestroyKey(hKey);
 		hKey = 0;
@@ -5461,8 +5459,14 @@ void sys_EncryptAES(PA_PluginParameters params)
 		CryptDestroyHash(hHash);
 		hHash = 0;
 	}
+	if (hProv){ // WJF 5/20/15 #42772 Moved to last
+		CryptReleaseContext(hProv, 0);
+		hProv = 0;
+	}
 
-	PA_ReturnText(params, pbBuffer, dwSize);
+	free(myContainer); // WJF 5/20/15 #42772
+
+	PA_ReturnText(params, pbOutput, dwSize);
 
 }
 //  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
@@ -5487,6 +5491,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 	BYTE			tempIV[16];
 	LPCSTR			myContainer = "myContainer";
 	DWORD			error = 0;
+	BYTE			pbOutput[256] = { '0' };
 
 	__try{
 
@@ -5531,7 +5536,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 				__leave;
 			}
 		}
-
+		
 		// Create hash object
 		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
 			__leave;
@@ -5569,15 +5574,14 @@ void sys_DecryptAES(PA_PluginParameters params)
 		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
 			__leave;
 		}
+		
+		// WJF 5/20/15 #42772
+		memcpy(pbOutput, pbBuffer, dwSize);
+		free(pbBuffer); 
 
 	}
 	__except (GetExceptionCode()){
 
-	}
-
-	if (hProv){
-		CryptReleaseContext(hProv, 0);
-		hProv = 0;
 	}
 
 	if (hKey) {
@@ -5590,7 +5594,13 @@ void sys_DecryptAES(PA_PluginParameters params)
 		hHash = 0;
 	}
 
-	PA_ReturnText(params, pbBuffer, dwSize);
+	if (hProv){ // WJF 5/20/15 #42772 Moved to end
+		CryptReleaseContext(hProv, 0);
+		hProv = 0;
+	}
 
+	free(myContainer); // WJF 5/20/15 #42772
+
+	PA_ReturnText(params, pbOutput, dwSize);
 }
 

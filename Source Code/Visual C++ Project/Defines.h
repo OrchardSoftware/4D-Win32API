@@ -18,7 +18,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 6.6.0 
+#define WIN32API_VERSION 6.6.1
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2
@@ -259,3 +259,5 @@ typedef LL* pLL;
 #define MAX_STRING_SIZE 255 // Mark De Wever #12225
 #define snprintf     _snprintf
 //#define strncpy(d, s, n) strcpy_s((d) ,(n) ,(s)) // Mark De Wever #12225
+
+#define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665

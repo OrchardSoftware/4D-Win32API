@@ -1224,7 +1224,6 @@ void sys_KillProcessByName( PA_PluginParameters params )
 	                                  // to reset between loop iterations ($3)
 	BOOL bDone = FALSE;               // This will keep track of whether or not we are finished
 	                                  // Looping through processes.
-
 	// Get the function parameters.
 	PA_GetTextParameter(params, 1, processName);
 	lMode = PA_GetLongParameter(params, 2);
@@ -1309,8 +1308,9 @@ void sys_KillProcessByName( PA_PluginParameters params )
 			// Close our handle
       CloseHandle(hProcess);
     } // end if
-    
-  } while(Process32Next(hProcessSnap, &pe32) | bDone);
+		Process32Next(hProcessSnap, &pe32); // WJF 6/2/15 #42839 Moved out of while condition
+
+  } while(GetLastError()!=ERROR_NO_MORE_FILES || !bDone); // WJF 6/2/15 #42839 Added GetLastError Check, corrected logical or syntax, and added inversion to bDone
 
 	// Close the handle and return success
   CloseHandle(hProcessSnap);

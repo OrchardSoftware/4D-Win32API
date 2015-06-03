@@ -1310,7 +1310,7 @@ void sys_KillProcessByName( PA_PluginParameters params )
     } // end if
 		Process32Next(hProcessSnap, &pe32); // WJF 6/2/15 #42839 Moved out of while condition
 
-  } while(GetLastError()!=ERROR_NO_MORE_FILES || !bDone); // WJF 6/2/15 #42839 Added GetLastError Check, corrected logical or syntax, and added inversion to bDone
+  } while((GetLastError()!=18) && (!bDone)); // WJF 6/2/15 #42839 Added GetLastError Check, corrected logical or syntax, and added inversion to bDone
 
 	// Close the handle and return success
   CloseHandle(hProcessSnap);

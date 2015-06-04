@@ -145,7 +145,8 @@ void PA_SetTextParameter( PA_PluginParameters params, short index, char* text, L
 			PA_SetUnistring( UnistringParam, translatedText);
 
 		}
-	
+
+		free(translatedText); // WJF 6/4/15 #42921
 	}
 	
 }
@@ -173,6 +174,8 @@ void PA_SetTextInArray(PA_Variable array4D, LONG_PTR index, char* text, LONG_PTR
 		UnistringText = PA_CreateUnistring(translatedText);
 
 		PA_SetStringInArray (array4D, index, &UnistringText);
+
+		free(translatedText); // WJF 6/4/15 #42792
 	}
 
 }

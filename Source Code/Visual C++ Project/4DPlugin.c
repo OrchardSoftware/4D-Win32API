@@ -2708,6 +2708,8 @@ void sys_GetDefPrinter(PA_PluginParameters params)
 	returnValue = GetDefaultPrinter(pDefaultPrinter, &ulBytesNeeded);
 	strcpy(printerName, pDefaultPrinter);
 
+	free(pDefaultPrinter); // WJF 6/4/15 #42921
+
 	// At this point, the printer name field is either empty or filled
 	// with a valid value.  Return this value to the user in either case.
 	printerName_len = strlen(printerName);

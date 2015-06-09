@@ -5110,6 +5110,11 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 		}
 
 	}
+
+	ret = SetDefaultPrinter(origDefault); // WJF 6/9/15 #40818
+
+	free(origDefault); // WJF 6/5/15 #42792
+
 	PA_ReturnLong(params, iErrCode);
 }
 

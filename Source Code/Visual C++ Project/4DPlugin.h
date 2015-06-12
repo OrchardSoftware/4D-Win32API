@@ -128,7 +128,6 @@ void sys_GetFileVersionInfo( PA_PluginParameters params); // AMS 2/10/14 #36899
 LONG_PTR sys_GetOSVersionEX( BOOL bInternalCall, PA_PluginParameters params);  // AMS2 12/10/14 #37816
 void sys_SendRawPrinterData( PA_PluginParameters params); // AMS2 12/9/14 #40598
 void sys_DeleteRegValue(PA_PluginParameters params); // WJF 4/14/15 #27474
-void sys_DeleteRegKey64(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665

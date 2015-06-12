@@ -686,23 +686,23 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_DeleteRegKey(params); // WJF 4/14/15 #27474
 		break;
 
-	case 98:
+	/*case 98:
 		sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
-		break;
+		break;*/
 
-	case 99:
+	case 98:
 		sys_DeleteRegValue(params); // WJF 4/14/15 #27474
 		break;
 
-	case 100: // WJF 4/20/15 #40598 Redid paramaters
+	case 99: // WJF 4/20/15 #40598 Redid paramaters
 		sys_SendRawPrinterData(params);  // AMS2 12/9/14 #40598
 		break;
 
-	case 101:
+	case 100:
 		sys_EncryptAES(params); // WJF 5/6/15 #42665
 		break;
 
-	case 102:
+	case 101:
 		sys_DecryptAES(params); // WJF 5/6/15 #42665
 		break;
 	}
@@ -2099,6 +2099,10 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	PA_SetTextParameter(params, 6, fileNameFull, fileNameFull_len);
 
 	_chdir(cCurrentPath); // WJF 2/20/15 #41921 Restoring the current working directory will prevent folders from becoming incorrectly locked
+
+	if (PA_Is4DServer()){ // WJF 6/9/15 #42792
+		free(pathName);
+	}
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -5278,6 +5282,7 @@ void sys_DeleteRegKey(PA_PluginParameters params)
 //  COMMENTS:	Passing non-1 values is the same as calling sys_DeleteRegKey on 64-bit
 //
 //	DATE:		WJF 4/14/15 #27474
+/* WJF 6/12/15 #42964 Removed for now since RegDeleteKeyEx merely existing in the code causes Win32API to crash on 32bit XP
 void sys_DeleteRegKey64(PA_PluginParameters params)
 {
 	HKEY hKey = 0;
@@ -5313,7 +5318,7 @@ void sys_DeleteRegKey64(PA_PluginParameters params)
 	}
 
 	PA_ReturnLong(params, errorCode);
-}
+}*/
 
 //  FUNCTION: sys_DeleteRegValue(PA_PluginParameters params)
 //

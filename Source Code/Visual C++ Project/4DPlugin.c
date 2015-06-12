@@ -2100,10 +2100,6 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 
 	_chdir(cCurrentPath); // WJF 2/20/15 #41921 Restoring the current working directory will prevent folders from becoming incorrectly locked
 
-	if (PA_Is4DServer()){ // WJF 6/9/15 #42792
-		free(pathName);
-	}
-
 	PA_ReturnLong(params, returnValue);
 }
 

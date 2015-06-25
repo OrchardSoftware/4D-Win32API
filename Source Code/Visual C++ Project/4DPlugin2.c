@@ -736,6 +736,8 @@ void gui_LoadBackground( PA_PluginParameters params, BOOL DeInit )
 		*charPos = 0;
 		windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 
+		free(pathName); // WJF 6/25/15 #42792
+
 		NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
 		do {
 			if (IsWindow(NexthWnd)){

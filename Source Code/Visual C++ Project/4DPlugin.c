@@ -229,6 +229,8 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		*charPos = 0;
 		windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 
+		free(pathName); // WJF 6/25/15 #42792
+
 		NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
 		do {
 			if (IsWindow(NexthWnd)){
@@ -293,6 +295,8 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 				charPos = strrchr(pathName, '\\');
 				*charPos = 0;
 				windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+
+				free(pathName); // WJF 6/25/15 #42792
 
 				NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
 				do {
@@ -1997,6 +2001,7 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 		charPos = strrchr(pathName, '\\');
 		*charPos = 0;
 		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+		free(pathName); // WJF 6/9/15 #42792
 	}
 	else{
 		hWnd = PA_GetHWND(NULL); // the current frontmost window
@@ -2100,10 +2105,6 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 
 	_chdir(cCurrentPath); // WJF 2/20/15 #41921 Restoring the current working directory will prevent folders from becoming incorrectly locked
 
-	if (PA_Is4DServer()){ // WJF 6/9/15 #42792
-		free(pathName);
-	}
-
 	PA_ReturnLong(params, returnValue);
 }
 
@@ -2152,6 +2153,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 		charPos = strrchr(pathName, '\\');
 		*charPos = 0;
 		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+		free(pathName); // WJF 6/25/15 #42792
 	}
 	else{
 		hWnd = PA_GetHWND(NULL); // the current frontmost window
@@ -4248,6 +4250,8 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	}
 
 	free(BLOB); // AMS 7/10/14 #39391
+
+	free(pathName); // WJF 6/25/15 #42792
 
 	PA_ReturnLong(params, returnValue);
 

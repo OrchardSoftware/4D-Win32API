@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{7dc027e3-9f39-48fa-aa7d-25415ac9c7f9}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Commands">
+      <UniqueIdentifier>{43884a5a-b018-47f2-9957-963c849d530c}</UniqueIdentifier>
+      <Extensions>c</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{60a92176-a105-45dc-80f0-ba5f78e4c582}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{3bdd8f5d-be63-4170-bb56-70e1f5042d9f}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="4D Plugin API">
+      <UniqueIdentifier>{62398c5f-2ea0-4ca0-a4c0-b6f814fcf119}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="4DPlugin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="4DPlugin040202.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="4DPlugin082102.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="4DPlugin2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EZTWAIN.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="linkedList.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Registry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrayIcon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sys_GetDocumentList.c">
+      <Filter>Source Files\Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="4D Plugin API\4DPluginAPI.c">
+      <Filter>4D Plugin API</Filter>
+    </ClCompile>
+    <ClCompile Include="base64.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="ASINTPPC.lib">
+      <Filter>Source Files</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="4DPlugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EZTWAIN.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="language.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Twain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="4D Plugin API\4DPluginAPI.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="ASI_spec.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="4D Plugin API\EntryPoints.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="4D Plugin API\Flags.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="4D Plugin API\PrivateTypes.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="4D Plugin API\PublicTypes.h">
+      <Filter>4D Plugin API</Filter>
+    </ClInclude>
+    <ClInclude Include="base64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="COMDLG32.RC">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="4D Plugin API\4DPluginAPI.def">
+      <Filter>4D Plugin API</Filter>
+    </None>
+  </ItemGroup>
+</Project>

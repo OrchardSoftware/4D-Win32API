@@ -1021,6 +1021,9 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	// REB 4/20/11 #27322 Conver the C string to a Unistring
 	Unistring = CStringToUnistring(&executeCommand);
 	PA_ExecuteMethod(&Unistring);
+
+	PA_DisposeUnistring(&Unistring);
+
 	//PA_ExecuteMethod(executeCommand, execCommand_len);
 
 	printer = PA_GetVariableParameter(params, 1);
@@ -1157,6 +1160,10 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	processHandles.wpPrintSettingsDlgOrigProc = NULL; // 08/08/02
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
+
+	// WJF 6/25/15 #42792
+	free(pComma);
+	free(emptyString);
 
 	strcpy(printerSettings.printerSelection, "");
 	PA_SetVariableParameter(params, 1, printer, 0);
@@ -4218,6 +4225,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				// REB 4/20/11 #27322 Conver the C string to a Unistring
 				Unistring = CStringToUnistring(&command);
 				PA_ExecuteMethod(&Unistring);
+				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 				//PA_ExecuteMethod(command, strlen(command));
 			}
 			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
@@ -4243,6 +4251,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				PA_SetBlobParameter(params, 2, twainBlob, blobSize);
 
+				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 				free(twainBlob);
 			}
 			DeleteFile(fileName);

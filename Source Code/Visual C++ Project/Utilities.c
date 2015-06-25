@@ -45,6 +45,7 @@ int compareAlphabetical(WIN32_FIND_DATA* p1, WIN32_FIND_DATA* p2)
 	return ret;
 }
 
+/* WJF 6/25/15 #42792 This function is not used anywhere
 char * concatStr(const char *str1, const char *str2)
 {
 	char *newStr = NULL;
@@ -57,7 +58,7 @@ char * concatStr(const char *str1, const char *str2)
 	strcat(newStr, str2);
 
 	return newStr;
-}
+}*/
 
 // MJG 7/5/05 #8372	
 void setError (LONG_PTR value)
@@ -244,6 +245,7 @@ void PA_ReturnText (PA_PluginParameters params, char* text, LONG_PTR len){
 
 }
 
+// WJF 6/25/15 #42792 When using this function, be sure to free the returned character string. 
 char * getTextParameter(PA_PluginParameters param, short index)
 {
 
@@ -292,6 +294,8 @@ PA_Unistring CStringToUnistring(char* text)
 		mbstowcs(translatedText, text, strlen(text));
 
 		UnistringText = PA_CreateUnistring(translatedText);
+
+		free(translatedText); // WJF 6/25/15 #42792
 
 		return UnistringText;
 

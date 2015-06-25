@@ -1022,7 +1022,11 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	Unistring = CStringToUnistring(&executeCommand);
 	PA_ExecuteMethod(&Unistring);
 
+<<<<<<< HEAD
 	PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
+=======
+	PA_DisposeUnistring(&Unistring);
+>>>>>>> origin/Dev
 
 	//PA_ExecuteMethod(executeCommand, execCommand_len);
 
@@ -1161,6 +1165,10 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
 
+<<<<<<< HEAD
+=======
+	// WJF 6/25/15 #42792
+>>>>>>> origin/Dev
 	free(pComma);
 	free(emptyString);
 
@@ -4250,7 +4258,11 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				PA_SetBlobParameter(params, 2, twainBlob, blobSize);
 
+<<<<<<< HEAD
 				PA_DisposeUnistring(&_path); // WJF 6/25/15 #42792
+=======
+				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
+>>>>>>> origin/Dev
 				free(twainBlob);
 			}
 			DeleteFile(fileName);

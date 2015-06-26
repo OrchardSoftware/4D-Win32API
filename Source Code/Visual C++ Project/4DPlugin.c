@@ -1023,9 +1023,13 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	PA_ExecuteMethod(&Unistring);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 =======
 	PA_DisposeUnistring(&Unistring);
+>>>>>>> origin/Dev
+=======
+	PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 >>>>>>> origin/Dev
 
 	//PA_ExecuteMethod(executeCommand, execCommand_len);

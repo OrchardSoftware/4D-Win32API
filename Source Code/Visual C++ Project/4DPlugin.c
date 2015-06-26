@@ -1022,7 +1022,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	Unistring = CStringToUnistring(&executeCommand);
 	PA_ExecuteMethod(&Unistring);
 
-	PA_DisposeUnistring(&Unistring);
+	PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 
 	//PA_ExecuteMethod(executeCommand, execCommand_len);
 

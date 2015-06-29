@@ -261,3 +261,8 @@ typedef LL* pLL;
 //#define strncpy(d, s, n) strcpy_s((d) ,(n) ,(s)) // Mark De Wever #12225
 
 #define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665
+
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC // include Microsoft memory leak detection procedures
+#define _INC_MALLOC          // exclude standard memory alloc procedures       
+#endif

@@ -4198,7 +4198,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 			returnValue = 1;
 
-			if (len == 0) // AMS 7/3/14 #39391 Use ExecuteCommandById if a blob parameter was passed in
+			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
 
 				// AMS 7/10/14 #39391 Rewrote this portion of the method to use PA_GetCommandName. This allows users to not have to pass in an extra blob parameter. 
@@ -4300,11 +4300,6 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 
 	TWAIN_FreeNative(DIBHandle);
-
-#ifdef _DEBUG
-	_CrtDumpMemoryLeaks();
-#endif // _DEBUG
-
 
 }
 

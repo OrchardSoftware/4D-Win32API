@@ -1161,10 +1161,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
 
-<<<<<<< HEAD
-=======
 	// WJF 6/25/15 #42792
->>>>>>> origin/Dev
 	free(pComma);
 	free(emptyString);
 
@@ -4119,17 +4116,23 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	TWAIN_CAPTURE	TWAINCapture; // REB 2/26/13 #35165
 	char *BLOB = NULL; // AMS 7/3/14 #39391
 	LONG_PTR len = 0; // AMS 7/3/14 #39391
+	char cmdName[256] = ""; // WJF 6/29/15 #42792
+	char cName[256] = ""; // WJF 6/29/15 #42792
 
 	showDialog = PA_GetLongParameter(params, 1);
 
-	// AMS 7/3/14 #39391 Get the blob parameter
+	// AMS 7/3/14 #39391 Get the blob parameter // WJF 6/29/15 #42792 Changed BLOB -> Text
 	BLOB = NULL;
-	len = PA_GetBlobParameter(params, 2, NULL);
-	BLOB = malloc(len);
-	len = PA_GetBlobParameter(params, 2, BLOB);
+	len = PA_GetTextParameter(params, 2, NULL);
+
+	if (len > 0) { // WJF 6/29/15 #42792 Don't allocate unless a variable was passed
+		BLOB = malloc(len+1); // WJF 6/29/15 #42792 Added +1
+		len = PA_GetTextParameter(params, 2, BLOB);
+	}
 
 	Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
 	pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
+	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
 	charPos = strrchr(pathName, '\\');
 	strncpy(fileName, pathName, (charPos - pathName + 1));
 	strcat(fileName, "\TWNIMG.bmp");
@@ -4195,12 +4198,10 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 			returnValue = 1;
 
-			if (len == 0) // AMS 7/3/14 #39391 Use ExecuteCommandById if a blob parameter was passed in
+			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
 
 				// AMS 7/10/14 #39391 Rewrote this portion of the method to use PA_GetCommandName. This allows users to not have to pass in an extra blob parameter. 
-				char cmdName[256] = "";
-				char cName[256] = "";
 
 				PA_GetCommandName(525, cmdName);
 
@@ -4208,7 +4209,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
 				// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
-				for (int i = 0; i <= sizeof(cmdName); i++)
+				for (int i = 0; i < sizeof(cmdName); i++) // WJF 6/29/15 #43134 Changed <= to <
 				{
 					if (cmdName[i] != '\0')
 					{
@@ -4232,9 +4233,37 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				//PA_ExecuteMethod(command, strlen(command));
 			}
 			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
-			{
+			{ // WJF 6/29/15 #42792 Changed this to be like the above section because of a memory leak with varArray[0]. Now users will have to pass the name of the blob as text.
 
-				PA_Unistring _path = CStringToUnistring(fileName);
+				PA_GetCommandName(525, cmdName);
+
+				int j = 0;
+
+				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+				// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
+				for (int i = 0; i < sizeof(cmdName); i++) 
+				{
+					if (cmdName[i] != '\0')
+					{
+						cName[j] = cmdName[i];
+						j++;
+					}
+				}
+
+				cName[(strlen(cName))] = '\0';
+
+				strncpy(command, cName, sizeof(command));
+				strcat(command, "(\"");
+				strcat(command, fileName2);
+				strcat(command, "\";");
+				strcat(command, BLOB);
+				strcat(command, ")");
+
+				Unistring = CStringToUnistring(&command);
+				PA_ExecuteMethod(&Unistring);
+				PA_DisposeUnistring(&Unistring);
+
+				/*PA_Unistring _path = CStringToUnistring(fileName);
 				PA_Variable varArray[2];
 
 				varArray[0] = PA_CreateVariable(eVK_Unistring);
@@ -4254,19 +4283,19 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				PA_SetBlobParameter(params, 2, twainBlob, blobSize);
 
-<<<<<<< HEAD
 				PA_DisposeUnistring(&_path); // WJF 6/25/15 #42792
-=======
-				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
->>>>>>> origin/Dev
-				free(twainBlob);
+
+				free(twainBlob); */
 			}
 			DeleteFile(fileName);
 		}
 	}
 
-	free(BLOB); // AMS 7/10/14 #39391
-
+	if (len>0) // WJF 6/29/15 #42792 Only free if allocated
+	{
+		free(BLOB); // AMS 7/10/14 #39391
+	}
+	
 	free(pathName); // WJF 6/25/15 #42792
 
 	PA_ReturnLong(params, returnValue);

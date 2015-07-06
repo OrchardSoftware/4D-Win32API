@@ -1161,10 +1161,6 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
 
-	// WJF 6/25/15 #42792
-	free(pComma);
-	free(emptyString);
-
 	strcpy(printerSettings.printerSelection, "");
 	PA_SetVariableParameter(params, 1, printer, 0);
 	PA_ReturnLong(params, returnValue);

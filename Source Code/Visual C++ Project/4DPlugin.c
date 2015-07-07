@@ -709,6 +709,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 	case 101:
 		sys_DecryptAES(params); // WJF 5/6/15 #42665
 		break;
+
+	case 102:
+		gui_TakeScreenshot(params); // WJF 7/7/15 #43138
+
 	}
 }
 
@@ -5661,3 +5665,143 @@ void sys_DecryptAES(PA_PluginParameters params)
 	PA_ReturnText(params, pbOutput, dwSize);
 }
 
+//  FUNCTION:	gui_TakeScreenshot (PA_PluginParameters params)
+//
+//  PURPOSE:	Takes a screenshot of the desktop
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 7/7/15 #43138
+
+void gui_TakeScreenshot(PA_PluginParameters params){
+
+	LONG_PTR				hWnd;
+	RECT					rcClient;
+	int						lError = 0;
+	HDC						hdcScreen;
+	HDC						hdcWindow;
+	HDC						hdcMemDC;
+	HBITMAP					hbmScreen;
+	BITMAP					bmpScreen;
+	DWORD					dwBmpSize;
+	HANDLE					hDIB;
+	char					*lpbitmap;
+	HANDLE					hFile;
+	DWORD					dwSizeofDIB;
+	DWORD					dwBytesWritten;
+	char					*filePath;
+	DWORD					dwFilePathLength;
+	BITMAPFILEHEADER		bmfHeader;
+	BITMAPINFOHEADER		bi;
+
+	hWnd = PA_GetLongParameter(params, 1);
+
+	dwFilePathLength = PA_GetTextParameter(params, 2, NULL);
+	filePath = (char *)malloc(dwFilePathLength);
+	dwFilePathLength = PA_GetTextParameter(params, 2, filePath);
+
+	// Get a screen DC and a DC for the window for which the handle was provided
+	hdcScreen = GetDC(NULL);
+	hdcWindow = GetDC(hWnd);
+
+	// Create a compatible DC which is used in a BitBlt from the window DC
+	hdcMemDC = CreateCompatibleDC(hdcWindow);
+
+	if (hdcMemDC) {
+
+		// Get the client area for size calculation
+		GetClientRect(hWnd, &rcClient);
+		// Adjust for caption bar and borders
+		rcClient.top -= GetSystemMetrics(SM_CYCAPTION);
+		rcClient.bottom += 5;
+		rcClient.left -= 5;
+		rcClient.right += 5;
+
+		// Create a compatible bitmap from the Window DC
+		hbmScreen = CreateCompatibleBitmap(hdcWindow, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+
+		if (hbmScreen){
+
+			// Select the compatible bitmap into the compatible memory DC.
+			SelectObject(hdcMemDC, hbmScreen);
+
+			// Bit block transfer into our compatible memory DC.
+			if (BitBlt(hdcMemDC, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hdcWindow, rcClient.left, rcClient.top, SRCCOPY)) {
+
+				// Get the BITMAP from the HBITMAP
+				GetObject(hbmScreen, sizeof(BITMAP), &bmpScreen);
+
+				bi.biSize = sizeof(BITMAPINFOHEADER);
+				bi.biWidth = bmpScreen.bmWidth;
+				bi.biHeight = bmpScreen.bmHeight;
+				bi.biPlanes = 1;
+				bi.biBitCount = 32;
+				bi.biCompression = BI_RGB;
+				bi.biSizeImage = 0;
+				bi.biXPelsPerMeter = 0;
+				bi.biYPelsPerMeter = 0;
+				bi.biClrUsed = 0;
+				bi.biClrImportant = 0;
+
+				dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
+
+				// Starting with 32-bit Windows, GlobalAlloc and LocalAlloc are implemented as wrapper functions that 
+				// call HeapAlloc using a handle to the process's default heap. Therefore, GlobalAlloc and LocalAlloc 
+				// have greater overhead than HeapAlloc.
+				hDIB = GlobalAlloc(GHND, dwBmpSize);
+				lpbitmap = (char *)GlobalLock(hDIB);
+
+				// Gets the "bits" from the bitmap and copies them into a buffer 
+				// which is pointed to by lpbitmap.
+				GetDIBits(hdcWindow, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO *)&bi, DIB_RGB_COLORS);
+
+				// A file is created, this is where we will save the screen capture.
+				hFile = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+				// Add the size of the headers to the size of the bitmap to get the total file size
+				dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER);
+
+				// Offset to where the actual bitmap bits start.
+				bmfHeader.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER)+(DWORD)sizeof(BITMAPINFOHEADER);
+
+				// Size of the file
+				bmfHeader.bfSize = dwSizeofDIB;
+
+				// bfType must always be BM for Bitmaps
+				bmfHeader.bfType = 0x4D42; //BM   
+
+				dwBytesWritten = 0;
+				WriteFile(hFile, (LPSTR)&bmfHeader, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
+				WriteFile(hFile, (LPSTR)&bi, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
+				WriteFile(hFile, (LPSTR)lpbitmap, dwBmpSize, &dwBytesWritten, NULL);
+
+				// Unlock and Free the DIB from the heap
+				GlobalUnlock(hDIB);
+				GlobalFree(hDIB);
+
+				// Close the handle for the file that was created
+				CloseHandle(hFile);
+
+			}
+			else {
+				lError = 3;
+			}
+		}
+		else {
+			lError = 2;
+		}
+	}
+	else {
+		lError = 1;
+	}
+
+	// Clean up
+	DeleteObject(hbmScreen);
+	DeleteObject(hdcMemDC);
+	ReleaseDC(NULL, hdcScreen);
+	ReleaseDC(hWnd, hdcWindow);
+	free(filePath);
+
+	PA_ReturnLong(params, lError);
+
+}

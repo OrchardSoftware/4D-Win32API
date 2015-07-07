@@ -131,6 +131,7 @@ void sys_DeleteRegValue(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
+void gui_TakeScreenshot(PA_PluginParameters params); // WJF 7/7/15 #43138
 
 // ----- Other modules -------
 //window background-related
@@ -213,5 +214,11 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 
 // REB 2/26/13 #35165
 unsigned __stdcall TWAIN_GetImage (void *);
+
+// WJF 7/6/15 Needed for _crtDumpMemoryLeaks. This can stay here even without including libcmtd.lib in the linker settings. 
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC // include Microsoft memory leak detection procedures
+#define _INC_MALLOC          // exclude standard memory alloc procedures       
+#endif
 
 #endif // __4DPLUGING_H__

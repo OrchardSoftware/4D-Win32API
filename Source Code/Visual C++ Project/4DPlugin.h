@@ -215,10 +215,4 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 // REB 2/26/13 #35165
 unsigned __stdcall TWAIN_GetImage (void *);
 
-// WJF 7/6/15 Needed for _crtDumpMemoryLeaks. This can stay here even without including libcmtd.lib in the linker settings. 
-#ifdef _DEBUG
-#define _CRTDBG_MAP_ALLOC // include Microsoft memory leak detection procedures
-#define _INC_MALLOC          // exclude standard memory alloc procedures       
-#endif
-
 #endif // __4DPLUGING_H__

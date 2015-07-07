@@ -712,7 +712,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 	case 102:
 		gui_TakeScreenshot(params); // WJF 7/7/15 #43138
-
+		break;
 	}
 }
 

@@ -66,7 +66,10 @@ unsigned char *base64_decode(const char *data,
 		if (j < *output_length) decoded_data[j++] = (triple >> 0 * 8) & 0xFF;
 	}
 
-	free(data); // WJF 5/20/15 #42772
+	free((char *)data); // WJF 5/20/15 #42772 // WJF 7/23/15 #43348 Added typecasting
+	data = NULL; // WJF 7/23/15 #43348 Good practice
+
+	base64_cleanup(); // WJF 7/23/15 #43348 This wasn't getting called resulting in a 256 byte memory leak each time we decoded something
 
 	return decoded_data;
 }

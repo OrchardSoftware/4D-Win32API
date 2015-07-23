@@ -86,4 +86,5 @@ void build_decoding_table(void) {
 
 void base64_cleanup() {
 	free(decoding_table);
+	decoding_table = NULL; // WJF 7/23/15 #43348
 }

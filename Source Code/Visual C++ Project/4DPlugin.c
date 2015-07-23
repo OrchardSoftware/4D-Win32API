@@ -5433,7 +5433,17 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
+		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
+		if (dwSize > 256) {
+			__leave;
+		}
+
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+
+		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
+		if (dwPassLength > 16) {
+			__leave;
+		}
 
 		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
 
@@ -5556,7 +5566,17 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
 
+		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
+		if (dwSize > 256) {
+			__leave;
+		}
+
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+
+		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
+		if (dwPassLength > 16) {
+			__leave;
+		}
 
 		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
 

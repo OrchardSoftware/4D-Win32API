@@ -5425,7 +5425,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 	DWORD		dwIVLength;
 	BYTE		tempIV[16];
 	DWORD		error = 0;
-	LPCSTR		myContainer = "MyContainer";
+	LPCSTR		myContainer = "MyContainer"; // WJF 7/23/15 #43348 Removed the free call on this variable
 	BYTE		pbOutput[280] = { '0' };
 
 	__try{
@@ -5524,8 +5524,6 @@ void sys_EncryptAES(PA_PluginParameters params)
 		hProv = 0;
 	}
 
-	free(myContainer); // WJF 5/20/15 #42772
-
 	PA_ReturnText(params, pbOutput, dwSize);
 
 }
@@ -5549,7 +5547,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 	DWORD			dwIVLength = 0;
 	BYTE			IV[16] = { '0' };
 	BYTE			tempIV[16];
-	LPCSTR			myContainer = "myContainer";
+	LPCSTR			myContainer = "myContainer";	// WJF 7/23/15 #43348 Removed the free call on this var
 	DWORD			error = 0;
 	BYTE			pbOutput[256] = { '0' };
 
@@ -5659,9 +5657,8 @@ void sys_DecryptAES(PA_PluginParameters params)
 		hProv = 0;
 	}
 
-	free(myContainer); // WJF 5/20/15 #42772
-
 	PA_ReturnText(params, pbOutput, dwSize);
+
 }
 
 //  FUNCTION:	gui_TakeScreenshot (PA_PluginParameters params)

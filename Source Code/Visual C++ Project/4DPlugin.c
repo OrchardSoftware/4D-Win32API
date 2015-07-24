@@ -5412,21 +5412,22 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 //	DATE:		WJF 5/5/15 #42665
 void sys_EncryptAES(PA_PluginParameters params)
 {
+	// WJF 7/24/15 #43363 Increased all array sizes by 1 to account for null terminator and initialized all byte and pbyte variables
 	HCRYPTPROV	hProv = 0;
 	HCRYPTHASH	hHash = 0;
 	HCRYPTKEY	hKey = 0;
 	PBYTE		pbBuffer;
 	DWORD		dwSize = 0;
-	BYTE		pbMessage[256];
-	BYTE		pbPass[33];
+	BYTE		pbMessage[257] = "0";
+	BYTE		pbPass[33] = "0";
 	DWORD		dwPassLength = 0;
 	DWORD		BUFFER_SIZE = 0;
-	BYTE		IV[16] = { '0' };
+	BYTE		IV[17] = "0";
 	DWORD		dwIVLength;
-	BYTE		tempIV[16];
+	BYTE		tempIV[17] = "0";
 	DWORD		error = 0;
 	LPCSTR		myContainer = "MyContainer"; // WJF 7/23/15 #43348 Removed the free call on this variable
-	BYTE		pbOutput[280] = { '0' };
+	BYTE		pbOutput[280] = "0";
 
 	__try{
 
@@ -5508,6 +5509,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 
 		// Encrypt the message
 		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
+			free(pbBuffer); // WJF 7/24/15 #43363 Noticed this possible memory leak.
 			__leave;
 		}
 
@@ -5546,20 +5548,21 @@ void sys_EncryptAES(PA_PluginParameters params)
 //	DATE:		WJF 5/5/15 #42665
 void sys_DecryptAES(PA_PluginParameters params)
 {
+	// WJF 7/24/15 #43363 Increased all array sizes by 1 to account for null terminator and initialized all byte and pbyte variables
 	HCRYPTPROV		hProv = 0;
 	HCRYPTHASH		hHash = 0;
 	HCRYPTKEY		hKey = 0;
 	DWORD			dwSize = 0;
-	BYTE			pbMessage[256];
-	BYTE			pbPass[33];
+	BYTE			pbMessage[257] = "0";
+	BYTE			pbPass[33] = "0";
 	DWORD			dwPassLength = 0;
-	PBYTE			pbBuffer;
+	PBYTE			pbBuffer = NULL;
 	DWORD			dwIVLength = 0;
-	BYTE			IV[16] = { '0' };
-	BYTE			tempIV[16];
+	BYTE			IV[17] = "0"; 
+	BYTE			tempIV[17] = "0"; 
 	LPCSTR			myContainer = "myContainer";	// WJF 7/23/15 #43348 Removed the free call on this var
 	DWORD			error = 0;
-	BYTE			pbOutput[256] = { '0' };
+	BYTE			pbOutput[257] = "0";
 
 	__try{
 
@@ -5650,6 +5653,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 		pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
 
 		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
+			free(pbBuffer); // WJF 7/24/15 #43363 Noticed this possible memory leak
 			__leave;
 		}
 		

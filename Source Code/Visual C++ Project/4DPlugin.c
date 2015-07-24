@@ -5441,7 +5441,7 @@ void sys_EncryptAES(PA_PluginParameters params)
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
 		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwPassLength > 16) {
+		if (dwPassLength > 32) {
 			__leave;
 		}
 
@@ -5574,7 +5574,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
 
 		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwPassLength > 16) {
+		if (dwPassLength > 32) {
 			__leave;
 		}
 

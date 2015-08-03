@@ -1004,6 +1004,28 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	char								bins[20][24];
 	WORD								binNums[20];
 	int									index = 0;
+	FILE								*FP; // WJF 8/3/15 #43416
+	SYSTEMTIME							DateTime; // WJF 8/3/15 #43416
+	char								buffer[5] = "";
+	char								logPath[128] = "C:\\Orchard\\43416 Debugging "; // WJF 8/3/15 #43416
+
+	// WJF 8/3/15 #43416
+	GetSystemTime(&DateTime);
+	itoa(DateTime.wMonth, buffer, 10);
+	strncat(logPath, buffer, 2);
+	itoa(DateTime.wDay, buffer, 10);
+	strncat(logPath, buffer, 2);
+	itoa(DateTime.wYear, buffer, 10);
+	strncat(logPath, buffer, 4);
+	strncat(logPath, ".log", 4);
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "============== %02d/%02d/%02d - %02d:%02d ==============\n", DateTime.wMonth, DateTime.wDay, DateTime.wYear, DateTime.wHour, DateTime.wMinute);
+		fprintf(FP, "Entering sys_GetPrintJob\n");
+		fprintf(FP, "Initializing struct values\n");
+		fclose(FP);
+		FP = NULL;
+	}
 
 	activeCalls.bPrinterCapture = TRUE;
 
@@ -1011,6 +1033,14 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	hookHandles.printHookHndl = NULL;
 	processHandles.wpPrintDlgOrigProc = NULL; // 08/08/02
 	processHandles.wpPrintSettingsDlgOrigProc = NULL; // 08/08/02
+
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Retrieving second parameter\n");
+		fclose(FP);
+		FP = NULL;
+	}
 
 	execCommand_len = PA_GetTextParameter(params, 2, executeCommand);
 	executeCommand[execCommand_len] = '\0';
@@ -1022,10 +1052,26 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	//if ((activeCalls.bTrayIcons == FALSE) && (processHandles.wpFourDOrigProc == NULL)) { // same subclassed procedure used for trayIcons
 	//	processHandles.wpFourDOrigProc = (WNDPROC) SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) newProc);	
 	//}
+	
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Subclassing 4D window process\n");
+		fclose(FP);
+		FP = NULL;
+	}
 
 	subclass4DWindowProcess(); // MJG 3/26/04 Replaced code above with function call.
 
 	g_intrProcMsg = PS_SEARCH;
+
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Converting C string to Unistring\n");
+		fclose(FP);
+		FP = NULL;
+	}
 
 	// REB 4/20/11 #27322 Conver the C string to a Unistring
 	Unistring = CStringToUnistring(&executeCommand);
@@ -1035,23 +1081,102 @@ void sys_GetPrintJob(PA_PluginParameters params)
 
 	//PA_ExecuteMethod(executeCommand, execCommand_len);
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Retrieving printer variable\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	printer = PA_GetVariableParameter(params, 1);
 
 	if (strlen(printerSettings.printerSelection) == 0) {
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "printersettings.Printerselection was empty\n");
+			fprintf(FP, "Resizing printer array\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_ResizeArray(&printer, 10); // WJF 4/7/15 #41184 Changed from 1 -> 10
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Getting profile string\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		ret = GetProfileString("windows", "device", ",,,", printerName, printerName_len);
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Beginning strstr on pComma\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		pComma = strstr(printerName, ",");
 		printerName[pComma - printerName] = '\0';
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Copying printerName to printerSettings.printerSelection\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		strcpy(printerSettings.printerSelection, printerName);
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting value in 4D printer variable\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 1, printerSettings.printerSelection,
 			strlen(printerSettings.printerSelection));
 		// WJF 4/7/15 # 41884 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
 		if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "A printer handle was retrieved\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Allocating pDevMode\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			pDevMode = (LPDEVMODE)malloc(bytesRequired);
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Getting dev mode struct\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Setting paper size in 4D array\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
 			// Store the orientation
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Setting orientation in 4D array\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			if (pDevMode->dmOrientation = DMORIENT_PORTRAIT){
 				PA_SetTextInArray(printer, 5, "Portrait", strlen("Portrait"));
 			}
@@ -1059,11 +1184,55 @@ void sys_GetPrintJob(PA_PluginParameters params)
 				PA_SetTextInArray(printer, 5, "Landscape", strlen("Landscape"));
 			}
 
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Calling GetPrinter to get the necessary size\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			GetPrinter(prntHndle, 2, 0, 0, &size); // Determine size required for printerInfo 
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Allocating pPrinterInfo\n");
+				fclose(FP);
+				FP = NULL;
+			}
+
 			pPrinterInfo = (PRINTER_INFO_2*)malloc(size);
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Filling with GetPrinter\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			GetPrinter(prntHndle, 2, (LPBYTE)pPrinterInfo, size, &size); // Get printerInfo (printerport)
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Getting tray names\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINNAMES, bins, NULL); // Get all tray names
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Getting tray numbers\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINS, binNums, NULL); // Get all tray numbers
+
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Finding index of default tray\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			for (int i = 0; i<size; i++) {
 				if (binNums[i] == pDevMode->dmDefaultSource){
 					index = i; // Find the index of the default tray since there is no way to determine selected tray
@@ -1071,15 +1240,50 @@ void sys_GetPrintJob(PA_PluginParameters params)
 				}
 			}
 
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Setting tray in 4D printer variable\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			PA_SetTextInArray(printer, 3, bins[index],
 				strlen(bins[index])); // Set to default bin
 
 			// Cleanup
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Freeing pDevMode\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			free(pDevMode);
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Freeing pPrinterInfo\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			free(pPrinterInfo);
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Closing printer handle\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			ClosePrinter(prntHndle);
 		}
 		else {
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Failed to retrieve printer handle, filling printer array with empty strings\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			PA_SetTextInArray(printer, 2, emptyString,
 				strlen(emptyString));
 			PA_SetTextInArray(printer, 3, emptyString,
@@ -1087,37 +1291,127 @@ void sys_GetPrintJob(PA_PluginParameters params)
 			PA_SetTextInArray(printer, 5, emptyString,
 				strlen(emptyString));
 		}
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Filling rest of printer array\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 4, "1", strlen("1"));  // Assume 1 copy
 		PA_SetTextInArray(printer, 6, emptyString, strlen(emptyString));
 		PA_SetTextInArray(printer, 7, emptyString, strlen(emptyString));
 		returnValue = 1;
 	}
 	else {
-
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Printer was found in printerSettings.printerSelection\n");
+			fprintf(FP, "Resizing array\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_ResizeArray(&printer, 10);
-
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting printer selecting in 4D printer array\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 1, printerSettings.printerSelection,
 			strlen(printerSettings.printerSelection));
 		// WJF 4/6/15 #40697 If printerSettings.size is empty, we need to find the information another way (Happens when passed "PRINT SETTINGS(2)"
 		if (strcmp(printerSettings.size, "") == 0) {
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "No size settting was found\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Successfully retrieved printer handle\n");
+					fprintf(FP, "Getting size required for DevMode\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Allocating pDevMode\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				pDevMode = (LPDEVMODE)malloc(bytesRequired);
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Filling pDevMode\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Setting paper size in 4D printer array\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
 
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Freeing pDevMode\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				// Cleanup
 				free(pDevMode);
+				// WJF 8/3/15 #43416
+				FP = fopen(logPath, "a");
+				if (FP != NULL){
+					fprintf(FP, "Closing printer\n");
+					fclose(FP);
+					FP = NULL;
+				}
 				ClosePrinter(prntHndle);
 			}
 		} // End WJF 4/6/15 #40697 Changes
 		else {
+			// WJF 8/3/15 #43416
+			FP = fopen(logPath, "a");
+			if (FP != NULL){
+				fprintf(FP, "Setting printerSettings.size\n");
+				fclose(FP);
+				FP = NULL;
+			}
 			PA_SetTextInArray(printer, 2, printerSettings.size,
 				strlen(printerSettings.size));
 		}
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting printerSetting.source\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 3, printerSettings.source,
 			strlen(printerSettings.source));
-
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting printerSettings.copies\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 4, printerSettings.copies,
 			strlen(printerSettings.copies));
 		if (printerSettings.portraitLandscape == PS_PORTRAIT) {
@@ -1126,9 +1420,22 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		else {
 			strcpy(returnString, "Landscape");
 		}
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting orientation\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		PA_SetTextInArray(printer, 5, returnString,
 			strlen(returnString));
-
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting printerSettings.PrintToFile\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		if (printerSettings.printToFile == TRUE) {
 			strcpy(returnString, "Printed To File");
 		}
@@ -1137,7 +1444,13 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		}
 		PA_SetTextInArray(printer, 6, returnString,
 			strlen(returnString));
-
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Setting printerSettings.printPreview\n");
+			fclose(FP);
+			FP = NULL;
+		}
 		if (printerSettings.printPreview == TRUE) {
 			strcpy(returnString, "Print Preview");
 		}
@@ -1154,6 +1467,13 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	//SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) processHandles.wpFourDOrigProc);
 	//processHandles.wpFourDOrigProc = NULL;
 	//}
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Unhooking handles\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	if (hookHandles.printSettingsHookHndl != NULL) {
 		UnhookWindowsHookEx(hookHandles.printSettingsHookHndl);
 		hookHandles.printSettingsHookHndl = NULL; // 08/08/02
@@ -1163,6 +1483,13 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		hookHandles.printHookHndl = NULL; // 08/08/02
 	}
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Resetting variable values\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	windowHandles.prthWnd = 0;
 	windowHandles.prtSettingshWnd = NULL;
 	processHandles.wpPrintDlgOrigProc = NULL; // 08/08/02
@@ -1170,8 +1497,30 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Clearing printerSettings.printerSelection\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	strcpy(printerSettings.printerSelection, "");
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Setting printer param\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	PA_SetVariableParameter(params, 1, printer, 0);
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Returning to 4D\n");
+		fprintf(FP, "============== End sys_GetPrintJob ==============\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	PA_ReturnLong(params, returnValue);
 
 }
@@ -2710,29 +3059,113 @@ void sys_GetDefPrinter(PA_PluginParameters params)
 {
 	LONG_PTR printerName_len;
 	char printerName[255];
-	char *pDefaultPrinter;				// REB 3/6/09 #17333 
+	char *pDefaultPrinter = NULL;				// REB 3/6/09 #17333 
 	LONG_PTR returnValue;
 	ULONG_PTR ulBytesNeeded;		// REB 3/6/09 #17333 
+	FILE *FP = NULL;
+	SYSTEMTIME DateTime;
+	char buffer[5] = "";
+	char logPath[128] = "C:\\Orchard\\43416 Debugging "; // WJF 8/3/15 #43416
+
+	// WJF 8/3/15 #43416
+	GetSystemTime(&DateTime);
+	itoa(DateTime.wMonth, buffer, 10);
+	strncat(logPath, buffer, 2);
+	itoa(DateTime.wDay, buffer, 10);
+	strncat(logPath, buffer, 2);
+	itoa(DateTime.wYear, buffer, 10);
+	strncat(logPath, buffer, 4);
+	strncat(logPath, ".log", 4);
 
 	printerName_len = PA_GetTextParameter(params, 1, printerName);
 	printerName[printerName_len] = '\0';  // Explicitly set the length
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "============== %02d/%02d/%02d - %02d:%02d ==============\n", DateTime.wMonth, DateTime.wDay, DateTime.wYear, DateTime.wHour, DateTime.wMinute);
+		fprintf(FP, "Entering sys_GetDefPrinter\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	printerName_len = 255;  // This holds the maximum size of printerName variable
 	ulBytesNeeded = MAXBUF;
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Allocating pDefaultPrinter\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	pDefaultPrinter = (char *)malloc(ulBytesNeeded);
+	
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Initializing pDefaultPrinter\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	memset(pDefaultPrinter, 0, ulBytesNeeded);
+	
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Calling GetDefaultPrinter\n");
+		fclose(FP);
+		FP = NULL;
+	}
 
 	returnValue = GetDefaultPrinter(pDefaultPrinter, &ulBytesNeeded);
+	
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Copying pDefaultPrinter to printerName\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	strcpy(printerName, pDefaultPrinter);
 
-	free(pDefaultPrinter); // WJF 6/4/15 #42921
+	if (pDefaultPrinter != NULL){ // WJF 8/3/15 #43416
+		
+		// WJF 8/3/15 #43416
+		FP = fopen(logPath, "a");
+		if (FP != NULL){
+			fprintf(FP, "Freeing pDefaultPrinter\n");
+			fclose(FP);
+			FP = NULL;
+		}
+
+		free(pDefaultPrinter); // WJF 6/4/15 #42921
+	}
 
 	// At this point, the printer name field is either empty or filled
 	// with a valid value.  Return this value to the user in either case.
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Setting printerName 4D Text parameter\n");
+		fclose(FP);
+		FP = NULL;
+	}
+
 	printerName_len = strlen(printerName);
 	PA_SetTextParameter(params, 1, printerName, printerName_len);
 
+	// WJF 8/3/15 #43416
+	FP = fopen(logPath, "a");
+	if (FP != NULL){
+		fprintf(FP, "Returning to 4D\n");
+		fprintf(FP, "============== End sys_GetDefPrinter ==============\n");
+		fclose(FP);
+		FP = NULL;
+	}
 	PA_ReturnLong(params, returnValue);
 }
 

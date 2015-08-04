@@ -586,7 +586,6 @@
     <ClInclude Include="Twain.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="4D Plugin API\4DPluginAPI.h" />
-    <ClInclude Include="ASI_spec.h" />
     <ClInclude Include="4D Plugin API\EntryPoints.h" />
     <ClInclude Include="4D Plugin API\Flags.h" />
     <ClInclude Include="4D Plugin API\PrivateTypes.h" />

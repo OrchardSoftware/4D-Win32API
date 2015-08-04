@@ -86,9 +86,6 @@
     <ClInclude Include="4D Plugin API\4DPluginAPI.h">
       <Filter>4D Plugin API</Filter>
     </ClInclude>
-    <ClInclude Include="ASI_spec.h">
-      <Filter>4D Plugin API</Filter>
-    </ClInclude>
     <ClInclude Include="4D Plugin API\EntryPoints.h">
       <Filter>4D Plugin API</Filter>
     </ClInclude>

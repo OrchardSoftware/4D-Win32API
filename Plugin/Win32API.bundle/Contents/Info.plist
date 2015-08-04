@@ -3,11 +3,11 @@
 <plist version="0.9">
 <dict>
 	<key>CFBundleVersion</key>
-	<string>6.6.2</string>
+	<string>7.0.0</string>
 	<key>CFBundleShortVersionString</key>
-	<string>6.6.2</string>
+	<string>7.0.0</string>
 	<key>CFBundleGetInfoString</key>
-	<string>6.6.2</string>
+	<string>7.0.0</string>
 	<key>CFBundleName</key>
 	<string>Win32API</string>
 	<key>CFBundleSignature</key>

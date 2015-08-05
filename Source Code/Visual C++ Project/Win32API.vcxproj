@@ -575,9 +575,6 @@
     <ClCompile Include="4D Plugin API\4DPluginAPI.c" />
   </ItemGroup>
   <ItemGroup>
-    <Library Include="ASINTPPC.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="4DPlugin.h" />
     <ClInclude Include="base64.h" />
     <ClInclude Include="Defines.h" />

@@ -60,11 +60,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="ASINTPPC.lib">
-      <Filter>Source Files</Filter>
-    </Library>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="4DPlugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>

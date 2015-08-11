@@ -998,12 +998,6 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	PA_Unistring						Unistring;
 	DWORD								bytesRequired;
 	LPDEVMODE							pDevMode;
-	char*								emptyString = "";
-	DWORD								size;
-	PRINTER_INFO_2*						pPrinterInfo;
-	char								bins[20][24];
-	WORD								binNums[20];
-	int									index = 0;
 
 	activeCalls.bPrinterCapture = TRUE;
 
@@ -1045,7 +1039,10 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		strcpy(printerSettings.printerSelection, printerName);
 		PA_SetTextInArray(printer, 1, printerSettings.printerSelection,
 			strlen(printerSettings.printerSelection));
-		// WJF 4/7/15 # 41884 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
+		returnValue = 1;
+
+        // WJF 8/11/15 #43416 Reverted changes as crashes were occurring for certain users
+		/*	// WJF 4/7/15 # 41884 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
 		if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
 			bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
 			pDevMode = (LPDEVMODE)malloc(bytesRequired);
@@ -1090,7 +1087,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		PA_SetTextInArray(printer, 4, "1", strlen("1"));  // Assume 1 copy
 		PA_SetTextInArray(printer, 6, emptyString, strlen(emptyString));
 		PA_SetTextInArray(printer, 7, emptyString, strlen(emptyString));
-		returnValue = 1;
+		returnValue = 1; */
 	}
 	else {
 

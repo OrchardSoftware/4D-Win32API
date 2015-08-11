@@ -1042,7 +1042,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		returnValue = 1;
 
         // WJF 8/11/15 #43416 Reverted changes as crashes were occurring for certain users
-		/*	// WJF 4/7/15 # 41884 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
+		/*	// WJF 4/7/15 # 41184 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
 		if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
 			bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
 			pDevMode = (LPDEVMODE)malloc(bytesRequired);

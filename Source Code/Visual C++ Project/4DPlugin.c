@@ -2340,7 +2340,7 @@ void gui_SetIcon(PA_PluginParameters params)
 void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 {
 	LONG_PTR h4DWnd;
-	LONG_PTR returnValue;
+	sLONG_PTR returnValue;
 	LONG_PTR serverValue;
 
 	h4DWnd = PA_GetLongParameter(params, 1);

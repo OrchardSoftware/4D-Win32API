@@ -2844,6 +2844,10 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 			returnValue = OS_WIN81;
 		}
 
+		if (IsWindowsVersionOrGreater(0x0A, 0x00, 0x00)){
+			returnValue = OS_WIN10;
+		}
+
 		if (IsWindowsServer())
 		{
 			++returnValue; // Server version numbers are the same as the OS version number but are incremented by one

@@ -1,0 +1,15 @@
+*.tlog
+Source Code/Visual C++ Project/Win32API/bin/Debug/Win32API.4DX
+*.sbr
+*.suo
+*.obj
+*.log
+Source Code/Visual C++ Project/Win32API/bin/Debug (64-Bit)/Win32API.4DX
+*.user
+*.pdb
+Source Code/Visual C++ Project/Objs/Debug/vc120.idb
+*.res
+Source Code/Visual C++ Project/Objs/Debug/Win32API.lib
+*.bsc
+Source Code/Visual C++ Project/Objs/Debug/Win32API.exp
+Source Code/Visual C++ Project/Win32API.sdf

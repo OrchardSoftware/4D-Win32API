@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <wincrypt.h> // WJF 5/5/15 #42665 For AES Encryption
 #include "base64.h" // WJF 5/8/15 #42665 For base64 encoding/decoding
+#include "Twain.h" // WJF 8/26/15 #43727
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus
@@ -214,5 +215,8 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 
 // REB 2/26/13 #35165
 unsigned __stdcall TWAIN_GetImage (void *);
+
+// WJF 8/26/15 #43727
+typedef TW_UINT16(WINAPI *pDSM_Entry)(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16, TW_UINT16, TW_MEMREF);
 
 #endif // __4DPLUGING_H__

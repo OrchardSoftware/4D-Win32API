@@ -2340,7 +2340,7 @@ void gui_SetIcon(PA_PluginParameters params)
 void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 {
 	LONG_PTR h4DWnd;
-	sLONG_PTR returnValue;
+	sLONG_PTR returnValue; // WJF 8/25/15 #43731 LONG_PTR -> sLONG_PTR
 	LONG_PTR serverValue;
 
 	h4DWnd = PA_GetLongParameter(params, 1);
@@ -4094,11 +4094,52 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 	TWAIN_CAPTURE*	TWAINCapture;
 
 	TWAINCapture = (TWAIN_CAPTURE*)arg;
-	TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
-	TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
+	//TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
+	//TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
 
 	TWAINCapture->done = TRUE;
 	TWAINCapture->returnValue = returnValue;
+
+	HMODULE				twainDSM = NULL;
+	pDSM_Entry			dsm_Entry;
+	TW_IDENTITY			appIdentity;
+	TW_UINT16			rc = 0;
+	TW_ENTRYPOINT		entryPoint;
+	TW_IDENTITY			*sourceIdentity;
+
+	twainDSM = LoadLibraryA("C:\\Windows\\SysWow64\\TWAINDSM.dll");
+
+	if (twainDSM != NULL){
+		dsm_Entry = (pDSM_Entry)GetProcAddress(twainDSM, "DSM_Entry");
+
+		appIdentity.Id = 0;
+		appIdentity.Version.MajorNum = 7;
+		appIdentity.Version.MinorNum = 0;
+		appIdentity.Version.Language = TWLG_ENGLISH_USA;
+		appIdentity.Version.Country = TWCY_USA;
+		lstrcpy(appIdentity.Version.Info, "Win32API Version 7.0");
+		appIdentity.ProtocolMajor = 2;
+		appIdentity.ProtocolMinor = 3;
+		appIdentity.SupportedGroups = DF_APP2 | DG_IMAGE | DG_CONTROL;
+		lstrcpy(appIdentity.Manufacturer, "Orchard Software Corporation");
+		lstrcpy(appIdentity.ProductFamily, "Win32API Plugin");
+		lstrcpy(appIdentity.ProductName, "Win32API Plugin");
+
+		rc = (*dsm_Entry) (&appIdentity, NULL, DG_CONTROL, DAT_PARENT, MSG_OPENDSM, (TW_MEMREF)&windowHandles.fourDhWnd);
+
+		rc = (*dsm_Entry) (&appIdentity, NULL, DG_CONTROL, DAT_ENTRYPOINT, MSG_GET, &entryPoint);
+
+		sourceIdentity = malloc(sizeof(TW_IDENTITY));
+
+		sourceIdentity->Id = 0;
+		lstrcpy(sourceIdentity->ProductName, "\0");
+
+		rc = (*dsm_Entry) (&appIdentity, NULL, DG_CONTROL, DAT_IDENTITY, MSG_USERSELECT, sourceIdentity);
+	}
+	else {
+		dwError = GetLastError();
+	}
+
 
 }
 

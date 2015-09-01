@@ -211,14 +211,18 @@ void sys_GetCommandLine( PA_PluginParameters params )
 //
 void gui_GetWindowStyle	( PA_PluginParameters params )
 {
-	PA_Variable			styles;
-	LONG_PTR						returnValue = 0, testValue = 0, i;
+	PA_Variable					styles;
+	LONG_PTR					returnValue = 0, testValue = 0, i;
 	HWND						hWnd;
 	char						styleText[40];
 	BOOL						bFoundOne;
+	LONG_PTR					hWndIndex = 0;
 
 
-	hWnd = (HWND) PA_GetLongParameter( params, 1); 
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
+
+	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
+
 	if (IsWindow(hWnd)) {
 		styles = PA_GetVariableParameter( params, 2 );
 
@@ -344,11 +348,12 @@ void gui_GetWindowStyle	( PA_PluginParameters params )
 
 void gui_RestrictWindow( PA_PluginParameters params )
 {
-	LONG_PTR				action = 0, returnValue = 0, styleChg = 0, numDeleted = 0;
+	LONG_PTR			action = 0, returnValue = 0, styleChg = 0, numDeleted = 0;
 	HWND				hWnd = NULL;
 	HMENU				hSysMenu;
-	WNDPROC			wpProc = NULL;
+	WNDPROC				wpProc = NULL;
 	pLL					thisLink = NULL, previousLink = NULL;
+	LONG_PTR			hWndIndex = 0;
 
 
 	// subClass procedure must be in place
@@ -357,8 +362,10 @@ void gui_RestrictWindow( PA_PluginParameters params )
 			return;
 	}
 
-	hWnd  = (HWND) PA_GetLongParameter( params, 1 );
+	hWndIndex  = PA_GetLongParameter( params, 1 ); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	action = PA_GetLongParameter( params, 2);
+
+	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
 
 	if (IsWindow(hWnd)) {  // 09/09/02 more action values now so removed restriction
 		returnValue = GetWindowLong(hWnd, GWL_STYLE);
@@ -893,11 +900,15 @@ void gui_SubClassInit( PA_PluginParameters params )
 //
 void gui_GetWindowState( PA_PluginParameters params )
 {
-	HWND			hWnd;
+	HWND				hWnd;
+	LONG_PTR			hWndIndex;
 	LONG_PTR			returnValue = 0;
 
 
-	hWnd = (HWND) PA_GetLongParameter( params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
+
+	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
+
 	if (IsWindow(hWnd)) {
 		if (IsIconic(hWnd)) {
 			returnValue = IS_ICONIC;
@@ -927,13 +938,16 @@ void gui_GetWindowState( PA_PluginParameters params )
 
 void gui_SetWindowStyle( PA_PluginParameters params )
 {
-	LONG_PTR				StyleCurr = 0, StyleNew = 0, action = 0;
+	LONG_PTR			StyleCurr = 0, StyleNew = 0, action = 0;
 	HWND				hWnd = NULL;
 	HMENU				hSysMenu;
 	pLL					thisLink = NULL, previousLink = NULL;
+	LONG_PTR			hWndIndex = 0;
 
-	hWnd  = (HWND) PA_GetLongParameter( params, 1 );
+	hWndIndex = PA_GetLongParameter( params, 1 ); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	action = PA_GetLongParameter( params, 2);
+
+	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
 
 	if (IsWindow(hWnd)) { 
 		StyleCurr = GetWindowLong(hWnd, GWL_STYLE);

@@ -718,7 +718,21 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		gui_LoadBackground(params, TRUE); // WJF 7/24/15 #43311
 		break;
 
+	case 104:
+		sys_SetRegKey(params, selector); // WJF 8/31/15 #43731
+		break;
+
+	case 105:
+		handleArray_remove(params); // WJF 9/1/15 #43731
+		break;
+
+	case 106:
+		handleArray_free(params); // WJF 9/1/15 #43731
+		break;
 	}
+
+	// WJF 9/1/15 #43731 Initialize internal handle array
+	handleArray_init();
 }
 
 // ------------------------------- Win32API Commands ------------------------------
@@ -1481,7 +1495,9 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 {
 	LONG_PTR			windowTitle_len;
 	char				*windowTitle;
-	LONG_PTR			returnValue;
+	long				returnValue;
+	LONG_PTR			windowHandle = 0;
+
 
 	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
 	//windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
@@ -1493,22 +1509,26 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	windowTitle[windowTitle_len] = '\0';
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
-		returnValue = (LONG_PTR)hWnd;
+		windowHandle = (LONG_PTR)hWnd;
 
 	}
 	else {
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
-			returnValue = (LONG_PTR)windowHandles.fourDhWnd;
+			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
 		}
 		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
-			returnValue = (LONG_PTR)windowHandles.MDIhWnd;
+			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
 		}
 		else {
-			returnValue = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
+			windowHandle = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
 		}
 		if (!returnValue) {
 			returnValue = -3;
 		}
+	}
+
+	if (windowHandle){
+		returnValue = handleArray_add(windowHandle);
 	}
 
 	free(windowTitle);
@@ -1523,7 +1543,7 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 
 void gui_GetWndRect(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR x;
 	LONG_PTR y;
 	LONG_PTR w;
@@ -1535,7 +1555,7 @@ void gui_GetWndRect(PA_PluginParameters params)
 	MONITORINFO monitorInfo;
 	RECT wRect;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	x = PA_GetLongParameter(params, 2);
 	y = PA_GetLongParameter(params, 3);
 	w = PA_GetLongParameter(params, 4);
@@ -1543,7 +1563,7 @@ void gui_GetWndRect(PA_PluginParameters params)
 	mode = PA_GetLongParameter(params, 6);
 
 
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 
 		// Allowing a return to the original functionality
@@ -1604,7 +1624,7 @@ void gui_GetWndRect(PA_PluginParameters params)
 
 void gui_SetWndRect(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR x;
 	LONG_PTR y;
 	LONG_PTR w;
@@ -1613,7 +1633,7 @@ void gui_SetWndRect(PA_PluginParameters params)
 	HWND WindowhWnd, hWndTaskBar;
 	RECT taskBarCoords;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	x = PA_GetLongParameter(params, 2);
 	y = PA_GetLongParameter(params, 3);
 	w = PA_GetLongParameter(params, 4);
@@ -1653,7 +1673,7 @@ void gui_SetWndRect(PA_PluginParameters params)
 		}
 	}
 
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 		if (SetWindowPos(WindowhWnd, HWND_TOP, x, y, w, h,
 			SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER)) {
@@ -1677,15 +1697,15 @@ void gui_SetWndRect(PA_PluginParameters params)
 
 void gui_ShowWindow(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR showState;
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	showState = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 		// REB 2/26/09 #16207 Handle this slightly differently if we are using a toolbar.
 		if (toolBarRestrictions.toolBarOnDeck == 1){
@@ -1757,18 +1777,17 @@ void sys_GetUserName(PA_PluginParameters params)
 
 void gui_SetWindowTitle(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR windowTitle_len;
 	char windowTitle[255];
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	windowTitle_len = PA_GetTextParameter(params, 2, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
 
-
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 		SetWindowText(WindowhWnd, windowTitle);
 		returnValue = 1;
@@ -1808,18 +1827,18 @@ void sys_IsMultiByte(PA_PluginParameters params)
 
 void gui_DisableCloseBox(PA_PluginParameters params)
 {
-	LONG_PTR				hWnd;
-	LONG_PTR				returnValue;
+	LONG_PTR			hWndIndex;
+	LONG_PTR			returnValue;
 	HWND				WindowhWnd;
 	HMENU				hSysMenu;
 	BOOL				bUndo = FALSE;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to Index
 
-	if (hWnd < 0) {
+	if (hWndIndex < 0) {
 		bUndo = TRUE;
 	}
-	WindowhWnd = (HWND)abs(hWnd);
+	WindowhWnd = (HWND)handleArray[abs(hWndIndex)]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 		hSysMenu = GetSystemMenu(WindowhWnd, 0);
 		if (!bUndo) {
@@ -1846,7 +1865,7 @@ void gui_DisableCloseBox(PA_PluginParameters params)
 
 void gui_SetWindowLong(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR s;
 	LONG_PTR mode;
 	LONG_PTR level;
@@ -1854,12 +1873,12 @@ void gui_SetWindowLong(PA_PluginParameters params)
 	HWND WindowhWnd;
 	LONG style;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 8/31/15 #43731 Changed to index from handle to make 64-bit safe
 	s = PA_GetLongParameter(params, 2);
 	mode = PA_GetLongParameter(params, 3);
 	level = PA_GetLongParameter(params, 4);
 
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Get the actual handle from the internal handle array
 	if (IsWindow(WindowhWnd)) {
 
 		if (level == 0)
@@ -1932,19 +1951,19 @@ void gui_WinHelp(PA_PluginParameters params)
 
 void gui_DelMenuItem(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR menuNum;
 	LONG_PTR menuItem;
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 	HMENU hSubMenu, hMenu;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to get index of internal handle array
 	menuNum = PA_GetLongParameter(params, 2);
 	menuItem = PA_GetLongParameter(params, 3);
 
 	returnValue = 0;
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal handle array
 	if (IsWindow(WindowhWnd)) {
 		hMenu = GetMenu(WindowhWnd);
 		if (IsMenu(hMenu)) {
@@ -2278,6 +2297,7 @@ void gui_LoadIcon(PA_PluginParameters params)
 	LONG_PTR hIcon;
 	LONG_PTR returnValue;
 	HICON tmpIcon;
+	DWORD iconIndex = 0;
 
 	iconName_len = PA_GetTextParameter(params, 1, iconName);
 	iconName[iconName_len] = '\0';  // Explicitly set the length
@@ -2296,7 +2316,9 @@ void gui_LoadIcon(PA_PluginParameters params)
 		returnValue = 0;
 	}
 
-	PA_SetLongParameter(params, 2, hIcon);
+	iconIndex = handleArray_add(hIcon); // WJF 9/1/15 #43731 Adding the actual handle to the internal array
+
+	PA_SetLongParameter(params, 2, iconIndex); // WJF 9/1/15 #43731 Returning index now
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -2308,15 +2330,18 @@ void gui_LoadIcon(PA_PluginParameters params)
 
 void gui_SetIcon(PA_PluginParameters params)
 {
-	LONG_PTR hWnd;
-	LONG_PTR hIcon;
+	LONG_PTR hWndIndex;
+	LONG_PTR hIconIndex;
 	LONG_PTR returnValue;
+	LONG_PTR hIcon;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
-	hIcon = PA_GetLongParameter(params, 2);
+	// WJF 9/1/15 #43731 We are now getting indexes to an internal array
+	hWndIndex = PA_GetLongParameter(params, 1); 
+	hIconIndex = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)hWnd;
+	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
+	hIcon = handleArray[hIconIndex]; // WJF 9/1/15 #43731
 
 	if ((IsWindow(WindowhWnd)) && (hIcon != 0)) {
 
@@ -2339,21 +2364,24 @@ void gui_SetIcon(PA_PluginParameters params)
 
 void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 {
-	LONG_PTR h4DWnd;
-	sLONG_PTR returnValue; // WJF 8/25/15 #43731 LONG_PTR -> sLONG_PTR
-	LONG_PTR serverValue;
+	LONG_PTR h4DWnd = 0;
+	LONG_PTR windowHandle = 0; 
+	LONG_PTR serverValue = 0;
+	long returnValue = 0;
 
 	h4DWnd = PA_GetLongParameter(params, 1);
 	serverValue = PA_GetLongParameter(params, 2);
 
 	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
 	{
-		returnValue = PA_GetHWND(PA_GetWindowFocused());
+		windowHandle = PA_GetHWND(PA_GetWindowFocused());
 	}
 	else
 	{
-		returnValue = PA_GetHWND(h4DWnd);
+		windowHandle = PA_GetHWND(h4DWnd);
 	}
+
+	returnValue = handleArray_add(windowHandle); // WJF 8/31/15 #43731 This now returns an index to an internal handle array
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -4106,6 +4134,7 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 	TW_UINT16			rc = 0;
 	TW_ENTRYPOINT		entryPoint;
 	TW_IDENTITY			*sourceIdentity;
+	DWORD				dwError = 0;
 
 	twainDSM = LoadLibraryA("C:\\Windows\\SysWow64\\TWAINDSM.dll");
 
@@ -4407,7 +4436,8 @@ void sys_IsAppFrontmost(PA_PluginParameters params)
 //
 void gui_MessageBox(PA_PluginParameters params)
 {
-	LONG_PTR ownerHandle;
+	LONG_PTR ownerHandleIndex;
+	HWND ownerHandle;
 	LONG_PTR messageText_len;
 	char messageText[32000];
 	LONG_PTR dialogTitle_len;
@@ -4415,14 +4445,16 @@ void gui_MessageBox(PA_PluginParameters params)
 	LONG_PTR dialogType;
 	LONG_PTR returnValue;
 
-	ownerHandle = PA_GetLongParameter(params, 1);
+	ownerHandleIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	messageText_len = PA_GetTextParameter(params, 2, messageText);
 	messageText[messageText_len] = '\0';
 	dialogTitle_len = PA_GetTextParameter(params, 3, dialogTitle);
 	dialogTitle[dialogTitle_len] = '\0';
 	dialogType = PA_GetLongParameter(params, 4);
 
-	returnValue = MessageBoxEx((HWND)ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0);
+	ownerHandle = (HWND)handleArray[ownerHandleIndex]; // WJF 9/1/15 #43731
+
+	returnValue = MessageBoxEx(ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0); // WJF 9/1/15 #43731 Removed typecasting on the handle
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -4745,6 +4777,8 @@ void sys_EnableTaskManager(PA_PluginParameters params)
 void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 {
 	LONG_PTR returnValue, regKey, retErr, dataSize, arraySize, value, expandDataSize, keyState;
+	DWORD dwVal = 0;
+	__int64 val64 = 0;
 	LONG_PTR i, len;
 	char regSub[MAXBUF];
 	char regName[MAXBUF];
@@ -4811,6 +4845,11 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				dwDataType = REG_BINARY;
 				retErr = ERROR_SUCCESS;
 				break;
+
+			case 104:
+				dwDataType = REG_QWORD;
+				retErr = ERROR_SUCCESS;
+				break;
 			}
 		}
 
@@ -4839,7 +4878,8 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 			case REG_DWORD:
 			case REG_DWORD_BIG_ENDIAN:
 				value = PA_GetLongParameter(params, 4);
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &value, sizeof(value));
+				dwVal = value; // WJF 8/31/15 #43731 Truncate to 32-bit DWORD
+				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &dwVal, sizeof(dwVal));
 
 				if (retErr == ERROR_SUCCESS){
 					returnValue = 1;
@@ -4913,6 +4953,21 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				free(newDataBuffer);
 
 				break;
+
+			case REG_QWORD: // WJF 8/31/15 #43731 Added Support for 64-bit QWORD
+				value = PA_GetLongParameter(params, 4);
+			    val64 = value; // Force to 64-bit
+				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &val64, sizeof(val64));
+
+				if (retErr == ERROR_SUCCESS){
+					returnValue = 1;
+				}
+				else{
+					returnValue = retErr * -1;
+				}
+
+				break;
+
 			}
 		}
 	}
@@ -5738,7 +5793,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 
 void gui_TakeScreenshot(PA_PluginParameters params){
 
-	LONG_PTR				hWnd;
+	LONG_PTR				hWndIndex;
 	RECT					rcClient;
 	int						lError = 0;
 	HDC						hdcScreen;
@@ -5756,12 +5811,15 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 	DWORD					dwFilePathLength;
 	BITMAPFILEHEADER		bmfHeader;
 	BITMAPINFOHEADER		bi;
+	HWND					hWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array;
 
 	dwFilePathLength = PA_GetTextParameter(params, 2, NULL);
 	filePath = (char *)malloc(dwFilePathLength);
 	dwFilePathLength = PA_GetTextParameter(params, 2, filePath);
+
+	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
 
 	if (IsWindow(hWnd)) {
 		// Get a screen DC and a DC for the window for which the handle was provided
@@ -5875,4 +5933,120 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 
 	PA_ReturnLong(params, lError);
 
+}
+
+
+// handleArray_add
+//
+// Adds the value to the handle array
+//
+// WJF 8/31/15 #43731
+DWORD handleArray_add(LONG_PTR hWND){
+	int i = 0;
+	BOOL hasEmptySlot = FALSE;
+	DWORD dwResult = 0;
+
+	// Wait for the mutext
+	dwResult = WaitForSingleObject(hArrayMutex, 2000);
+
+	if (dwResult == WAIT_OBJECT_0){
+		__try{
+			// Find first empty slot
+			while (i < HANDLEARRAY_CAPACITY){
+				if (handleArray[i] == 0){
+					hasEmptySlot = TRUE;
+					break;
+				}
+				else {
+					i++;
+				}
+			}
+
+			if (hasEmptySlot){
+				handleArray[i] = hWND;
+			}
+		}
+		__finally {
+			ReleaseMutex(hArrayMutex);
+		}
+
+		if (hasEmptySlot){
+			return i;
+		}
+		else {
+			return -1;
+		}
+	}
+	else {
+		return dwResult;
+	}
+}
+
+// handleArray_init
+//
+// Creates the mutex object used to keep the handle array threadsafe
+//
+// WJF 8/31/15 #43731
+DWORD handleArray_init(){
+	static BOOL	isInit = FALSE;
+
+	if (!isInit){
+		
+		isInit = TRUE;
+
+		for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
+			handleArray[i] = 0;
+		
+		hArrayMutex = CreateMutex(NULL, FALSE, NULL);
+
+		if (hArrayMutex == NULL){
+			return GetLastError();
+		}
+		else {
+			return ERROR_SUCCESS;
+		}
+
+	}
+}
+
+// handleArray_remove
+//
+// Removes a value from the array
+//
+// WJF 8/31/15 #43731
+DWORD handleArray_remove(PA_PluginParameters params){
+	LONG index = 0;
+	DWORD errorCode = 0;
+
+	index = PA_GetLongParameter(params, 1);
+
+	errorCode = WaitForSingleObject(hArrayMutex, 2000);
+	if (errorCode == WAIT_OBJECT_0){
+		__try{
+			handleArray[index] = 0;
+		}
+		__finally {
+			ReleaseMutex(hArrayMutex);
+		}
+	}
+	
+	PA_ReturnLong(params, errorCode);
+}
+
+DWORD handleArray_free(PA_PluginParameters params){
+	DWORD errorCode = 0;
+
+	errorCode = WaitForSingleObject(hArrayMutex, 2000);
+
+	if (errorCode == WAIT_OBJECT_0){
+		__try {
+			for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
+				handleArray[i] = 0;
+		}
+		__finally {
+			ReleaseMutex(hArrayMutex);
+		}
+	}
+
+	PA_ReturnLong(params, errorCode);
 }

@@ -219,4 +219,17 @@ unsigned __stdcall TWAIN_GetImage (void *);
 // WJF 8/26/15 #43727
 typedef TW_UINT16(WINAPI *pDSM_Entry)(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16, TW_UINT16, TW_MEMREF);
 
+// WJF 9/1/15 #43731 Handle Array Declarations
+
+#define HANDLEARRAY_CAPACITY 64
+
+LONG_PTR handleArray[HANDLEARRAY_CAPACITY];
+
+HANDLE hArrayMutex;
+
+DWORD handleArray_init();
+DWORD handleArray_add(LONG_PTR handle);
+DWORD handleArray_remove(PA_PluginParameters params);
+DWORD handleArray_free(PA_PluginParameters params);
+
 #endif // __4DPLUGING_H__

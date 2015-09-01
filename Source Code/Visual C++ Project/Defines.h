@@ -261,3 +261,5 @@ typedef LL* pLL;
 //#define strncpy(d, s, n) strcpy_s((d) ,(n) ,(s)) // Mark De Wever #12225
 
 #define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665
+
+#define k64Init 0x00000000ffffffff // WJF 9/1/15 #43731 The selector value is returning this in 64-bit

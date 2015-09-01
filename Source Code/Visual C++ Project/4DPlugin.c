@@ -192,6 +192,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 	case kInitPlugin:
 	case kServerInitPlugin:
+	case k64Init: // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
 
 		// get MDI & parent window on init 4/15/02
 		// REB 2/20/09 #19122 Use new method to get handles.  PA_GetHWND(0) does not work in v11 like it did in previous version.
@@ -256,6 +257,8 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		SystemParametersInfo(SPI_GETDRAGFULLWINDOWS, 0, &g_bDragFull, 0);
 		hSubclassMutex = CreateMutex(NULL, FALSE, "Win32APIMutexToProtect4DProc");  // MJG 3/26/04
 
+		handleArray_init(); // WJF 9/1/15 #43731
+	
 		break;
 
 	case kDeinitPlugin:
@@ -690,9 +693,9 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_DeleteRegKey(params); // WJF 4/14/15 #27474
 		break;
 
-	/*case 98:
-		sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
-		break;*/
+		/*case 98:
+			sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
+			break;*/
 
 	case 98:
 		sys_DeleteRegValue(params); // WJF 4/14/15 #27474
@@ -731,8 +734,6 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 	}
 
-	// WJF 9/1/15 #43731 Initialize internal handle array
-	handleArray_init();
 }
 
 // ------------------------------- Win32API Commands ------------------------------
@@ -5992,25 +5993,20 @@ DWORD handleArray_add(LONG_PTR hWND){
 //
 //	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_init(){
-	static BOOL	isInit = FALSE;
 
-	if (!isInit){
+	for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
+		handleArray[i] = 0;
 		
-		isInit = TRUE;
+	hArrayMutex = CreateMutex(NULL, FALSE, NULL);
 
-		for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
-			handleArray[i] = 0;
-		
-		hArrayMutex = CreateMutex(NULL, FALSE, NULL);
-
-		if (hArrayMutex == NULL){
-			return GetLastError();
-		}
-		else {
-			return ERROR_SUCCESS;
-		}
-
+	if (hArrayMutex == NULL){
+		return GetLastError();
 	}
+	else {
+		return ERROR_SUCCESS;
+	}
+
+
 }
 
 //  FUNCTION:	handleArray_remove (PA_PluginParameters params)

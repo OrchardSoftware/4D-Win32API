@@ -5936,11 +5936,13 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 }
 
 
-// handleArray_add
+//  FUNCTION:	handleArray_add (LONG_PTR hWND)
 //
-// Adds the value to the handle array
+//  PURPOSE:	Adds a handle to the internal handle array
 //
-// WJF 8/31/15 #43731
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_add(LONG_PTR hWND){
 	int i = 0;
 	BOOL hasEmptySlot = FALSE;
@@ -5982,11 +5984,13 @@ DWORD handleArray_add(LONG_PTR hWND){
 	}
 }
 
-// handleArray_init
+//  FUNCTION:	handleArray_init ()
 //
-// Creates the mutex object used to keep the handle array threadsafe
+//  PURPOSE:	Initializes the internal handle array and its mutex object
 //
-// WJF 8/31/15 #43731
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_init(){
 	static BOOL	isInit = FALSE;
 
@@ -6009,11 +6013,13 @@ DWORD handleArray_init(){
 	}
 }
 
-// handleArray_remove
+//  FUNCTION:	handleArray_remove (PA_PluginParameters params)
 //
-// Removes a value from the array
+//  PURPOSE:	Removes a handle from the internal handle array
 //
-// WJF 8/31/15 #43731
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_remove(PA_PluginParameters params){
 	LONG index = 0;
 	DWORD errorCode = 0;
@@ -6033,6 +6039,13 @@ DWORD handleArray_remove(PA_PluginParameters params){
 	PA_ReturnLong(params, errorCode);
 }
 
+//  FUNCTION:	handleArray_free (PA_PluginParameters params)
+//
+//  PURPOSE:	"Frees" all handle in the internal handle array, setting their values to 0.
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_free(PA_PluginParameters params){
 	DWORD errorCode = 0;
 

@@ -192,8 +192,9 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 	case kInitPlugin:
 	case kServerInitPlugin:
-	case k64Init: // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
-
+#ifdef _WIN64 // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
+	case k64Init: 
+#endif
 		// get MDI & parent window on init 4/15/02
 		// REB 2/20/09 #19122 Use new method to get handles.  PA_GetHWND(0) does not work in v11 like it did in previous version.
 		// REB 3/24/10 It appears that PA_GetHWND(0) works again, at least in Win7, but I'm leaving this change in place.

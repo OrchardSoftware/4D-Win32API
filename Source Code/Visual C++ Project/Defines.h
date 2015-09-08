@@ -262,6 +262,8 @@ typedef LL* pLL;
 
 #define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665
 
+#ifdef _WIN64
 #define k64Init 0x00000000ffffffff // WJF 9/1/15 #43731/#43732 The selector value is returning this in 64-bit
+#endif
 
 #define HANDLEARRAY_CAPACITY 64 // WJF 9/1/15 #43731

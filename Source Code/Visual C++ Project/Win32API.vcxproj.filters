@@ -107,4 +107,7 @@
       <Filter>4D Plugin API</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Win32API.manifest" />
+  </ItemGroup>
 </Project>

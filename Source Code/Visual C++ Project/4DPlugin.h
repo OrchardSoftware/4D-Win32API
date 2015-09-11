@@ -216,8 +216,10 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 // REB 2/26/13 #35165
 unsigned __stdcall TWAIN_GetImage (void *);
 
-// WJF 8/26/15 #43727
-typedef TW_UINT16(WINAPI *pDSM_Entry)(pTW_IDENTITY, pTW_IDENTITY, TW_UINT32, TW_UINT16, TW_UINT16, TW_MEMREF);
+// WJF 9/10/15 #43727
+void __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI);
+
+char * twainSource; // WJF 9/11/15 #43727 Since the TWAIN functionality is separate from Win32API, let's just hold on to the source name instead of trying to keep the source open
 
 // WJF 9/1/15 #43731 Handle Array Declarations
 LONG_PTR handleArray[HANDLEARRAY_CAPACITY];

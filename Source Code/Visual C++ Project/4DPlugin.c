@@ -149,7 +149,7 @@ extern struct		TOOLBARRESTRICT
 // REB 2/26/13 #35165 Structure to communicate with the helper thread
 typedef struct	_TWAIN_CAPTURE
 {
-	LONG_PTR	returnValue;
+	long		returnValue; // WJF 9/14/15 #43727 Changed to long from LONG_PTR
 	// HANDLE		DIBHandle; // WJF 9/10/15 #43727 No longer needed
 	BOOL		done;
 	char		filePath[256]; // WJF 9/10/15 #43727 File path to save the image to
@@ -4050,11 +4050,13 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	DWORD				index = 1;
 	PA_Variable			atSources;
 	TW_IDENTITY			NewSourceId;
-	char				lpParameters[31] = "";
+	char				lpParameters[3] = "-S";
 	char				filePath[MAX_PATH] = "";
 	BOOL				get64 = FALSE;
 	FILE				*fp = NULL;
-	char				source[256] = "";
+	char				source[256] = ""; 
+	char				pluginPath[MAX_PATH] = "";
+	char				*pos = NULL;
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
@@ -4063,56 +4065,68 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	returnValue = 0;
 
+	// WJF 9/11/15 #43727 Begin changes
+
+	strcpy_s(pluginPath, MAX_PATH, pathName);
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\0");
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\\\0");
+
 	if (get64){
-		strcpy_s(lpParameters, 31, "OrchTwain64.dll,ReturnSources");
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\OrchardTwain64.exe");
 	}
 	else {
-		strcpy_s(lpParameters, 31, "OrchTwain32.dll,ReturnSources");
+		strcpy_s(pos, MAX_PATH, "\\Windows\\OrchardTwain32.exe");
 	}
-
-	// WJF 9/11/15 #43727 Begin changes
+		
 	GetTempPath(MAX_PATH, filePath);
 
 	strcat_s(filePath, MAX_PATH, "twainSources.txt");
 
-	ShellExecuteA(windowHandles.fourDhWnd, "", "rundll32.exe", lpParameters, NULL, SW_HIDE);
+	ShellExecuteA(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
-	PA_YieldAbsolute();
-	PA_YieldAbsolute();
-	PA_YieldAbsolute();
-
-	while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
+	if (GetLastError() == ERROR_SUCCESS){
 		PA_YieldAbsolute();
-	}
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
 
-	fp = fopen(filePath, "r");
-
-	if (fp){
-		while (fgets(source, 256, fp) != NULL){
-			if (strcmp(source, "-1") == 0){ // Failed to load Twain library
-				returnValue = -1;
-			}
-			else if (strcmp(source, "-2") == 0){ // Failed to open Data Source Manager
-				returnValue = -2;
-			}
-			else if (strcmp(source, "") == 0){ // Empty line
-				// do nothing
-			}
-			else { // Valid Product Name
-				PA_ResizeArray(&atSources, index);
-				PA_SetTextInArray(atSources, index, source, strlen(source));
-				++index;
-			}
-
+		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
+			PA_YieldAbsolute();
 		}
 
-		fclose(fp);
+		fp = fopen(filePath, "r");
 
-		fp = NULL;
+		if (fp){
+			while (fgets(source, 256, fp) != NULL){
+				if (strcmp(source, "-1") == 0){ // Failed to load Twain library
+					returnValue = -1;
+				}
+				else if (strcmp(source, "-2") == 0){ // Failed to open Data Source Manager
+					returnValue = -2;
+				}
+				else if (strcmp(source, "") == 0){ // Empty line
+					// do nothing
+				}
+				else { // Valid Product Name
+					PA_ResizeArray(&atSources, index);
+					PA_SetTextInArray(atSources, index, source, strlen(source));
+					++index;
+				}
 
-		DeleteFile(filePath);
+			}
+
+			fclose(fp);
+
+			fp = NULL;
+
+			DeleteFile(filePath);
+		}
 	}
-
 	// Removed
 	/*if (debug) returnValue = TWAIN_SelectImageSource(windowHandles.fourDhWnd);
 
@@ -4198,37 +4212,52 @@ void TWAIN_SetSource(PA_PluginParameters params)
 //  COMMENTS:	
 //
 //	DATE:		WJF 9/10/15 #43727
-void __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI){
-	char lpParameters[MAX_PATH + 128] = "";
-	char filePathLock[MAX_PATH + 12] = "";
-	char cShowUI[2];
-	size_t pos;
+long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI){
+	char lpParameters[MAX_PATH_PLUS] = "";
+	char filePathLock[MAX_PATH_PLUS] = "";
+	char pluginPath[MAX_PATH] = "";
+	char *path = NULL;
+	char *pos = NULL;
 	FILE *fp = NULL;
+	long returnValue = 1;
 
-	sprintf_s(cShowUI, 2, "%d", ShowUI);
+	strcpy_s(pluginPath, MAX_PATH, pathName);
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\0");
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\\\0");
 
 	if (Get64){
-		strcpy_s(lpParameters, MAX_PATH + 128, "OrchTwain64.dll,AcquireImage ");
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\OrchardTwain64.exe");
 	}
 	else {
-		strcpy_s(lpParameters, MAX_PATH + 128, "OrchTwain32.dll,AcquireImage ");
+		strcpy_s(pos, MAX_PATH, "\\Windows\\OrchardTwain32.exe");
 	}
 
-	strcat_s(lpParameters, MAX_PATH + 128, filePath);
+	strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
 
-	strcat_s(lpParameters, MAX_PATH + 128, " -");
+	strcat_s(lpParameters, MAX_PATH_PLUS, filePath);
 
-	strcat_s(lpParameters, MAX_PATH + 128, cShowUI);
+	if (ShowUI){
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 1 ");
+	}
+	else {
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 0 ");
+	}
 
 	if (twainSource){
-		strcat_s(lpParameters, MAX_PATH + 128, " -s ");
-
-		strcat_s(lpParameters, MAX_PATH + 128, twainSource);
+		strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+		strcat_s(lpParameters, MAX_PATH_PLUS, twainSource);
+		strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
 	}
 
-	strncpy_s(filePathLock, MAX_PATH, filePath, strlen(filePath) - 4);
+	strncpy_s(filePathLock, MAX_PATH_PLUS, filePath, strlen(filePath) - 4);
 
-	strcat(filePathLock, ".lock.txt\0"); 
+	strcat(filePathLock, ".lock.txt\0");
 
 	fp = fopen(filePathLock, "a"); // The Twain DLL will delete this file
 
@@ -4237,19 +4266,23 @@ void __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI){
 
 		fclose(fp);
 
-		ShellExecuteA(windowHandles.fourDhWnd, "", "rundll32.exe", lpParameters, NULL, SW_SHOW);
+		ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
 
-		while ((GetFileAttributes(filePathLock) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the TWAIN operation is completed
-			Sleep(100);
+		if (GetLastError() == ERROR_SUCCESS){
+			while ((GetFileAttributes(filePathLock) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the TWAIN operation is completed
+				Sleep(100);
+			}
 		}
+
+		returnValue = 0;
 	}
 
+	return returnValue;
 }
 
 // REB 2/26/13 #35165 Intermediary method we can call as a new thread.
 unsigned __stdcall TWAIN_GetImage(void *arg)
 {
-	LONG_PTR		returnValue = 0;
 	TWAIN_CAPTURE*	TWAINCapture;
 
 	TWAINCapture = (TWAIN_CAPTURE*)arg; 
@@ -4257,9 +4290,8 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 	//TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
 	//TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
 
-	OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI); // WJF 9/10/15 #43727
+	TWAINCapture->returnValue = OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI); // WJF 9/10/15 #43727
 	TWAINCapture->done = TRUE;
-	TWAINCapture->returnValue = returnValue;
 }
 
 void TWAIN_AcquireImage(PA_PluginParameters params)
@@ -4281,16 +4313,20 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	char cmdName[256] = ""; // WJF 6/29/15 #42792
 	char cName[256] = ""; // WJF 6/29/15 #42792
 	char pathName[MAX_PATH];
+	BOOL get64 = FALSE; // WJF 9/14/15 #43727
 
 	showDialog = PA_GetLongParameter(params, 1);
 
+	get64 = PA_GetLongParameter(params, 2); // WJF 9/14/15 #43727
+
 	// AMS 7/3/14 #39391 Get the blob parameter // WJF 6/29/15 #42792 Changed BLOB -> Text
+	// WJF 9/14/15 #43727 Changed to third parameter
 	BLOB = NULL;
-	len = PA_GetTextParameter(params, 2, NULL);
+	len = PA_GetTextParameter(params, 3, NULL);
 
 	if (len > 0) { // WJF 6/29/15 #42792 Don't allocate unless a variable was passed
 		BLOB = malloc(len+1); // WJF 6/29/15 #42792 Added +1
-		len = PA_GetTextParameter(params, 2, BLOB);
+		len = PA_GetTextParameter(params, 3, BLOB);
 	}
 
 	//Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
@@ -4332,7 +4368,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	// TWAINCapture.DIBHandle = DIBHandle; // WJF 9/10/15 #43727 Removed
 	TWAINCapture.done = FALSE;
 
-	TWAINCapture.get64 = FALSE; // WJF 9/10/15 #43727
+	TWAINCapture.get64 = get64; // WJF 9/10/15 #43727
 	
 	strncpy(TWAINCapture.filePath, fileName, strlen(fileName)); // WJF 9/10/15 #43727
 

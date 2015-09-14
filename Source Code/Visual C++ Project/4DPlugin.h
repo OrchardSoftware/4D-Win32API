@@ -217,7 +217,7 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 unsigned __stdcall TWAIN_GetImage (void *);
 
 // WJF 9/10/15 #43727
-void __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI);
+long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI);
 
 char * twainSource; // WJF 9/11/15 #43727 Since the TWAIN functionality is separate from Win32API, let's just hold on to the source name instead of trying to keep the source open
 

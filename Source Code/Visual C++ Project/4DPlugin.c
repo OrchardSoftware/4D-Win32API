@@ -38,8 +38,9 @@
 #include <winspool.h>
 #include "PrivateTypes.h"
 #include "EntryPoints.h"
-#include "EZTWAIN.h" // REB 6/23/09 #14151
-#include "TWAIN.h" // REB 6/23/09 #14151
+// WJF 9/14/15 #43727 No longer needed
+//#include "EZTWAIN.h" // REB 6/23/09 #14151 
+//#include "TWAIN.h" // REB 6/23/09 #14151
 #include "utilities.h" // REB 3/28/11 #25290
 #include "process.h" // REB 2/25/13 #35165
 
@@ -4049,7 +4050,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	LONG_PTR			returnValue, OK, state, debug;
 	DWORD				index = 1;
 	PA_Variable			atSources;
-	TW_IDENTITY			NewSourceId;
+	// TW_IDENTITY			NewSourceId; // WJF 9/14/15 #43727 Removed
 	char				lpParameters[3] = "-S";
 	char				filePath[MAX_PATH] = "";
 	BOOL				get64 = FALSE;

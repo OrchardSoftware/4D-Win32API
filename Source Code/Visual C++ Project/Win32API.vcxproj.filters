@@ -34,9 +34,6 @@
     <ClCompile Include="4DPlugin2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EZTWAIN.C">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="linkedList.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -66,13 +63,7 @@
     <ClInclude Include="Defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EZTWAIN.H">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="language.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Twain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utilities.h">

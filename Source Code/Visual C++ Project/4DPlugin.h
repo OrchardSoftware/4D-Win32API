@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <wincrypt.h> // WJF 5/5/15 #42665 For AES Encryption
 #include "base64.h" // WJF 5/8/15 #42665 For base64 encoding/decoding
-#include "Twain.h" // WJF 8/26/15 #43727
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus

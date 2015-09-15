@@ -4064,7 +4064,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	get64 = PA_GetLongParameter(params, 2); // WJF 9/11/15 #43727
 
-	returnValue = 0;
+	returnValue = 1;
 
 	// WJF 9/11/15 #43727 Begin changes
 
@@ -4127,6 +4127,9 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 			DeleteFile(filePath);
 		}
+		else {
+			returnValue = 0;
+		}
 	}
 	// Removed
 	/*if (debug) returnValue = TWAIN_SelectImageSource(windowHandles.fourDhWnd);
@@ -4164,7 +4167,7 @@ void TWAIN_SetSource(PA_PluginParameters params)
 	source_len = PA_GetTextParameter(params, 1, sourceName);
 	sourceName[source_len] = '\0';
 
-	returnValue = 0;
+	returnValue = 1;
 
 	// WJF 9/11/15 #43727 Begin changes
 	if (twainSource){ // If we've already set a source, clear it
@@ -6084,7 +6087,7 @@ DWORD handleArray_add(LONG_PTR hWND){
 	BOOL hasEmptySlot = FALSE;
 	DWORD dwResult = 0;
 
-	// Wait for the mutext
+	// Wait for the mutex
 	dwResult = WaitForSingleObject(hArrayMutex, 2000);
 
 	if (dwResult == WAIT_OBJECT_0){
@@ -6116,7 +6119,7 @@ DWORD handleArray_add(LONG_PTR hWND){
 		}
 	}
 	else {
-		return dwResult;
+		return -1;
 	}
 }
 

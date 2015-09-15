@@ -6148,25 +6148,29 @@ DWORD handleArray_init(){
 //
 //  PURPOSE:	Removes a handle from the internal handle array
 //
-//  COMMENTS:	
+//  COMMENTS:	gui_FreeHandle
 //
 //	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_remove(PA_PluginParameters params){
 	LONG index = 0;
-	DWORD errorCode = 0;
+	DWORD errorCode = -1;
 
 	index = PA_GetLongParameter(params, 1);
 
-	errorCode = WaitForSingleObject(hArrayMutex, 2000);
-	if (errorCode == WAIT_OBJECT_0){
-		__try{
-			handleArray[index] = 0;
+	if ((index >= 0) && (index < HANDLEARRAY_CAPACITY)){
+
+		errorCode = WaitForSingleObject(hArrayMutex, 2000);
+		if (errorCode == WAIT_OBJECT_0){
+			__try{
+				handleArray[index] = 0;
+			}
+			__finally {
+				ReleaseMutex(hArrayMutex);
+			}
 		}
-		__finally {
-			ReleaseMutex(hArrayMutex);
-		}
+
 	}
-	
+
 	PA_ReturnLong(params, errorCode);
 }
 

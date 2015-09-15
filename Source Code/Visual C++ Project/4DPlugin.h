@@ -132,6 +132,8 @@ void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void gui_TakeScreenshot(PA_PluginParameters params); // WJF 7/7/15 #43138
+void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd); // WJF 9/15/15 #43731
+void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
 
 // ----- Other modules -------
 //window background-related

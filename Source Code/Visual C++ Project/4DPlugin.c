@@ -740,6 +740,42 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		handleArray_free(params); // WJF 9/1/15 #43731
 		break;
 
+	case 107:
+		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		if (!(IsWindow(hWnd))){
+
+			if (!(IsWindow(windowHandles.MDIs_4DhWnd))){
+				Unistring = PA_GetApplicationFullPath();
+				pathName = UnistringToCString(&Unistring);
+				charPos = strrchr(pathName, '\\');
+				*charPos = 0;
+				windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+
+				free(pathName); 
+
+				NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
+				do {
+					if (IsWindow(NexthWnd)){
+						GetWindowText(NexthWnd, WindowName, 255);
+						GetClassName(NexthWnd, szClassName, 255);
+						if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+							windowHandles.MDIs_4DhWnd = NexthWnd;
+							break;
+						}
+						NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
+					}
+				} while (IsWindow(NexthWnd));
+
+			}
+			hWnd = windowHandles.MDIs_4DhWnd;
+		}
+
+		gui_GetWindowEx(params, hWnd);
+		break;
+
+	case 108:
+		gui_GetWindowFrom4DWinEx(params);
+		break;
 	}
 
 }
@@ -1506,8 +1542,6 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	char				*windowTitle;
 	long				returnValue;
 	LONG_PTR			windowHandle = 0;
-	BOOL				returnActual = FALSE;
-
 
 	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
 	//windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
@@ -1517,8 +1551,6 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
 	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
 	windowTitle[windowTitle_len] = '\0';
-
-	returnActual = PA_GetLongParameter(params, 2); // WJF 9/15/15 #43912
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		windowHandle = (LONG_PTR)hWnd;
@@ -1540,12 +1572,7 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	}
 
 	if (windowHandle){
-		if (returnActual){ // WJF 9/15/15 #43912 Return the actual handle for now
-			returnValue = (long)windowHandle;
-		}
-		else {
-			returnValue = handleArray_add(windowHandle);
-		}
+		returnValue = (long)windowHandle;
 	}
 
 	free(windowTitle);
@@ -2385,11 +2412,9 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 	LONG_PTR windowHandle = 0; 
 	LONG_PTR serverValue = 0;
 	long returnValue = 0;
-	BOOL returnActual = FALSE; 
 
 	h4DWnd = PA_GetLongParameter(params, 1);
 	serverValue = PA_GetLongParameter(params, 2);
-	returnActual = PA_GetLongParameter(params, 3); // WJF 9/15/15 #43912
 
 	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
 	{
@@ -2400,12 +2425,7 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 		windowHandle = PA_GetHWND(h4DWnd);
 	}
 
-	if (returnActual){ // WJF 9/15/15 #43912
-		returnValue = (long)windowHandle;
-	}
-	else {
-		returnValue = handleArray_add(windowHandle); // WJF 8/31/15 #43731 This now returns an index to an internal handle array
-	}
+	returnValue = (long)windowHandle;
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -6226,4 +6246,75 @@ DWORD handleArray_free(PA_PluginParameters params){
 	}
 
 	PA_ReturnLong(params, errorCode);
+}
+
+//  FUNCTION:	gui_GetWindowEx (PA_PluginParameters params, HWND hWnd)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
+{
+	LONG_PTR			windowTitle_len;
+	char				*windowTitle;
+	long				returnValue;
+	LONG_PTR			windowHandle = 0;
+
+	windowTitle_len = PA_GetTextParameter(params, 1, NULL) + 1;
+	windowTitle = malloc(windowTitle_len * sizeof(char));
+	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
+	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
+	windowTitle[windowTitle_len] = '\0';
+
+	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
+		windowHandle = (LONG_PTR)hWnd;
+
+	}
+	else {
+		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
+			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
+		}
+		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
+			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
+		}
+		else {
+			windowHandle = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
+		}
+		if (!returnValue) {
+			returnValue = -3;
+		}
+	}
+
+	if (windowHandle){
+		returnValue = handleArray_add(windowHandle);
+	}
+
+	free(windowTitle);
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_GetWindowFrom4DWinEx (PA_PluginParameters params)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
+{
+	LONG_PTR h4DWnd = 0;
+	LONG_PTR windowHandle = 0;
+	LONG_PTR serverValue = 0;
+	long returnValue = 0;
+
+	h4DWnd = PA_GetLongParameter(params, 1);
+
+	windowHandle = PA_GetHWND(h4DWnd);
+
+	returnValue = handleArray_add(windowHandle); 
+
+	PA_ReturnLong(params, returnValue);
 }

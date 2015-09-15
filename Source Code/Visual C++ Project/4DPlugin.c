@@ -153,7 +153,7 @@ typedef struct	_TWAIN_CAPTURE
 	long		returnValue; // WJF 9/14/15 #43727 Changed to long from LONG_PTR
 	// HANDLE		DIBHandle; // WJF 9/10/15 #43727 No longer needed
 	BOOL		done;
-	char		filePath[256]; // WJF 9/10/15 #43727 File path to save the image to
+	char		*filePath; // WJF 9/10/15 #43727 File path to save the image to
 	BOOL		showUI; // WJF 9/10/15 #43727 True to show TWAIN UI, false to hide
 	BOOL		get64; // WJF 9/10/15 #43727 True to load 64-bit TWAIN drivers, false to load 32-bit
 	
@@ -4216,7 +4216,7 @@ void TWAIN_SetSource(PA_PluginParameters params)
 //  COMMENTS:	
 //
 //	DATE:		WJF 9/10/15 #43727
-long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI){
+long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 	char lpParameters[MAX_PATH_PLUS] = "";
 	char filePathLock[MAX_PATH_PLUS] = "";
 	char pluginPath[MAX_PATH] = "";
@@ -4254,9 +4254,11 @@ long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI){
 	}
 
 	if (twainSource){
-		strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
-		strcat_s(lpParameters, MAX_PATH_PLUS, twainSource);
-		strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+		if (strcmp(twainSource, "") != 0){
+			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+			strcat_s(lpParameters, MAX_PATH_PLUS, twainSource);
+			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+		}
 	}
 
 	strncpy_s(filePathLock, MAX_PATH_PLUS, filePath, strlen(filePath) - 4);
@@ -4316,7 +4318,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	LONG_PTR len = 0; // AMS 7/3/14 #39391
 	char cmdName[256] = ""; // WJF 6/29/15 #42792
 	char cName[256] = ""; // WJF 6/29/15 #42792
-	char pathName[MAX_PATH];
+	char pathName[MAX_PATH] = ""; // WJF 9/15/15 #43727 Initialize this value
 	BOOL get64 = FALSE; // WJF 9/14/15 #43727
 
 	showDialog = PA_GetLongParameter(params, 1);
@@ -4339,7 +4341,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	GetTempPath(MAX_PATH, pathName);
 	charPos = strrchr(pathName, '\\');
 	strncpy(fileName, pathName, (charPos - pathName + 1));
-	strncat_s(fileName, 255, "TWNIMG.bmp\0", strlen("TWNIMG.bmp\0"));
+	strncat_s(fileName, 255, "TWNIMG.bmp", strlen("TWNIMG.bmp"));
 
 	pch = fileName;
 	
@@ -4374,7 +4376,11 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 	TWAINCapture.get64 = get64; // WJF 9/10/15 #43727
 	
-	strncpy(TWAINCapture.filePath, fileName, strlen(fileName)); // WJF 9/10/15 #43727
+	TWAINCapture.filePath = (char *)malloc(MAX_PATH_PLUS); // WJF 9/15/15 #43727
+
+	strcpy_s(TWAINCapture.filePath, MAX_PATH_PLUS, ""); // WJF 9/15/15 #43727
+
+	strncpy_s(TWAINCapture.filePath, MAX_PATH_PLUS, fileName, strlen(fileName)); // WJF 9/10/15 #43727
 
 	//DIBHandle = TWAIN_AcquireNative( windowHandles.fourDhWnd, TWAIN_ANYTYPE, &returnValue);
 	// REB 2/26/13 #35165 Start a new thread to handle the image acquisition so that we can yield time
@@ -4507,6 +4513,11 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	}
 	
 	//free(pathName); // WJF 6/25/15 #42792
+
+	if (TWAINCapture.filePath){
+		free(TWAINCapture.filePath);
+		TWAINCapture.filePath = NULL;
+	}
 
 	PA_ReturnLong(params, returnValue);
 

@@ -268,4 +268,4 @@ typedef LL* pLL;
 #define k64Init 0x00000000ffffffff // WJF 9/1/15 #43731/#43732 The selector value is returning this in 64-bit
 #endif
 
-#define HANDLEARRAY_CAPACITY 64 // WJF 9/1/15 #43731
+#define HANDLEARRAY_CAPACITY 4096 // WJF 9/1/15 #43731 32 KB in 64-bit, 16 in 32-bit

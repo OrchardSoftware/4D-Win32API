@@ -2385,9 +2385,11 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 	LONG_PTR windowHandle = 0; 
 	LONG_PTR serverValue = 0;
 	long returnValue = 0;
+	BOOL returnActual = FALSE; 
 
 	h4DWnd = PA_GetLongParameter(params, 1);
 	serverValue = PA_GetLongParameter(params, 2);
+	returnActual = PA_GetLongParameter(params, 3); // WJF 9/15/15 #43912
 
 	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
 	{
@@ -2398,7 +2400,12 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 		windowHandle = PA_GetHWND(h4DWnd);
 	}
 
-	returnValue = handleArray_add(windowHandle); // WJF 8/31/15 #43731 This now returns an index to an internal handle array
+	if (returnActual){ // WJF 9/15/15 #43912
+		returnValue = (long)windowHandle;
+	}
+	else {
+		returnValue = handleArray_add(windowHandle); // WJF 8/31/15 #43731 This now returns an index to an internal handle array
+	}
 
 	PA_ReturnLong(params, returnValue);
 }

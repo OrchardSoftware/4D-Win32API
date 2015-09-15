@@ -1506,6 +1506,7 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	char				*windowTitle;
 	long				returnValue;
 	LONG_PTR			windowHandle = 0;
+	BOOL				returnActual = FALSE;
 
 
 	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
@@ -1516,6 +1517,8 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
 	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
 	windowTitle[windowTitle_len] = '\0';
+
+	returnActual = PA_GetLongParameter(params, 2); // WJF 9/15/15 #43912
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		windowHandle = (LONG_PTR)hWnd;
@@ -1537,7 +1540,12 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	}
 
 	if (windowHandle){
-		returnValue = handleArray_add(windowHandle);
+		if (returnActual){ // WJF 9/15/15 #43912 Return the actual handle for now
+			returnValue = (long)windowHandle;
+		}
+		else {
+			returnValue = handleArray_add(windowHandle);
+		}
 	}
 
 	free(windowTitle);

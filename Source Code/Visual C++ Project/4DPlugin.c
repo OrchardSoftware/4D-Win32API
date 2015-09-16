@@ -740,7 +740,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		handleArray_free(params); // WJF 9/1/15 #43731
 		break;
 
-	case 107:
+	case 107: // WJF 9/15/15 #43731
 		hWnd = PA_GetHWND(NULL); // the current frontmost window
 		if (!(IsWindow(hWnd))){
 
@@ -774,7 +774,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 108:
-		gui_GetWindowFrom4DWinEx(params);
+		gui_GetWindowFrom4DWinEx(params); // WJF 9/15/15 #43731
+		break;
+
+	case 109:
+		gui_SetForegroundWindow(params); // WJF 9/16/15 #43929
 		break;
 	}
 
@@ -6315,6 +6319,32 @@ void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
 	windowHandle = PA_GetHWND(h4DWnd);
 
 	returnValue = handleArray_add(windowHandle); 
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_SetForegroundWindow (PA_PluginParameters params)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	Needed for Automated Testing
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_SetForegroundWindow(PA_PluginParameters params)
+{
+	long			index = 0;
+	BOOL			bResult = FALSE;
+	long			returnValue = 0;
+
+	index = PA_GetLongParameter(params, 1);
+
+	if ((index > 0) && (index <= HANDLEARRAY_CAPACITY)){
+		bResult = SetForegroundWindow((HWND)handleArray[index]);
+	}
+
+	if (bResult){
+		returnValue = 1;
+	}
 
 	PA_ReturnLong(params, returnValue);
 }

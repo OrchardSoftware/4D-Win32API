@@ -97,7 +97,7 @@ void sys_FileCheck( PA_PluginParameters params )
 //
 //	DATE:			dcc 12/17/01 
 //
-void gui_ToolTipCreate( PA_PluginParameters params )
+void gui_ToolTipCreate( PA_PluginParameters params, BOOL isEx )
 {
 	LONG_PTR									style = TT_BALLOON, returnValue = 0;
 	LONG_PTR									uId = 0;
@@ -117,7 +117,12 @@ void gui_ToolTipCreate( PA_PluginParameters params )
 	hWndIndex = PA_GetLongParameter(params, 2); // optionally supplied if tool tip // WJF 9/1/15 #43731 We are now getting an index to an internal array
 						// to be associated with window not having focus
 
-	hwndTarget = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
+	if (isEx){ // WJF 9/16/15 #43731
+		hwndTarget = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hwndTarget = (HWND)hWndIndex;
+	}
 
 	if (hwndTarget == 0) {
 		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
@@ -181,7 +186,7 @@ void gui_ToolTipCreate( PA_PluginParameters params )
 //        
 //	DATE:			dcc 12/17/01 
 //
-void gui_ToolTipShowOnObject( PA_PluginParameters params )
+void gui_ToolTipShowOnObject( PA_PluginParameters params , BOOL isEx)
 {
 	LONG_PTR								cx = 0, cy = 0, returnValue = 0, location = 0, freeStack = 0;
 	HWND									hwndTarget;
@@ -243,7 +248,12 @@ void gui_ToolTipShowOnObject( PA_PluginParameters params )
 			// window is window with focus
 		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
 	} else {
-		hwndTarget = (HWND)handleArray[uId]; // WJF 9/1/15 #43731 Changed to use internal handle array
+		if (isEx) { // WJF 9/16/15 #43731 
+			hwndTarget = handleArray_retrieve((DWORD)uId); 
+		}
+		else {
+			hwndTarget = (HWND)uId;
+		}
 	}
 	toolInfo.cbSize		= sizeof(toolInfo);
 	toolInfo.uFlags		= TTF_ABSOLUTE | TTF_TRACK; 
@@ -822,7 +832,7 @@ void sys_GetWindowMetrics( PA_PluginParameters params )
 //
 //	DATE:			dcc 08/04/01 
 // 
-void gui_FlashWindow( PA_PluginParameters params)
+void gui_FlashWindow( PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR				hWndIndex;
 	HWND					hWnd;
@@ -835,7 +845,12 @@ void gui_FlashWindow( PA_PluginParameters params)
 
 	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to use index
 
-	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
+	if (isEx){ // WJF 9/16/15 #43731
+		hWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hWnd = (HWND)hWndIndex;
+	}
 
 	if (IsWindow(hWnd)) {
 		flags = PA_GetLongParameter( params, 2 );

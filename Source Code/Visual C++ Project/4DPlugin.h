@@ -37,23 +37,23 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
 
 // --- Win32API Commands
 void gui_GetWindow( PA_PluginParameters params, HWND hWnd );
-void gui_GetWndRect( PA_PluginParameters params );
-void gui_SetWndRect( PA_PluginParameters params );
-void gui_ShowWindow( PA_PluginParameters params );
+void gui_GetWndRect( PA_PluginParameters params, BOOL isEx );
+void gui_SetWndRect(PA_PluginParameters params, BOOL isEx);
+void gui_ShowWindow(PA_PluginParameters params, BOOL isEx);
 void sys_GetUserName( PA_PluginParameters params );
-void gui_SetWindowTitle( PA_PluginParameters params );
+void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx);
 void sys_IsMultiByte( PA_PluginParameters params );
-void gui_DisableCloseBox( PA_PluginParameters params );
-void gui_SetWindowLong( PA_PluginParameters params );
+void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx);
+void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx);
 void gui_WinHelp( PA_PluginParameters params );
 void sys_GetDefPrinter( PA_PluginParameters params );
 void sys_SetDefPrinter( PA_PluginParameters params );
 void sys_EnumPrinters( PA_PluginParameters params );
-void gui_DelMenuItem( PA_PluginParameters params );
+void gui_DelMenuItem( PA_PluginParameters params, BOOL isEx );
 void gui_GetOpenFileName( PA_PluginParameters params );
 void gui_GetSaveFileName( PA_PluginParameters params );
-void gui_LoadIcon( PA_PluginParameters params );
-void gui_SetIcon( PA_PluginParameters params );
+void gui_LoadIcon( PA_PluginParameters params, BOOL isEx);
+void gui_SetIcon(PA_PluginParameters params, BOOL isEx);
 void gui_GetWindowFrom4DWin( PA_PluginParameters params );
 void sys_GetRegionSettings( PA_PluginParameters params, BOOL arraySupplied );
 void sys_GetTimeZone( PA_PluginParameters params );
@@ -61,7 +61,7 @@ void sys_GetUTCOffset( PA_PluginParameters params );
 void gui_GetDisplayFontDPI( PA_PluginParameters params);
 void sys_GetPrintJob( PA_PluginParameters params ); // added 7/16/01 -- rewritten 10/23/01
 void sys_GetGUID( PA_PluginParameters params ); //added 7/30/01
-void gui_FlashWindow( PA_PluginParameters params ); //added 08/04/01 filled unused case (10)
+void gui_FlashWindow( PA_PluginParameters params, BOOL isEx ); //added 08/04/01 filled unused case (10)
 void sys_GetRoutes ( PA_PluginParameters params ); //added 08/08/01
 void sys_GetNetworkInfo( PA_PluginParameters params ); //added 08/09/01
 LONG_PTR sys_GetOSVersion( BOOL bInternalCall, PA_PluginParameters params ); //added as plugin call 0828/01 was internal only
@@ -70,17 +70,17 @@ void sys_GetWindowMetrics( PA_PluginParameters params ); // added 11/09/01
 void gui_LoadBackground( PA_PluginParameters params, BOOL DeInit ); // added 11/09/01
 void sys_SetClientTime( PA_PluginParameters params ); // added 11/30/01
 void sys_SetClientDate( PA_PluginParameters params ); //added 11/30/01
-void gui_ToolTipCreate( PA_PluginParameters params ); // added 12/06/01
-void gui_ToolTipShowOnObject( PA_PluginParameters params ); // added 12/17/01
+void gui_ToolTipCreate(PA_PluginParameters params, BOOL isEx); // added 12/06/01
+void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx); // added 12/17/01
 void gui_ToolTipShowOnCoord( PA_PluginParameters params ); // added 12/17/01
 void gui_ToolTipHide( PA_PluginParameters params ); // added 12/17/01
 void gui_ToolTipDestroyControl( PA_PluginParameters params ); // added 12/17/01
 void gui_SetTrayIcon( PA_PluginParameters params ); // added/revised 12/18/01
 void sys_FileCheck( PA_PluginParameters params ); //added 01/08/02
 void sys_GetCommandLine( PA_PluginParameters params ); //added 04/02/02
-void gui_GetWindowStyle	( PA_PluginParameters params ); //added 07/18/02
-void gui_RestrictWindow( PA_PluginParameters params ); //added 07/15/02
-void gui_GetWindowState( PA_PluginParameters params ); // added 07/22/02
+void gui_GetWindowStyle(PA_PluginParameters params, BOOL isEx); //added 07/18/02
+void gui_RestrictWindow(PA_PluginParameters params, BOOL isEx); //added 07/15/02
+void gui_GetWindowState(PA_PluginParameters params, BOOL isEx); // added 07/22/02
 void gui_SubClassInit( PA_PluginParameters params ); // added 07/26/02
 void sys_ShellExecute( PA_PluginParameters params ); // added 08/21/02
 void sys_IsAppLoaded( PA_PluginParameters params ); // added 08/22/02
@@ -232,5 +232,6 @@ DWORD handleArray_init();
 DWORD handleArray_add(LONG_PTR handle);
 DWORD handleArray_remove(PA_PluginParameters params);
 DWORD handleArray_free(PA_PluginParameters params);
+HWND  handleArray_retrieve(DWORD hWndIndex);
 
 #endif // __4DPLUGING_H__

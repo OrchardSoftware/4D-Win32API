@@ -333,15 +333,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 2:
-		gui_GetWndRect(params);
+		gui_GetWndRect(params, FALSE);
 		break;
 
 	case 3:
-		gui_SetWndRect(params);
+		gui_SetWndRect(params, FALSE);
 		break;
 
 	case 4:
-		gui_ShowWindow(params);
+		gui_ShowWindow(params, FALSE);
 		break;
 
 	case 5:
@@ -349,7 +349,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 6:
-		gui_SetWindowTitle(params);
+		gui_SetWindowTitle(params, FALSE);
 		break;
 
 	case 7:
@@ -357,15 +357,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 8:
-		gui_DisableCloseBox(params);
+		gui_DisableCloseBox(params, FALSE);
 		break;
 
 	case 9:
-		gui_SetWindowLong(params);
+		gui_SetWindowLong(params, FALSE);
 		break;
 
 	case 10:
-		gui_FlashWindow(params);
+		gui_FlashWindow(params, FALSE);
 		break;
 
 	case 11:
@@ -385,7 +385,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 15:
-		gui_DelMenuItem(params);
+		gui_DelMenuItem(params, FALSE);
 		break;
 
 	case 16:
@@ -397,11 +397,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 18:
-		gui_LoadIcon(params);
+		gui_LoadIcon(params, FALSE);
 		break;
 
 	case 19:
-		gui_SetIcon(params);
+		gui_SetIcon(params, FALSE);
 		break;
 
 	case 20:
@@ -469,11 +469,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 36:
-		gui_ToolTipCreate(params);
+		gui_ToolTipCreate(params, FALSE);
 		break;
 
 	case 37:
-		gui_ToolTipShowOnObject(params);
+		gui_ToolTipShowOnObject(params, FALSE);
 		break;
 
 	case 38:
@@ -501,15 +501,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 44:
-		gui_RestrictWindow(params);
+		gui_RestrictWindow(params, FALSE);
 		break;
 
 	case 45:
-		gui_GetWindowStyle(params);
+		gui_GetWindowStyle(params, FALSE);
 		break;
 
 	case 46:
-		gui_GetWindowState(params);
+		gui_GetWindowState(params, FALSE);
 		break;
 
 	case 47:
@@ -630,7 +630,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 78:
-		gui_MessageBox(params); // REB 12/3/09
+		gui_MessageBox(params, FALSE); // REB 12/3/09
 		break;
 
 	case 79:
@@ -721,7 +721,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 102:
-		gui_TakeScreenshot(params); // WJF 7/7/15 #43138
+		gui_TakeScreenshot(params, FALSE); // WJF 7/7/15 #43138
 		break;
 
 	case 103:
@@ -778,8 +778,87 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 109:
-		gui_SetForegroundWindow(params); // WJF 9/16/15 #43929
+		gui_SetForegroundWindow(params, FALSE); // WJF 9/16/15 #43929
 		break;
+
+		// WJF 9/16/15 #43731 Ex Function calls
+	case 110:
+		gui_GetWndRect(params, TRUE);
+		break;
+
+	case 111:
+		gui_SetWndRect(params, TRUE);
+		break;
+
+	case 112:
+		gui_ShowWindow(params, TRUE);
+		break;
+
+	case 113:
+		gui_SetWindowTitle(params, TRUE);
+		break;
+
+	case 114:
+		gui_DisableCloseBox(params, TRUE);
+		break;
+
+	case 115:
+		gui_SetWindowLong(params, TRUE);
+		break;
+
+	case 116:
+		gui_DelMenuItem(params, TRUE);
+		break;
+
+	case 117:
+		gui_LoadIcon(params, TRUE);
+		break;
+
+	case 118:
+		gui_SetIcon(params, TRUE);
+		break;
+
+	case 119:
+		gui_MessageBox(params, TRUE);
+		break;
+
+	case 120:
+		gui_TakeScreenshot(params, TRUE);
+		break;
+
+	case 121:
+		gui_SetForegroundWindow(params, TRUE);
+		break;
+
+	case 122:
+		gui_GetWindowStyle(params, TRUE);
+		break;
+
+	case 123:
+		gui_RestrictWindow(params, TRUE);
+		break;
+
+	case 124:
+		gui_GetWindowState(params, TRUE);
+		break;
+
+	case 125:
+		gui_SetWindowStyle(params, TRUE);
+		break;
+
+	case 126:
+		gui_ToolTipCreate(params, TRUE);
+		break;
+
+	case 127:
+		gui_ToolTipShowOnObject(params, TRUE);
+		break;
+
+	case 128:
+		gui_FlashWindow(params, TRUE);
+		break;
+
+		// WJF 9/16/15 #43731 End Ex function calls
 	}
 
 }
@@ -1589,7 +1668,7 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 //  FUNCTION: gui_GetWndRect( PA_PluginParameters params )
 //
 
-void gui_GetWndRect(PA_PluginParameters params)
+void gui_GetWndRect(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR x;
@@ -1610,8 +1689,13 @@ void gui_GetWndRect(PA_PluginParameters params)
 	h = PA_GetLongParameter(params, 5);
 	mode = PA_GetLongParameter(params, 6);
 
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
 	if (IsWindow(WindowhWnd)) {
 
 		// Allowing a return to the original functionality
@@ -1670,7 +1754,7 @@ void gui_GetWndRect(PA_PluginParameters params)
 //  FUNCTION: gui_SetWndRect( PA_PluginParameters params )
 //
 
-void gui_SetWndRect(PA_PluginParameters params)
+void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR x;
@@ -1721,7 +1805,13 @@ void gui_SetWndRect(PA_PluginParameters params)
 		}
 	}
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		if (SetWindowPos(WindowhWnd, HWND_TOP, x, y, w, h,
 			SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER)) {
@@ -1743,7 +1833,7 @@ void gui_SetWndRect(PA_PluginParameters params)
 //  FUNCTION: gui_ShowWindow( PA_PluginParameters params )
 //
 
-void gui_ShowWindow(PA_PluginParameters params)
+void gui_ShowWindow(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR showState;
@@ -1753,7 +1843,13 @@ void gui_ShowWindow(PA_PluginParameters params)
 	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	showState = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
+	if (isEx){ // WJF 9/16/15 #43731 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		// REB 2/26/09 #16207 Handle this slightly differently if we are using a toolbar.
 		if (toolBarRestrictions.toolBarOnDeck == 1){
@@ -1823,7 +1919,7 @@ void sys_GetUserName(PA_PluginParameters params)
 //  FUNCTION: gui_SetWindowTitle( PA_PluginParameters params )
 //
 
-void gui_SetWindowTitle(PA_PluginParameters params)
+void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR windowTitle_len;
@@ -1835,7 +1931,13 @@ void gui_SetWindowTitle(PA_PluginParameters params)
 	windowTitle_len = PA_GetTextParameter(params, 2, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
+	if (isEx){ // WJF 9/16/15 #43731 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		SetWindowText(WindowhWnd, windowTitle);
 		returnValue = 1;
@@ -1873,7 +1975,7 @@ void sys_IsMultiByte(PA_PluginParameters params)
 //	MODIFICATIONS: 09/09/02 Added functionality to restore the close box.
 //								 Pass in the window handle as a negative to restore.
 
-void gui_DisableCloseBox(PA_PluginParameters params)
+void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR			hWndIndex;
 	LONG_PTR			returnValue;
@@ -1886,7 +1988,14 @@ void gui_DisableCloseBox(PA_PluginParameters params)
 	if (hWndIndex < 0) {
 		bUndo = TRUE;
 	}
-	WindowhWnd = (HWND)handleArray[abs(hWndIndex)]; // WJF 9/1/15 #43731 Changed to use internal array
+
+	if (isEx){ // WJF 9/16/15 #43731 Added Ex version to use internal handle Array
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		hSysMenu = GetSystemMenu(WindowhWnd, 0);
 		if (!bUndo) {
@@ -1911,7 +2020,7 @@ void gui_DisableCloseBox(PA_PluginParameters params)
 //  PURPOSE:  Multipurpose function to set window styles etc
 //
 
-void gui_SetWindowLong(PA_PluginParameters params)
+void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR s;
@@ -1926,7 +2035,13 @@ void gui_SetWindowLong(PA_PluginParameters params)
 	mode = PA_GetLongParameter(params, 3);
 	level = PA_GetLongParameter(params, 4);
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Get the actual handle from the internal handle array
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 
 		if (level == 0)
@@ -1997,7 +2112,7 @@ void gui_WinHelp(PA_PluginParameters params)
 //  FUNCTION: gui_DelMenuItem( PA_PluginParameters params )
 //
 
-void gui_DelMenuItem(PA_PluginParameters params)
+void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR menuNum;
@@ -2011,7 +2126,14 @@ void gui_DelMenuItem(PA_PluginParameters params)
 	menuItem = PA_GetLongParameter(params, 3);
 
 	returnValue = 0;
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal handle array
+	
+	if (isEx){ // WJF 9/16/15 #43731 Added ex version to use internal handle array
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		hMenu = GetMenu(WindowhWnd);
 		if (IsMenu(hMenu)) {
@@ -2338,7 +2460,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 //  FUNCTION: gui_LoadIcon( PA_PluginParameters params )
 //
 
-void gui_LoadIcon(PA_PluginParameters params)
+void gui_LoadIcon(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR iconName_len;
 	char iconName[255];  //complete path of icon file
@@ -2364,9 +2486,13 @@ void gui_LoadIcon(PA_PluginParameters params)
 		returnValue = 0;
 	}
 
-	iconIndex = handleArray_add(hIcon); // WJF 9/1/15 #43731 Adding the actual handle to the internal array
-
-	PA_SetLongParameter(params, 2, iconIndex); // WJF 9/1/15 #43731 Returning index now
+	if (isEx){ // WJF 9/16/15 #43731
+		iconIndex = handleArray_add(hIcon); 
+		PA_SetLongParameter(params, 2, iconIndex); 
+	}
+	else {
+		PA_SetLongParameter(params, 2, hIcon);
+	}
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -2376,7 +2502,7 @@ void gui_LoadIcon(PA_PluginParameters params)
 //  FUNCTION: gui_SetIcon( PA_PluginParameters params )
 //
 
-void gui_SetIcon(PA_PluginParameters params)
+void gui_SetIcon(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
 	LONG_PTR hIconIndex;
@@ -2388,8 +2514,14 @@ void gui_SetIcon(PA_PluginParameters params)
 	hWndIndex = PA_GetLongParameter(params, 1); 
 	hIconIndex = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731 Changed to use internal array
-	hIcon = handleArray[hIconIndex]; // WJF 9/1/15 #43731
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve(hWndIndex); 
+		hIcon = (LONG_PTR)handleArray_retrieve(hIconIndex);
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+		hIcon = hIconIndex;
+	}
 
 	if ((IsWindow(WindowhWnd)) && (hIcon != 0)) {
 
@@ -4623,7 +4755,7 @@ void sys_IsAppFrontmost(PA_PluginParameters params)
 //
 // DATE:			DJD 2008-09-12
 //
-void gui_MessageBox(PA_PluginParameters params)
+void gui_MessageBox(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR ownerHandleIndex;
 	HWND ownerHandle;
@@ -4641,8 +4773,13 @@ void gui_MessageBox(PA_PluginParameters params)
 	dialogTitle[dialogTitle_len] = '\0';
 	dialogType = PA_GetLongParameter(params, 4);
 
-	ownerHandle = (HWND)handleArray[ownerHandleIndex]; // WJF 9/1/15 #43731
-
+	if (isEx){
+		ownerHandle = handleArray_retrieve(ownerHandleIndex); // WJF 9/16/15 #43731
+	}
+	else {
+		ownerHandle = (HWND)ownerHandleIndex;
+	}
+	
 	returnValue = MessageBoxEx(ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0); // WJF 9/1/15 #43731 Removed typecasting on the handle
 
 	PA_ReturnLong(params, returnValue);
@@ -5980,7 +6117,7 @@ void sys_DecryptAES(PA_PluginParameters params)
 //
 //	DATE:		WJF 7/7/15 #43138
 
-void gui_TakeScreenshot(PA_PluginParameters params){
+void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 
 	LONG_PTR				hWndIndex;
 	RECT					rcClient;
@@ -6008,7 +6145,12 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 	filePath = (char *)malloc(dwFilePathLength);
 	dwFilePathLength = PA_GetTextParameter(params, 2, filePath);
 
-	hWnd = (HWND)handleArray[hWndIndex]; // WJF 9/1/15 #43731
+	if (isEx){ // WJF 9/16/15 #43731
+		hWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hWnd = (HWND)hWndIndex;
+	}
 
 	if (IsWindow(hWnd)) {
 		// Get a screen DC and a DC for the window for which the handle was provided
@@ -6250,6 +6392,25 @@ DWORD handleArray_free(PA_PluginParameters params){
 	}
 
 	PA_ReturnLong(params, errorCode);
+
+	return errorCode;
+}
+
+//  FUNCTION:	handleArray_retrieve (DWORD handleIndex)
+//
+//  PURPOSE:	Common method to return a handle from the handleArray
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/16/15 #43731
+HWND handleArray_retrieve(DWORD handleIndex){
+	LONG_PTR handle = 0;
+	
+	if ((handleIndex >= 0) && (handleIndex < HANDLEARRAY_CAPACITY)){
+		handle = handleArray[handleIndex];
+	}
+
+	return (HWND)handle;
 }
 
 //  FUNCTION:	gui_GetWindowEx (PA_PluginParameters params, HWND hWnd)
@@ -6330,16 +6491,24 @@ void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
 //  COMMENTS:	Needed for Automated Testing
 //
 //	DATE:		WJF 9/15/15 #43731
-void gui_SetForegroundWindow(PA_PluginParameters params)
+void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
 {
-	long			index = 0;
-	BOOL			bResult = FALSE;
-	long			returnValue = 0;
+	LONG_PTR			index = 0;
+	BOOL				bResult = FALSE;
+	long				returnValue = 0;
+	HWND				hWnd = NULL;
 
 	index = PA_GetLongParameter(params, 1);
 
-	if ((index > 0) && (index <= HANDLEARRAY_CAPACITY)){
-		bResult = SetForegroundWindow((HWND)handleArray[index]);
+	if (isEx){ 
+		hWnd = handleArray_retrieve((DWORD)index);
+	}
+	else {
+		hWnd = (HWND)index;
+	}
+	
+	if (IsWindow(hWnd)){
+		bResult = SetForegroundWindow(hWnd);
 	}
 
 	if (bResult){

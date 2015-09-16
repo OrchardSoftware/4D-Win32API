@@ -6263,7 +6263,7 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
 {
 	LONG_PTR			windowTitle_len;
 	char				*windowTitle;
-	long				returnValue;
+	long				returnValue = -1;
 	LONG_PTR			windowHandle = 0;
 
 	windowTitle_len = PA_GetTextParameter(params, 1, NULL) + 1;
@@ -6286,7 +6286,7 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
 		else {
 			windowHandle = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
 		}
-		if (!returnValue) {
+		if (!windowHandle) {
 			returnValue = -3;
 		}
 	}

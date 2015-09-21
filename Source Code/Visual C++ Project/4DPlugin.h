@@ -107,7 +107,7 @@ void sys_LogonUser(PA_PluginParameters params); // MWD 1/8/07 #6982
 void sys_GetTimeZoneList( PA_PluginParameters params ); // REB 4/6/09 #19472
 void TWAIN_GetSources ( PA_PluginParameters params ); //REB 6/23/09 #14151
 void TWAIN_SetSource( PA_PluginParameters params ); // REB 6/23/09 #14151
-void TWAIN_AcquireImage( PA_PluginParameters params ); // REB 6/23/09 #14151
+void TWAIN_AcquireImage( PA_PluginParameters params ); // REB 6/23/09 #14151 
 void sys_IsAppFrontmost( PA_PluginParameters params ); // REB 8/21/09
 void gui_MessageBox (PA_PluginParameters params); // DJD 2008-09-12
 void gui_HideTaskBar (PA_PluginParameters params); // REB 1/8/10 #22389
@@ -219,7 +219,7 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 unsigned __stdcall TWAIN_GetImage (void *);
 
 // WJF 9/10/15 #43727
-long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI);
+long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI, BOOL IsWIA, BOOL GetMultiple); // WJF 9/21/15 #43940 Added IsWIA and GetMultiple
 
 char * twainSource; // WJF 9/11/15 #43727 Since the TWAIN functionality is separate from Win32API, let's just hold on to the source name instead of trying to keep the source open
 

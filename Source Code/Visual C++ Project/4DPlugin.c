@@ -156,6 +156,9 @@ typedef struct	_TWAIN_CAPTURE
 	char		*filePath; // WJF 9/10/15 #43727 File path to save the image to
 	BOOL		showUI; // WJF 9/10/15 #43727 True to show TWAIN UI, false to hide
 	BOOL		get64; // WJF 9/10/15 #43727 True to load 64-bit TWAIN drivers, false to load 32-bit
+	BOOL		wiaMode; // WJF 9/21/15 #43940 True to get/acquire WIA
+	BOOL		getMultiple; // WJF 9/21/15 #43940 True to acquire multiple images at once
+	long		numPictures; // WJF 9/21/15 #43940 Number of pictures returned
 	
 } TWAIN_CAPTURE;
 
@@ -859,6 +862,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 		// WJF 9/16/15 #43731 End Ex function calls
+
 	}
 
 }
@@ -4265,7 +4269,9 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
 
-	get64 = PA_GetLongParameter(params, 2); // WJF 9/11/15 #43727
+	debug = PA_GetLongParameter(params, 2); 
+
+	get64 = PA_GetLongParameter(params, 3);
 
 	returnValue = 1;
 
@@ -4293,6 +4299,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	strcat_s(filePath, MAX_PATH, "twainSources.txt");
 
+	utilitiesLock(); // WJF 9/21/15 #43940
+
 	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
 	if (GetLastError() == ERROR_SUCCESS){
@@ -4300,9 +4308,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 		PA_YieldAbsolute();
 		PA_YieldAbsolute();
 
-		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
-			PA_YieldAbsolute();
-		}
+		utilitiesYield(NULL); // WJF 9/21/15 #43940 Moved to common method
 
 		fp = fopen(filePath, "r");
 
@@ -4318,6 +4324,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 					// do nothing
 				}
 				else { // Valid Product Name
+					pos = strrchr(source, '\n');
+					strcpy_s(pos, 256, "\0");
 					strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
 					PA_ResizeArray(&atSources, index);
 					PA_SetTextInArray(atSources, index, source, strlen(source));
@@ -4339,6 +4347,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 			strcpy_s(lpParameters, 16, "-ws");
 
+			utilitiesLock();
+
 			ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
 			if (GetLastError() == ERROR_SUCCESS){
@@ -4346,13 +4356,15 @@ void TWAIN_GetSources(PA_PluginParameters params)
 				PA_YieldAbsolute();
 				PA_YieldAbsolute();
 
-				utilitiesYield(filePath); // WJF 9/21/15 #43601 Moved to common method
+				utilitiesYield(NULL); // WJF 9/21/15 #43601 Moved to common method
 
 				fp = fopen(filePath, "r");
 
 				if (fp){
 					while (fgets(source, 256, fp) != NULL){
 						if (strcmp(source, "") != 0){
+							pos = strrchr(source, '\n');
+							strcpy_s(pos, 256, "\0");
 							strcat_s(source, 256, "-WIA");
 							PA_ResizeArray(&atSources, index);
 							PA_SetTextInArray(atSources, index, source, strlen(source));
@@ -4360,7 +4372,13 @@ void TWAIN_GetSources(PA_PluginParameters params)
 						}
 
 					}
+
+					fclose(fp);
+
+					fp = NULL;
 				}
+
+				DeleteFile(filePath); // WJF 9/21/15 #43940
 			}
 			else {
 				returnValue = -1;
@@ -4456,7 +4474,7 @@ void TWAIN_SetSource(PA_PluginParameters params)
 //  COMMENTS:	
 //
 //	DATE:		WJF 9/10/15 #43727
-long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
+long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOOL IsWIA, BOOL GetMultiple){
 	char lpParameters[MAX_PATH_PLUS] = "";
 	char filePathLock[MAX_PATH_PLUS] = "";
 	char pluginPath[MAX_PATH] = "";
@@ -4464,8 +4482,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 	char *pos = NULL;
 	FILE *fp = NULL;
 	long returnValue = 1;
-	BOOL bIsWIA = FALSE;
-
+	
 	strcpy_s(pluginPath, MAX_PATH, pathName);
 
 	pos = strrchr(pluginPath, '\\');
@@ -4483,6 +4500,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
 	}
 	
+	// WJF 9/21/15 #43940
 	if (twainSource){
 		pos = NULL;
 		pos = strstr(twainSource, "-TWAIN");
@@ -4491,15 +4509,34 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 			pos = strstr(twainSource, "-WIA");
 
 			if (pos){
-				bIsWIA = TRUE;
+				IsWIA = TRUE;
 			}
+		}
+
+		pos = NULL;
+		pos = strrchr(twainSource, '-');
+
+		if (pos){
+			strcpy_s(pos, MAX_PATH, "\0");
 		}
 	}
 	
-	strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
+	if (IsWIA){ // WJF 9/21/15 #43940
+		strcpy_s(lpParameters, MAX_PATH_PLUS, "-wa ");
+	}
+	else {
+		strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
+	}
 
 	strcat_s(lpParameters, MAX_PATH_PLUS, filePath);
 
+	if (GetMultiple){
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 1");
+	}
+	else {
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 0");
+	}
+	
 	if (ShowUI){
 		strcat_s(lpParameters, MAX_PATH_PLUS, " 1 ");
 	}
@@ -4569,8 +4606,10 @@ void utilitiesSleep(const char * filePath){
 
 	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
 
+	SetLastError(ERROR_SUCCESS);
+
 	if (filePath){
-		while ((GetFileAttributes(filePath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
 			Sleep(100);
 		}
 	}
@@ -4595,8 +4634,10 @@ void utilitiesYield(const char * filePath){
 
 	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
 
+	SetLastError(ERROR_SUCCESS);
+
 	if (filePath){
-		while ((GetFileAttributes(filePath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
 			PA_YieldAbsolute();
 		}
 	}
@@ -4611,13 +4652,45 @@ void utilitiesYield(const char * filePath){
 unsigned __stdcall TWAIN_GetImage(void *arg)
 {
 	TWAIN_CAPTURE*	TWAINCapture;
+	char			iterator[16] = "";
+	char			*pos = NULL;
+	BOOL			bContinue = TRUE;
+	char			filePath[MAX_PATH] = "";
+	long			i = 0;
 
 	TWAINCapture = (TWAIN_CAPTURE*)arg; 
 	// WJF 9/10/15 #43727 Removed
 	//TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
 	//TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
 
-	TWAINCapture->returnValue = OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI); // WJF 9/10/15 #43727
+	TWAINCapture->returnValue = OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI, TWAINCapture->wiaMode, TWAINCapture->getMultiple); // WJF 9/10/15 #43727 // WJF 9/21/15 #43940
+	
+	if (TWAINCapture->getMultiple){
+		while (bContinue){
+			SetLastError(ERROR_SUCCESS);
+
+			i++;
+
+			strcpy_s(filePath, MAX_PATH, TWAINCapture->filePath);
+
+			pos = strrchr(filePath, '.');
+
+			_itoa(i, iterator, 10);
+
+			strcpy_s(pos, MAX_PATH, iterator);
+
+			strcat_s(filePath, MAX_PATH, ".bmp");
+
+			if ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
+				bContinue = FALSE;
+				i--;
+			}
+
+		}
+
+		TWAINCapture->numPictures = i;
+	}
+
 	TWAINCapture->done = TRUE;
 }
 
@@ -4635,26 +4708,33 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	HANDLE			CaptureThread;
 	PA_Unistring	Unistring;
 	TWAIN_CAPTURE	TWAINCapture; // REB 2/26/13 #35165
-	char *BLOB = NULL; // AMS 7/3/14 #39391
-	LONG_PTR len = 0; // AMS 7/3/14 #39391
-	char cmdName[256] = ""; // WJF 6/29/15 #42792
-	char cName[256] = ""; // WJF 6/29/15 #42792
-	char pathName[MAX_PATH] = ""; // WJF 9/15/15 #43727 Initialize this value
-	BOOL get64 = FALSE; // WJF 9/14/15 #43727
+	char			*BLOB = NULL; // AMS 7/3/14 #39391
+	LONG_PTR		len = 0; // AMS 7/3/14 #39391
+	char			cmdName[256] = ""; // WJF 6/29/15 #42792
+	char			cName[256] = ""; // WJF 6/29/15 #42792
+	char			pathName[MAX_PATH] = ""; // WJF 9/15/15 #43727 Initialize this value
+	char			iterator[16] = ""; // WJF 9/21/15 #43940
+	BOOL			x64 = FALSE; // WJF 9/21/15 #43727
+	BOOL			wiaMode = FALSE; // WJF 9/21/15 #43940
+	BOOL			getMultiple = FALSE; // WJF 9/21/15 #43940
+	char			fileName3[255] = ""; // WJF 9/21/15 #43940
 
 	showDialog = PA_GetLongParameter(params, 1);
 
-	get64 = PA_GetLongParameter(params, 2); // WJF 9/14/15 #43727
-
 	// AMS 7/3/14 #39391 Get the blob parameter // WJF 6/29/15 #42792 Changed BLOB -> Text
-	// WJF 9/14/15 #43727 Changed to third parameter
 	BLOB = NULL;
-	len = PA_GetTextParameter(params, 3, NULL);
+	len = PA_GetTextParameter(params, 2, NULL);
 
 	if (len > 0) { // WJF 6/29/15 #42792 Don't allocate unless a variable was passed
 		BLOB = malloc(len+1); // WJF 6/29/15 #42792 Added +1
-		len = PA_GetTextParameter(params, 3, BLOB);
+		len = PA_GetTextParameter(params, 2, BLOB);
 	}
+
+	x64 = PA_GetLongParameter(params, 3); // WJF 9/21/15 #43727
+
+	getMultiple = PA_GetLongParameter(params, 4); // WJF 9/21/15 #43940
+
+	wiaMode = PA_GetLongParameter(params, 5); // WJF 9/21/15 #43940
 
 	//Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
 	//pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
@@ -4663,23 +4743,6 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	charPos = strrchr(pathName, '\\');
 	strncpy(fileName, pathName, (charPos - pathName + 1));
 	strncat_s(fileName, 255, "TWNIMG.bmp", strlen("TWNIMG.bmp"));
-
-	pch = fileName;
-	
-	charPos = strchr(fileName, '\\');
-	while (charPos != NULL){
-		strncat(fileName2, pch, (charPos - pch));
-		pch = charPos;
-		charPos = strchr((charPos + 1), '\\');
-		if (charPos != NULL){
-			strcat(fileName2, "\\");
-		}
-		else{
-			// add the remainder of fileName to fileName2.
-			strcat(fileName2, "\\");
-			strcat(fileName2, pch);
-		}
-	}
 
 	// Allow the image dialog to display if so desired.
 	// WJF 9/10/15 #43727 Changed to use a new variable instead of the EZTWAIN function
@@ -4695,7 +4758,13 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	// TWAINCapture.DIBHandle = DIBHandle; // WJF 9/10/15 #43727 Removed
 	TWAINCapture.done = FALSE;
 
-	TWAINCapture.get64 = get64; // WJF 9/10/15 #43727
+	TWAINCapture.get64 = x64; // WJF 9/10/15 #43727
+
+	TWAINCapture.getMultiple = getMultiple; // WJF 9/21/15 #43940
+
+	TWAINCapture.wiaMode = wiaMode; // WJF 9/21/15 #43940
+
+	TWAINCapture.numPictures = 1; // WJF 9/21/15 #43940 Default
 	
 	TWAINCapture.filePath = (char *)malloc(MAX_PATH_PLUS); // WJF 9/15/15 #43727
 
@@ -4727,7 +4796,11 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	// Updated so that return code is 1 for success, 0 for cancel and negative for error codes.
 	// Suppress eztwain error dialogs
 	// WJF 9/10/15 #43727 We are now checking to see if the file exists rather than for a valid DIB handle
-	if ((GetFileAttributes(fileName) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){
+	strcpy_s(fileName3, 255, fileName);
+	charPos = strrchr(fileName3, '.');
+	strcpy_s(charPos, 255, "1");
+	strcat_s(fileName3, 255, ".bmp");
+	if ((GetFileAttributes(fileName3) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){
 		
 		// returnValue = TWAIN_WriteNativeToFilename(DIBHandle, fileName2); // WJF 9/10/15 #43727 Removed
 
@@ -4758,17 +4831,51 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				//strcpy(command, "DOCUMENT TO BLOB(\"");
-				strncpy(command, cName, sizeof(command));
-				strcat(command, "(\"");
-				strcat(command, fileName2);
-				strcat(command, "\";xTWAINBLOB)");
+				strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
 
-				// REB 4/20/11 #27322 Conver the C string to a Unistring
-				Unistring = CStringToUnistring(&command);
-				PA_ExecuteMethod(&Unistring);
-				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
-				//PA_ExecuteMethod(command, strlen(command));
+				for (int i = 0; i < TWAINCapture.numPictures; i++){// WJF 9/21/15 #43940 
+					pch = fileName;
+
+					// WJF 9/21/15 #43940
+					strcpy_s(fileName, 255, fileName3);
+					charPos = strrchr(fileName, '.');
+					_itoa(i+1, iterator, 10);
+					strcpy_s(charPos, 255, iterator);
+					strcat_s(fileName, 255, ".bmp");
+					strcpy_s(fileName2, 255, "");
+					
+					charPos = strchr(fileName, '\\');
+					while (charPos != NULL){
+						strncat(fileName2, pch, (charPos - pch));
+						pch = charPos;
+						charPos = strchr((charPos + 1), '\\');
+						if (charPos != NULL){
+							strcat(fileName2, "\\");
+						}
+						else{
+							// add the remainder of fileName to fileName2.
+							strcat(fileName2, "\\");
+							strcat(fileName2, pch);
+						}
+					}
+
+
+					//strcpy(command, "DOCUMENT TO BLOB(\"");
+					strncpy(command, cName, sizeof(command));
+					strcat(command, "(\"");
+					strcat(command, fileName2);
+					strcat(command, "\";xTWAINBLOB)");
+
+				
+
+					// REB 4/20/11 #27322 Conver the C string to a Unistring
+					Unistring = CStringToUnistring(&command);
+					PA_ExecuteMethod(&Unistring);
+					PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
+					//PA_ExecuteMethod(command, strlen(command));
+
+					DeleteFile(fileName); // WJF 9/21/15 #43940 Moved to loop
+				}
 			}
 			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
 			{ // WJF 6/29/15 #42792 Changed this to be like the above section because of a memory leak with varArray[0]. Now users will have to pass the name of the blob as text.
@@ -4824,7 +4931,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 				free(twainBlob); */
 			}
-			DeleteFile(fileName);
+			
 		}
 	}
 

@@ -2998,6 +2998,11 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	OSVERSIONINFOEX		osvinfo;
 	LONG_PTR			returnValue = 0;
 	char				servicePackInfo[255] = "";
+	char				filePath[MAX_PATH] = "";
+	FILE				*fp = NULL;
+	char				utilitiesPath[MAX_PATH] = "";
+	char				*pos = NULL;
+	char				osVer[16] = "";
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx(&osvinfo);
@@ -3050,6 +3055,33 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		if (IsWindows8Point1OrGreater())
 		{
 			returnValue = OS_WIN81;
+		}
+
+		// WJF 9/21/15 #43601 Windows 10 Handling
+		GetTempPath(MAX_PATH, filePath);
+
+		strcat_s(filePath, MAX_PATH, "osVersion.txt");
+
+		strcpy_s(utilitiesPath, MAX_PATH, pathName);
+
+		pos = strrchr(utilitiesPath, '\\');
+
+		strcpy_s(pos, MAX_PATH, "orchard_utilities.exe");
+
+		ShellExecute(windowHandles.fourDhWnd, "", utilitiesPath, "-os", NULL, SW_HIDE);
+
+		if (GetLastError() == ERROR_SUCCESS){
+			utilitiesYield(filePath);
+
+			fp = fopen(filePath, "r");
+
+			if (fp){
+				fgets(osVer, 16, fp);
+
+				if (strcmp(osVer, "1000") == 0){
+					returnValue == OS_WIN10;
+				}
+			}
 		}
 
 		if (IsWindowsServer())
@@ -4214,7 +4246,7 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 }
 
 
-
+// Note, this does not need to use the semaphore since it is already waiting on a file
 void TWAIN_GetSources(PA_PluginParameters params)
 {
 
@@ -4222,7 +4254,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	DWORD				index = 1;
 	PA_Variable			atSources;
 	// TW_IDENTITY			NewSourceId; // WJF 9/14/15 #43727 Removed
-	char				lpParameters[3] = "-S";
+	char				lpParameters[16] = "-S"; // WJF 9/21/15 #43940 3 -> 16
 	char				filePath[MAX_PATH] = "";
 	BOOL				get64 = FALSE;
 	FILE				*fp = NULL;
@@ -4249,18 +4281,19 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	strcpy(pos, "\\\0");
 
+	// WJF 9/21/15 #43940 OrchardTwain -> Orchard_Utilities
 	if (get64){
-		strcpy_s(pos, MAX_PATH, "\\Windows64\\OrchardTwain64.exe");
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\Orchard_Utilities.exe");
 	}
 	else {
-		strcpy_s(pos, MAX_PATH, "\\Windows\\OrchardTwain32.exe");
+		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
 	}
 		
 	GetTempPath(MAX_PATH, filePath);
 
 	strcat_s(filePath, MAX_PATH, "twainSources.txt");
 
-	ShellExecuteA(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
+	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
 	if (GetLastError() == ERROR_SUCCESS){
 		PA_YieldAbsolute();
@@ -4285,6 +4318,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 					// do nothing
 				}
 				else { // Valid Product Name
+					strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
 					PA_ResizeArray(&atSources, index);
 					PA_SetTextInArray(atSources, index, source, strlen(source));
 					++index;
@@ -4297,9 +4331,44 @@ void TWAIN_GetSources(PA_PluginParameters params)
 			fp = NULL;
 
 			DeleteFile(filePath);
+
+			// WJF 9/21/15 #43940 Begin Changes
+			GetTempPath(MAX_PATH, filePath);
+
+			strcat_s(filePath, MAX_PATH, "wiaSources.txt");
+
+			strcpy_s(lpParameters, 16, "-ws");
+
+			ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
+
+			if (GetLastError() == ERROR_SUCCESS){
+				PA_YieldAbsolute();
+				PA_YieldAbsolute();
+				PA_YieldAbsolute();
+
+				utilitiesYield(filePath); // WJF 9/21/15 #43601 Moved to common method
+
+				fp = fopen(filePath, "r");
+
+				if (fp){
+					while (fgets(source, 256, fp) != NULL){
+						if (strcmp(source, "") != 0){
+							strcat_s(source, 256, "-WIA");
+							PA_ResizeArray(&atSources, index);
+							PA_SetTextInArray(atSources, index, source, strlen(source));
+							++index;
+						}
+
+					}
+				}
+			}
+			else {
+				returnValue = -1;
+			}
+			// WJF 9/21/15 #43940 End changes
 		}
 		else {
-			returnValue = 0;
+			returnValue = -2; // WJF 9/21/15 #43940 0 -> -2
 		}
 	}
 	// Removed
@@ -4395,6 +4464,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 	char *pos = NULL;
 	FILE *fp = NULL;
 	long returnValue = 1;
+	BOOL bIsWIA = FALSE;
 
 	strcpy_s(pluginPath, MAX_PATH, pathName);
 
@@ -4407,12 +4477,25 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 	strcpy(pos, "\\\0");
 
 	if (Get64){
-		strcpy_s(pos, MAX_PATH, "\\Windows64\\OrchardTwain64.exe");
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\Orchard_Utilities.exe");
 	}
 	else {
-		strcpy_s(pos, MAX_PATH, "\\Windows\\OrchardTwain32.exe");
+		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
 	}
+	
+	if (twainSource){
+		pos = NULL;
+		pos = strstr(twainSource, "-TWAIN");
 
+		if (!pos){
+			pos = strstr(twainSource, "-WIA");
+
+			if (pos){
+				bIsWIA = TRUE;
+			}
+		}
+	}
+	
 	strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
 
 	strcat_s(lpParameters, MAX_PATH_PLUS, filePath);
@@ -4432,29 +4515,96 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI){
 		}
 	}
 
-	strncpy_s(filePathLock, MAX_PATH_PLUS, filePath, strlen(filePath) - 4);
+	utilitiesLock(); // WJF 9/21/15 #43601 Moved to common method
 
-	strcat(filePathLock, ".lock.txt\0");
+	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
 
-	fp = fopen(filePathLock, "a"); // The Twain DLL will delete this file
-
-	if (fp){ // Locked file path is messed up, which means the regular file path is messed up. ABORT.
-		fprintf(fp, "Locked\n");
-
-		fclose(fp);
-
-		ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
-
-		if (GetLastError() == ERROR_SUCCESS){
-			while ((GetFileAttributes(filePathLock) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the TWAIN operation is completed
-				Sleep(100);
-			}
-		}
+	if (GetLastError() == ERROR_SUCCESS){
+		utilitiesSleep(NULL); // WJF 9/21/15 #43601 Moved to common method
 
 		returnValue = 0;
 	}
 
 	return returnValue;
+}
+
+//  FUNCTION:	utilitiesLock()
+//
+//  PURPOSE:	Creates the semaphore for the orchard_utilties application
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesLock(){
+	char lockPath[MAX_PATH] = "";
+	FILE *fp = NULL;
+
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	fp = fopen(lockPath, "w");
+
+	if (fp){
+		fprintf(fp, "Locked\n");
+
+		fclose(fp);
+
+		fp = NULL;
+	}
+
+}
+
+//  FUNCTION:	utilitiesSleep()
+//
+//  PURPOSE:	Waits until the utilities application semaphore is cleared
+//
+//  COMMENTS:	Use this when NOT in the main Win32API thread
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesSleep(const char * filePath){
+	char lockPath[MAX_PATH] = "";
+	
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	if (filePath){
+		while ((GetFileAttributes(filePath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			Sleep(100);
+		}
+	}
+	else {
+		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			Sleep(100);
+		}
+	}
+}
+
+//  FUNCTION:	utilitiesYield()
+//
+//  PURPOSE:	Waits until the utilities application semaphore is cleared
+//
+//  COMMENTS:	Use this when in the main Win32API thread
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesYield(const char * filePath){
+	char lockPath[MAX_PATH] = "";
+
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	if (filePath){
+		while ((GetFileAttributes(filePath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			PA_YieldAbsolute();
+		}
+	}
+	else {
+		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			PA_YieldAbsolute();
+		}
+	}
 }
 
 // REB 2/26/13 #35165 Intermediary method we can call as a new thread.

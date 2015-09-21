@@ -234,4 +234,9 @@ DWORD handleArray_remove(PA_PluginParameters params);
 DWORD handleArray_free(PA_PluginParameters params);
 HWND  handleArray_retrieve(DWORD hWndIndex);
 
+// WJF 9/21/15 #43601
+void utilitiesLock(void); 
+void utilitiesSleep(const char * filePath);
+void utilitiesYield(const char * filePath);
+
 #endif // __4DPLUGING_H__

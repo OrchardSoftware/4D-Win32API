@@ -3049,9 +3049,10 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	}
 	else
 	{
+		// WJF 9/22/15 #43601 Moved all version helper API calls to Orchard Utilities
 		// AMS2 12/17/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
 		// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-		if (IsWindows8OrGreater())
+		/*if (IsWindows8OrGreater())
 		{
 			returnValue = OS_WIN8;
 		}
@@ -3059,9 +3060,9 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		if (IsWindows8Point1OrGreater())
 		{
 			returnValue = OS_WIN81;
-		}
+		}*/
 
-		// WJF 9/21/15 #43601 Windows 10 Handling
+		// WJF 9/21/15 #43601 Calling Orchard Utilities because it supports Windows 10 detection
 		GetTempPath(MAX_PATH, filePath);
 
 		strcat_s(filePath, MAX_PATH, "osVersion.txt");
@@ -3082,16 +3083,15 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 			if (fp){
 				fgets(osVer, 16, fp);
 
-				if (strcmp(osVer, "1000") == 0){
-					returnValue == OS_WIN10;
-				}
+				returnValue = atoi(osVer);
 			}
 		}
 
-		if (IsWindowsServer())
+		// WJF 9/22/15 #43601 Removed
+		/*if (IsWindowsServer())
 		{
 			++returnValue; // Server version numbers are the same as the OS version number but are incremented by one
-		}
+		}*/
 	}
 
 	if (!bInternalCall) {

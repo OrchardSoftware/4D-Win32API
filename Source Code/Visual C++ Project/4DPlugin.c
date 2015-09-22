@@ -4718,6 +4718,8 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	BOOL			wiaMode = FALSE; // WJF 9/21/15 #43940
 	BOOL			getMultiple = FALSE; // WJF 9/21/15 #43940
 	char			fileName3[255] = ""; // WJF 9/21/15 #43940
+	char			cName2[256] = ""; // WJF 9/21/15 #43940
+	char			command2[256] = ""; // WJF 9/21/15 #43940
 
 	showDialog = PA_GetLongParameter(params, 1);
 
@@ -4809,6 +4811,8 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 			returnValue = 1;
 
+			strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
+
 			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
 
@@ -4830,8 +4834,6 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				}
 
 				cName[(strlen(cName))] = '\0';
-
-				strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
 
 				for (int i = 0; i < TWAINCapture.numPictures; i++){// WJF 9/21/15 #43940 
 					pch = fileName;
@@ -4859,20 +4861,53 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						}
 					}
 
+					if (getMultiple){ // WJF 9/22/15 #43940
+						//strcpy(command, "DOCUMENT TO BLOB(\"");
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTempTWAINBlob)"); 
 
-					//strcpy(command, "DOCUMENT TO BLOB(\"");
-					strncpy(command, cName, sizeof(command));
-					strcat(command, "(\"");
-					strcat(command, fileName2);
-					strcat(command, "\";xTWAINBLOB)");
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring); 
 
-				
+						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
 
-					// REB 4/20/11 #27322 Conver the C string to a Unistring
-					Unistring = CStringToUnistring(&command);
-					PA_ExecuteMethod(&Unistring);
-					PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
-					//PA_ExecuteMethod(command, strlen(command));
+						j = 0;
+
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
+						for (int k = 0; k < sizeof(cmdName); k++)
+						{
+							if (cmdName[k] != '\0')
+							{
+								cName2[j] = cmdName[k];
+								j++;
+							}
+						}
+
+						strcpy_s(command2, 255, cName2);
+						strcat_s(command2, 255, "(xTempTWAINBlob;xTWAINBlob;*)");
+
+						Unistring = CStringToUnistring(&command2);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+					}
+					else {
+						//strcpy(command, "DOCUMENT TO BLOB(\"");
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTWAINBLOB)");
+
+						// REB 4/20/11 #27322 Conver the C string to a Unistring
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
+						//PA_ExecuteMethod(command, strlen(command));
+					}
 
 					DeleteFile(fileName); // WJF 9/21/15 #43940 Moved to loop
 				}
@@ -4897,7 +4932,85 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				strncpy(command, cName, sizeof(command));
+				// WJF 9/21/15 #43940 
+				for (int i = 0; i < TWAINCapture.numPictures; i++){
+					pch = fileName;
+
+					strcpy_s(fileName, 255, fileName3);
+					charPos = strrchr(fileName, '.');
+					_itoa(i + 1, iterator, 10);
+					strcpy_s(charPos, 255, iterator);
+					strcat_s(fileName, 255, ".bmp");
+					strcpy_s(fileName2, 255, "");
+
+					charPos = strchr(fileName, '\\');
+					while (charPos != NULL){
+						strncat(fileName2, pch, (charPos - pch));
+						pch = charPos;
+						charPos = strchr((charPos + 1), '\\');
+						if (charPos != NULL){
+							strcat(fileName2, "\\");
+						}
+						else{
+							// add the remainder of fileName to fileName2.
+							strcat(fileName2, "\\");
+							strcat(fileName2, pch);
+						}
+					}
+
+					if (getMultiple){ 
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTempTWAINBlob)");
+
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
+
+						j = 0;
+
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
+						for (int k = 0; k < sizeof(cmdName); k++)
+						{
+							if (cmdName[k] != '\0')
+							{
+								cName2[j] = cmdName[k];
+								j++;
+							}
+						}
+
+						strcpy_s(command2, 255, cName2);
+						strcat_s(command2, 255, "(xTempTWAINBlob;");
+						strcat_s(command2, 255, BLOB);
+						strcat_s(command2, 255, ";*)");
+
+						Unistring = CStringToUnistring(&command2);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+					}
+					else {
+						strcpy_s(command, 255, cName);
+						strcat_s(command, 255, "(\"");
+						strcat_s(command, 255, fileName2);
+						strcat_s(command, 255, "\";");
+						strcat_s(command, 255, BLOB);
+						strcat_s(command, 255, ")");
+
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+					}
+
+					DeleteFile(fileName);
+				}
+
+				// WJF 9/22/15 #43940 Removed
+				/*strncpy(command, cName, sizeof(command));
 				strcat(command, "(\"");
 				strcat(command, fileName2);
 				strcat(command, "\";");
@@ -4906,7 +5019,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				Unistring = CStringToUnistring(&command);
 				PA_ExecuteMethod(&Unistring);
-				PA_DisposeUnistring(&Unistring);
+				PA_DisposeUnistring(&Unistring);*/
 
 				/*PA_Unistring _path = CStringToUnistring(fileName);
 				PA_Variable varArray[2];

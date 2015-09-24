@@ -4482,6 +4482,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	char *pos = NULL;
 	FILE *fp = NULL;
 	long returnValue = 1;
+	char sourceName[256] = "";
 	
 	strcpy_s(pluginPath, MAX_PATH, pathName);
 
@@ -4513,8 +4514,10 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 			}
 		}
 
+		// WJF 9/24/15 #43940 
+		strcpy_s(sourceName, 256, twainSource); 
 		pos = NULL;
-		pos = strrchr(twainSource, '-');
+		pos = strrchr(sourceName, '-');
 
 		if (pos){
 			strcpy_s(pos, MAX_PATH, "\0");
@@ -4545,9 +4548,9 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	}
 
 	if (twainSource){
-		if (strcmp(twainSource, "") != 0){
+		if (strcmp(sourceName, "") != 0){
 			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
-			strcat_s(lpParameters, MAX_PATH_PLUS, twainSource);
+			strcat_s(lpParameters, MAX_PATH_PLUS, sourceName);
 			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
 		}
 	}

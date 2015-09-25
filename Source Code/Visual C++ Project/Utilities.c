@@ -176,7 +176,7 @@ void PA_SetTextInArray(PA_Variable array4D, LONG_PTR index, char* text, LONG_PTR
 
 		PA_SetStringInArray (array4D, index, &UnistringText);
 
-		free(translatedText); // WJF 6/4/15 #42792
+		// free(translatedText); // WJF 6/4/15 #42792 // WJF 9/25/15 #43733 Removed cause this could cause a crash 
 	}
 
 }

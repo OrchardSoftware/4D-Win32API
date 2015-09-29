@@ -4434,9 +4434,15 @@ void TWAIN_SetSource(PA_PluginParameters params)
 		twainSource = NULL;
 	}
 
-	twainSource = (char *)malloc(source_len+1);
+	twainSource = (char *)malloc(source_len + 1);
 
-	strcpy_s(twainSource, source_len+1, sourceName);
+	// WJF 9/29/15 Added a check to see if it was actually allocated and a new error code
+	if (twainSource){
+		strcpy_s(twainSource, source_len + 1, sourceName);
+	}
+	else { 
+		returnValue = 0;
+	}
 
 	// Removed
 	/* 

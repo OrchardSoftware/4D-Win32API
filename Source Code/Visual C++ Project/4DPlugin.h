@@ -135,6 +135,8 @@ void gui_TakeScreenshot(PA_PluginParameters params); // WJF 7/7/15 #43138
 void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd); // WJF 9/15/15 #43731
 void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
 void gui_SetForegroundWindow(PA_PluginParameters params); // WJF 9/16/15 #43929
+void gui_GetForegroundWindow(PA_PluginParameters params); // WJF 10/16/15 Win-3
+void gui_SetActiveWindowEx(PA_PluginParameters params); // WJF 10/16/15 Win-3
 
 // ----- Other modules -------
 //window background-related

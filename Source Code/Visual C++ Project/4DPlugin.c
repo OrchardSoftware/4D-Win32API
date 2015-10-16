@@ -863,6 +863,14 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 		// WJF 9/16/15 #43731 End Ex function calls
 
+	case 129:
+		gui_GetForegroundWindow(params, TRUE); // WJF 10/16/15 Win-3
+		break;
+
+	case 130:
+		gui_SetActiveWindowEx(params, TRUE); // WJF 10/16/15 Win-3
+		break;
+
 	}
 
 }
@@ -6892,6 +6900,47 @@ void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
 
 	if (bResult){
 		returnValue = 1;
+	}
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_GetForegroundWIndow (PA_PluginParameters params)
+//
+//  PURPOSE:	Returns the window handle of the active foreground window
+//
+//  COMMENTS:   Debugging purposes for now
+//
+//	DATE:		WJF 10/16/15 Win-3
+void gui_GetForegroundWindow(PA_PluginParameters params){
+	HWND	hWnd = NULL;
+
+	hWnd = GetForegroundWindow();
+
+	PA_ReturnLong(params, (long)hWnd);
+}
+
+//  FUNCTION:	gui_GetForegroundWIndow (PA_PluginParameters params)
+//
+//  PURPOSE:	Activates the specified window
+//
+//  COMMENTS:   Debugging purposes for now
+//
+//	DATE:		WJF 10/16/15 Win-3
+void gui_SetActiveWindowEx(PA_PluginParameters params){
+	DWORD index = 0;
+	HWND hWnd = NULL;
+	LONG returnValue = 0;
+
+	index = PA_GetLongParameter(params, 1);
+
+	hWnd = handleArray_retrieve(index);
+
+	if (IsWindow(hWnd)){
+		if (IsWindow(SetActiveWindow(hWnd))){
+			returnValue = 1;
+		}
+
 	}
 
 	PA_ReturnLong(params, returnValue);

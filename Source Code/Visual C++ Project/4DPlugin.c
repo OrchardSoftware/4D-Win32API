@@ -864,13 +864,12 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		// WJF 9/16/15 #43731 End Ex function calls
 
 	case 129:
-		gui_GetForegroundWindow(params, TRUE); // WJF 10/16/15 Win-3
+		gui_GetForegroundWindow(params); // WJF 10/16/15 Win-3
 		break;
 
 	case 130:
-		gui_SetActiveWindowEx(params, TRUE); // WJF 10/16/15 Win-3
+		gui_SetFocusEx(params); // WJF 10/19/15 Win-3
 		break;
-
 	}
 
 }
@@ -6917,31 +6916,44 @@ void gui_GetForegroundWindow(PA_PluginParameters params){
 
 	hWnd = GetForegroundWindow();
 
-	PA_ReturnLong(params, (long)hWnd);
+	PA_SetLongParameter(params, 1, (LONG)hWnd);
+
+	if (hWnd){
+		PA_ReturnLong(params, 0);
+	}
+	else {
+		PA_ReturnLong(params, 1);
+	}
 }
 
-//  FUNCTION:	gui_GetForegroundWIndow (PA_PluginParameters params)
+//  FUNCTION:	gui_SetFocusEx (PA_PluginParameters params)
 //
-//  PURPOSE:	Activates the specified window
+//  PURPOSE:	Sets the focus to the specified window
 //
-//  COMMENTS:   Debugging purposes for now
+//  COMMENTS:   
 //
-//	DATE:		WJF 10/16/15 Win-3
-void gui_SetActiveWindowEx(PA_PluginParameters params){
-	DWORD index = 0;
+//	DATE:		WJF 10/19/15 Win-3
+void gui_SetFocusEx(PA_PluginParameters params){
 	HWND hWnd = NULL;
-	LONG returnValue = 0;
+	DWORD index = 0;
+	DWORD targetThread = 0;
+	DWORD thisThread = 0;
+	LONG error = 1;
 
 	index = PA_GetLongParameter(params, 1);
 
 	hWnd = handleArray_retrieve(index);
 
 	if (IsWindow(hWnd)){
-		if (IsWindow(SetActiveWindow(hWnd))){
-			returnValue = 1;
+		thisThread = GetCurrentThreadId();
+		targetThread = GetWindowThreadProcessId(hWnd, 0);
+		
+		if (AttachThreadInput(thisThread, targetThread, TRUE)){
+			SetFocus(hWnd);
+			AttachThreadInput(thisThread, targetThread, FALSE);
+			error = 0;
 		}
-
 	}
 
-	PA_ReturnLong(params, returnValue);
+	PA_ReturnLong(params, error);
 }

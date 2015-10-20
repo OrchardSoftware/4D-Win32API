@@ -6948,7 +6948,11 @@ void gui_SetFocusEx(PA_PluginParameters params){
 		thisThread = GetCurrentThreadId();
 		targetThread = GetWindowThreadProcessId(hWnd, 0);
 		
-		if (AttachThreadInput(thisThread, targetThread, TRUE)){
+		if (thisThread == targetThread){
+			SetFocus(hWnd);
+			error = 0;
+		}
+		else if (AttachThreadInput(thisThread, targetThread, TRUE)){
 			SetFocus(hWnd);
 			AttachThreadInput(thisThread, targetThread, FALSE);
 			error = 0;

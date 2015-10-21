@@ -864,10 +864,6 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		// WJF 9/16/15 #43731 End Ex function calls
 
 	case 129:
-		gui_GetForegroundWindow(params); // WJF 10/16/15 Win-3
-		break;
-
-	case 130:
 		gui_SetFocusEx(params); // WJF 10/19/15 Win-3
 		break;
 	}
@@ -6902,28 +6898,6 @@ void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
 	}
 
 	PA_ReturnLong(params, returnValue);
-}
-
-//  FUNCTION:	gui_GetForegroundWIndow (PA_PluginParameters params)
-//
-//  PURPOSE:	Returns the window handle of the active foreground window
-//
-//  COMMENTS:   Debugging purposes for now
-//
-//	DATE:		WJF 10/16/15 Win-3
-void gui_GetForegroundWindow(PA_PluginParameters params){
-	HWND	hWnd = NULL;
-
-	hWnd = GetForegroundWindow();
-
-	PA_SetLongParameter(params, 1, (LONG)hWnd);
-
-	if (hWnd){
-		PA_ReturnLong(params, 0);
-	}
-	else {
-		PA_ReturnLong(params, 1);
-	}
 }
 
 //  FUNCTION:	gui_SetFocusEx (PA_PluginParameters params)

@@ -7,7 +7,7 @@
 // define compiler directive for the two supported platforms : 
 // Windows and Mac PPC/Intel
 //
-// rev : v12.0
+// rev : v13
 //
 // ---------------------------------------------------------------
 
@@ -35,6 +35,10 @@
 		#define PA_SMALLENDIAN 0
 		#define PA_BIGENDIAN 1
 	#endif 
+
+    #undef PA_64BITS_ARCHITECTURE
+    #define PA_64BITS_ARCHITECTURE __LP64__
+
 #else
 	#error "architecture not supported"
 #endif

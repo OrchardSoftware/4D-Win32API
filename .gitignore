@@ -1,3 +1,21 @@
+*.sdf
+Source Code/Visual C++ Project/Win32API.opensdf
+*.suo
+*.obj
+*.sbr
+*.res
+*.tlog
+Source Code/Visual C++ Project/Win32API/bin/Debug/Win32API.4DX
+*.pdb
+*.idb
+Source Code/Visual C++ Project/Objs/Debug/Win32API.bsc
+Source Code/Visual C++ Project/Objs/Debug/Win32API.lib
+*.exp
+Source Code/Visual C++ Project/Objs/Debug/Win32API.log
+*.log
+Source Code/Visual C++ Project/Win32API/bin/Debug (64-Bit)/Win32API.4DX
+Source Code/Visual C++ Project/Win32API.vcxproj.user
+=======
 *.tlog
 Source Code/Visual C++ Project/Win32API/bin/Debug/Win32API.4DX
 *.sbr

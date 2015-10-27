@@ -37,23 +37,23 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
 
 // --- Win32API Commands
 void gui_GetWindow( PA_PluginParameters params, HWND hWnd );
-void gui_GetWndRect( PA_PluginParameters params );
-void gui_SetWndRect( PA_PluginParameters params );
-void gui_ShowWindow( PA_PluginParameters params );
+void gui_GetWndRect( PA_PluginParameters params, BOOL isEx );
+void gui_SetWndRect(PA_PluginParameters params, BOOL isEx);
+void gui_ShowWindow(PA_PluginParameters params, BOOL isEx);
 void sys_GetUserName( PA_PluginParameters params );
-void gui_SetWindowTitle( PA_PluginParameters params );
+void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx);
 void sys_IsMultiByte( PA_PluginParameters params );
-void gui_DisableCloseBox( PA_PluginParameters params );
-void gui_SetWindowLong( PA_PluginParameters params );
+void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx);
+void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx);
 void gui_WinHelp( PA_PluginParameters params );
 void sys_GetDefPrinter( PA_PluginParameters params );
 void sys_SetDefPrinter( PA_PluginParameters params );
 void sys_EnumPrinters( PA_PluginParameters params );
-void gui_DelMenuItem( PA_PluginParameters params );
+void gui_DelMenuItem( PA_PluginParameters params, BOOL isEx );
 void gui_GetOpenFileName( PA_PluginParameters params );
 void gui_GetSaveFileName( PA_PluginParameters params );
-void gui_LoadIcon( PA_PluginParameters params );
-void gui_SetIcon( PA_PluginParameters params );
+void gui_LoadIcon( PA_PluginParameters params, BOOL isEx);
+void gui_SetIcon(PA_PluginParameters params, BOOL isEx);
 void gui_GetWindowFrom4DWin( PA_PluginParameters params );
 void sys_GetRegionSettings( PA_PluginParameters params, BOOL arraySupplied );
 void sys_GetTimeZone( PA_PluginParameters params );
@@ -61,7 +61,7 @@ void sys_GetUTCOffset( PA_PluginParameters params );
 void gui_GetDisplayFontDPI( PA_PluginParameters params);
 void sys_GetPrintJob( PA_PluginParameters params ); // added 7/16/01 -- rewritten 10/23/01
 void sys_GetGUID( PA_PluginParameters params ); //added 7/30/01
-void gui_FlashWindow( PA_PluginParameters params ); //added 08/04/01 filled unused case (10)
+void gui_FlashWindow( PA_PluginParameters params, BOOL isEx ); //added 08/04/01 filled unused case (10)
 void sys_GetRoutes ( PA_PluginParameters params ); //added 08/08/01
 void sys_GetNetworkInfo( PA_PluginParameters params ); //added 08/09/01
 LONG_PTR sys_GetOSVersion( BOOL bInternalCall, PA_PluginParameters params ); //added as plugin call 0828/01 was internal only
@@ -70,17 +70,17 @@ void sys_GetWindowMetrics( PA_PluginParameters params ); // added 11/09/01
 void gui_LoadBackground( PA_PluginParameters params, BOOL DeInit ); // added 11/09/01
 void sys_SetClientTime( PA_PluginParameters params ); // added 11/30/01
 void sys_SetClientDate( PA_PluginParameters params ); //added 11/30/01
-void gui_ToolTipCreate( PA_PluginParameters params ); // added 12/06/01
-void gui_ToolTipShowOnObject( PA_PluginParameters params ); // added 12/17/01
+void gui_ToolTipCreate(PA_PluginParameters params, BOOL isEx); // added 12/06/01
+void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx); // added 12/17/01
 void gui_ToolTipShowOnCoord( PA_PluginParameters params ); // added 12/17/01
 void gui_ToolTipHide( PA_PluginParameters params ); // added 12/17/01
 void gui_ToolTipDestroyControl( PA_PluginParameters params ); // added 12/17/01
 void gui_SetTrayIcon( PA_PluginParameters params ); // added/revised 12/18/01
 void sys_FileCheck( PA_PluginParameters params ); //added 01/08/02
 void sys_GetCommandLine( PA_PluginParameters params ); //added 04/02/02
-void gui_GetWindowStyle	( PA_PluginParameters params ); //added 07/18/02
-void gui_RestrictWindow( PA_PluginParameters params ); //added 07/15/02
-void gui_GetWindowState( PA_PluginParameters params ); // added 07/22/02
+void gui_GetWindowStyle(PA_PluginParameters params, BOOL isEx); //added 07/18/02
+void gui_RestrictWindow(PA_PluginParameters params, BOOL isEx); //added 07/15/02
+void gui_GetWindowState(PA_PluginParameters params, BOOL isEx); // added 07/22/02
 void gui_SubClassInit( PA_PluginParameters params ); // added 07/26/02
 void sys_ShellExecute( PA_PluginParameters params ); // added 08/21/02
 void sys_IsAppLoaded( PA_PluginParameters params ); // added 08/22/02
@@ -107,7 +107,7 @@ void sys_LogonUser(PA_PluginParameters params); // MWD 1/8/07 #6982
 void sys_GetTimeZoneList( PA_PluginParameters params ); // REB 4/6/09 #19472
 void TWAIN_GetSources ( PA_PluginParameters params ); //REB 6/23/09 #14151
 void TWAIN_SetSource( PA_PluginParameters params ); // REB 6/23/09 #14151
-void TWAIN_AcquireImage( PA_PluginParameters params ); // REB 6/23/09 #14151
+void TWAIN_AcquireImage( PA_PluginParameters params ); // REB 6/23/09 #14151 
 void sys_IsAppFrontmost( PA_PluginParameters params ); // REB 8/21/09
 void gui_MessageBox (PA_PluginParameters params); // DJD 2008-09-12
 void gui_HideTaskBar (PA_PluginParameters params); // REB 1/8/10 #22389
@@ -132,6 +132,10 @@ void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void gui_TakeScreenshot(PA_PluginParameters params); // WJF 7/7/15 #43138
+void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd); // WJF 9/15/15 #43731
+void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
+void gui_SetForegroundWindow(PA_PluginParameters params); // WJF 9/16/15 #43929
+void gui_SetFocusEx(PA_PluginParameters params); // WJF 10/19/15 Win-3
 
 // ----- Other modules -------
 //window background-related
@@ -214,5 +218,26 @@ BOOL CALLBACK TerminateClean(HWND hWnd, LPARAM lparam); // MWD 1/8/07 #5421
 
 // REB 2/26/13 #35165
 unsigned __stdcall TWAIN_GetImage (void *);
+
+// WJF 9/10/15 #43727
+long __stdcall OrchTwain_Get(LPCSTR filePath, BOOL Get64, BOOL ShowUI, BOOL IsWIA, BOOL GetMultiple); // WJF 9/21/15 #43940 Added IsWIA and GetMultiple
+
+char * twainSource; // WJF 9/11/15 #43727 Since the TWAIN functionality is separate from Win32API, let's just hold on to the source name instead of trying to keep the source open
+
+// WJF 9/1/15 #43731 Handle Array Declarations
+LONG_PTR handleArray[HANDLEARRAY_CAPACITY];
+
+HANDLE hArrayMutex;
+
+DWORD handleArray_init();
+DWORD handleArray_add(LONG_PTR handle);
+DWORD handleArray_remove(PA_PluginParameters params);
+DWORD handleArray_free(PA_PluginParameters params);
+HWND  handleArray_retrieve(DWORD hWndIndex);
+
+// WJF 9/21/15 #43601
+void utilitiesLock(void); 
+void utilitiesSleep(const char * filePath);
+void utilitiesYield(const char * filePath);
 
 #endif // __4DPLUGING_H__

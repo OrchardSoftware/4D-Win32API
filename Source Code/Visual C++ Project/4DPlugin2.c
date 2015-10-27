@@ -97,24 +97,32 @@ void sys_FileCheck( PA_PluginParameters params )
 //
 //	DATE:			dcc 12/17/01 
 //
-void gui_ToolTipCreate( PA_PluginParameters params )
+void gui_ToolTipCreate( PA_PluginParameters params, BOOL isEx )
 {
 	LONG_PTR									style = TT_BALLOON, returnValue = 0;
 	LONG_PTR									uId = 0;
 	LONG_PTR*									puId = &uId;
-	INITCOMMONCONTROLSEX	iccex;
-	HWND									hwndTT, hwndTarget;
-	HINSTANCE							hAppInst;
-	DWORD									dwStyle = WS_POPUP | TTS_ALWAYSTIP;
+	INITCOMMONCONTROLSEX						iccex;
+	HWND										hwndTT, hwndTarget;
+	HINSTANCE									hAppInst;
+	DWORD										dwStyle = WS_POPUP | TTS_ALWAYSTIP;
+	LONG_PTR									hWndIndex = 0;
 
 	if(GetDllVersion(TEXT("Comctl32.dll")) < PACKVERSION(4,70)) {
    	PA_ReturnLong( params, 0 );
 		return;
 	}
 
-	style				= PA_GetLongParameter( params, 1 ); 
-	hwndTarget	= (HWND)PA_GetLongParameter( params, 2 ); // optionally supplied if tool tip 
+	style = PA_GetLongParameter( params, 1 ); 
+	hWndIndex = PA_GetLongParameter(params, 2); // optionally supplied if tool tip // WJF 9/1/15 #43731 We are now getting an index to an internal array
 						// to be associated with window not having focus
+
+	if (isEx){ // WJF 9/16/15 #43731
+		hwndTarget = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hwndTarget = (HWND)hWndIndex;
+	}
 
 	if (hwndTarget == 0) {
 		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
@@ -178,22 +186,23 @@ void gui_ToolTipCreate( PA_PluginParameters params )
 //        
 //	DATE:			dcc 12/17/01 
 //
-void gui_ToolTipShowOnObject( PA_PluginParameters params )
+void gui_ToolTipShowOnObject( PA_PluginParameters params , BOOL isEx)
 {
-	LONG_PTR									cx = 0, cy = 0, returnValue = 0, location = 0, freeStack = 0;
+	LONG_PTR								cx = 0, cy = 0, returnValue = 0, location = 0, freeStack = 0;
 	HWND									hwndTarget;
-	TOOLINFO							toolInfo;
-	LONG_PTR									uId = 0, howToClose = 0, sendMsgReturn;
-	LONG_PTR*									puId = &uId;
+	TOOLINFO								toolInfo;
+	LONG_PTR								uId = 0, howToClose = 0, sendMsgReturn;
+	LONG_PTR*								puId = &uId;
 	char									paramMessage[255], title[255], method[80]; // REB 8/1/08 #17556 Increased size of title from 40 to 255.
-	LPTSTR								lpTitle = title;
-	LONG_PTR									paramMessage_len	= strlen(paramMessage);
-	LONG_PTR									title_len					= strlen(title);
-	LONG_PTR									method_len				= strlen(method);
-	LPTSTR								lpParamMessage		= paramMessage;
+	LPTSTR									lpTitle = title;
+	LONG_PTR								paramMessage_len = strlen(paramMessage);
+	LONG_PTR								title_len = strlen(title);
+	LONG_PTR								method_len = strlen(method);
+	LPTSTR									lpParamMessage = paramMessage;
 	RECT									rect;
-	LONG_PTR									left, top, right, bottom, balloonWidth, icon = 0, captionHeight, frameHeight;
-	PA_Variable						PALeft, PATop, PARight, PABottom;
+	LONG_PTR								left, top, right, bottom, balloonWidth, icon = 0, captionHeight, frameHeight;
+	PA_Variable								PALeft, PATop, PARight, PABottom;
+	BOOL									IsHandle = FALSE;
 
 	if ((sIsPriorTo67)) { // does not work with 6.5 plugin
 		PA_ReturnLong( params,  -1 );
@@ -216,6 +225,7 @@ void gui_ToolTipShowOnObject( PA_PluginParameters params )
 	right							= PA_GetLongParameter( params, 9 );
 	bottom						= PA_GetLongParameter( params, 10 );
 	balloonWidth			= PA_GetLongParameter( params, 11 ); // ignore setting if zero
+	IsHandle = PA_GetLongParameter(params, 12); // WJF 9/1/15 #43731
 
 	if ((left == 0) && (top == 0) && (right == 0) && (bottom == 0)) {
 		//check for process variables used in Get Object Rect in4D
@@ -234,11 +244,16 @@ void gui_ToolTipShowOnObject( PA_PluginParameters params )
 		PA_ReturnLong( params, 0 );
 		return;
 	}
-	if (uId <= 500) {  //uId's that are less than 500 it is assumed target
+	if (!IsHandle) {  //uId's that are less than 500 it is assumed target // WJF 9/1/15 #43731 Assumptions don't work anymore becase we are now using an internal array for handles and are passing back an index. This index will be less than 500.
 			// window is window with focus
 		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
 	} else {
-		hwndTarget = (HWND)uId;
+		if (isEx) { // WJF 9/16/15 #43731 
+			hwndTarget = handleArray_retrieve((DWORD)uId); 
+		}
+		else {
+			hwndTarget = (HWND)uId;
+		}
 	}
 	toolInfo.cbSize		= sizeof(toolInfo);
 	toolInfo.uFlags		= TTF_ABSOLUTE | TTF_TRACK; 
@@ -817,17 +832,26 @@ void sys_GetWindowMetrics( PA_PluginParameters params )
 //
 //	DATE:			dcc 08/04/01 
 // 
-void gui_FlashWindow( PA_PluginParameters params)
+void gui_FlashWindow( PA_PluginParameters params, BOOL isEx)
 {
+	LONG_PTR				hWndIndex;
 	HWND					hWnd;
 	DWORD					flags;
-	LONG_PTR					returnValue = 0, flashCount, flashRate;
-	FLASHWINFO		fwi;
-	PFLASHWINFO		pfwi = &fwi;
-	LPFNDLLFUNC1	lpfnDllFunc1;
-	HINSTANCE			hDLL;
+	LONG_PTR				returnValue = 0, flashCount, flashRate;
+	FLASHWINFO				fwi;
+	PFLASHWINFO				pfwi = &fwi;
+	LPFNDLLFUNC1			lpfnDllFunc1;
+	HINSTANCE				hDLL;
 
-	hWnd = (HWND)PA_GetLongParameter( params, 1 );
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to use index
+
+	if (isEx){ // WJF 9/16/15 #43731
+		hWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(hWnd)) {
 		flags = PA_GetLongParameter( params, 2 );
 		flashCount = PA_GetLongParameter( params, 3 );

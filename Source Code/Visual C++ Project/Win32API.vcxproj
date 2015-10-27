@@ -144,6 +144,7 @@
     <IntDir>.\Objs/Debug\</IntDir>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
+    <EmbedManifest>true</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
@@ -233,6 +234,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Objs/Debug/Win32API.bsc</OutputFile>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>Win32API.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Midl>
@@ -264,7 +268,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;rpcrt4.lib;IphlpApi.lib;Winmm.lib;Comctl32.lib;Wininet.lib;C:\Dev\Win32API\Source\PPC_H\ASINTPPC.LIB;Vfw32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>odbc32.lib;odbccp32.lib;rpcrt4.lib;IphlpApi.lib;Winmm.lib;Comctl32.lib;Wininet.lib;Vfw32.lib;Version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(SolutionDir)$(ProjectName)\bin\$(Configuration)\Win32API.4DX</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>.\4D Plugin API\4DPluginAPI.def</ModuleDefinitionFile>
@@ -559,6 +563,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Objs/Debug/Win32API.bsc</OutputFile>
     </Bscmake>
+    <Manifest>
+      <AdditionalManifestFiles>Win32API.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="4DPlugin.c" />
@@ -566,7 +573,6 @@
     <ClCompile Include="4DPlugin082102.c" />
     <ClCompile Include="4DPlugin2.c" />
     <ClCompile Include="base64.c" />
-    <ClCompile Include="EZTWAIN.C" />
     <ClCompile Include="linkedList.c" />
     <ClCompile Include="Registry.c" />
     <ClCompile Include="TrayIcon.c" />
@@ -575,18 +581,12 @@
     <ClCompile Include="4D Plugin API\4DPluginAPI.c" />
   </ItemGroup>
   <ItemGroup>
-    <Library Include="ASINTPPC.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="4DPlugin.h" />
     <ClInclude Include="base64.h" />
     <ClInclude Include="Defines.h" />
-    <ClInclude Include="EZTWAIN.H" />
     <ClInclude Include="language.h" />
-    <ClInclude Include="Twain.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="4D Plugin API\4DPluginAPI.h" />
-    <ClInclude Include="ASI_spec.h" />
     <ClInclude Include="4D Plugin API\EntryPoints.h" />
     <ClInclude Include="4D Plugin API\Flags.h" />
     <ClInclude Include="4D Plugin API\PrivateTypes.h" />
@@ -597,6 +597,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="4D Plugin API\4DPluginAPI.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Win32API.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

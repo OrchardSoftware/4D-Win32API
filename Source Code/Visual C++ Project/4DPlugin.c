@@ -875,6 +875,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		fileEncryption(params, TRUE); // WJF 10/28/15 Win-4
 		break;
 
+	case 132:
+		sys_HashText(params); // WJF 10/28/15 Win-4
+		break;
+
 	}
 
 }
@@ -7007,6 +7011,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 
 		dwIVLength = PA_GetTextParameter(params, 4, tempIV);
 
+		// Clean up the IV input
 		for (int i = 0; i < 16; i++){
 			if (i <= dwIVLength){
 				if (tempIV[i] == '\0'){
@@ -7021,12 +7026,14 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			}
 		}
 
+		// Open the source file
 		hSourceFile = CreateFile(fileSource, FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if (hSourceFile == INVALID_HANDLE_VALUE){
 			__leave;
 		}
 
+		// Open the destination file
 		hDestFile = CreateFile(fileDest, FILE_WRITE_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if (hDestFile == INVALID_HANDLE_VALUE){
@@ -7158,5 +7165,158 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		}
 
 		PA_ReturnLong(params, returnCode);
+	}
+}
+
+//  FUNCTION: sys_HashText(PA_PluginParameters params)
+//
+//  PURPOSE:	Hashes text and returns it
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 10/28/15 Win-4
+void sys_HashText(PA_PluginParameters params){
+	LPSTR		lpInput = NULL;
+	DWORD		dwSize = 0;
+	LONG		lAlgorithm = 0;
+	ALG_ID		algorithm = 0;
+	CHAR		provider[64] = "";
+	DWORD		provType = 0;
+	HCRYPTPROV	hProv = 0;
+	HCRYPTHASH	hHash = 0;
+	DWORD		error = 0;
+	LPCSTR		myContainer = "MyContainer";
+	LONG		returnCode = 1;
+	BYTE		*pbData = NULL;
+	DWORD		dwDataSize = 0;
+	DWORD		dwCount = 0;
+	LPSTR		lpOutput = NULL;
+	CHAR        *pOutput = NULL;
+	DWORD		dwOutSize = 0;
+
+	__try{
+		dwSize = PA_GetTextParameter(params, 1, NULL);
+
+		if (!(lpInput = (CHAR *)malloc(dwSize+1))){
+			__leave;
+		}
+
+		dwSize = PA_GetTextParameter(params, 1, lpInput);
+
+		lAlgorithm = PA_GetLongParameter(params, 2);
+
+		switch (lAlgorithm){
+		case 0:
+			algorithm = CALG_MD5;
+			strcpy_s(provider, 64, MS_DEF_PROV);
+			provType = PROV_RSA_FULL;
+			break;
+		case 1:
+			algorithm = CALG_SHA1;
+			strcpy_s(provider, 64, MS_DEF_PROV);
+			provType = PROV_RSA_FULL;
+			break;
+
+		case 2:
+			algorithm = CALG_SHA_256;
+			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			provType = PROV_RSA_AES;
+			break;
+
+		case 3:
+			algorithm = CALG_SHA_384;
+			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			provType = PROV_RSA_AES;
+			break;
+
+		case 4:
+			algorithm = CALG_SHA_512;
+			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			provType = PROV_RSA_AES;
+			break;
+
+		default:
+			__leave;
+
+		}
+
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, myContainer, provider, provType, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, provider, provType, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
+		}
+
+		// Create hash object
+		if (!(CryptCreateHash(hProv, algorithm, 0, 0, &hHash))){
+			__leave;
+		}
+
+		// Hash the password
+		if (!(CryptHashData(hHash, lpInput, dwSize, 0))){
+			__leave;
+		}
+
+		// Get the size of the hash
+		dwCount = sizeof(DWORD);
+		if (!(CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE *)&dwDataSize, &dwCount, 0))){
+			__leave;
+		}
+
+		// Allocate the buffer
+		if (!(pbData = (BYTE *)malloc(dwDataSize))){
+			__leave;
+		}
+
+		// Get the hash value
+		if (!(CryptGetHashParam(hHash, HP_HASHVAL, pbData, &dwDataSize, 0))){
+			__leave;
+		}
+
+		dwOutSize = 2 * dwDataSize + 1;
+		lpOutput = (LPSTR)malloc(dwOutSize);
+		pOutput = lpOutput;
+		for (int i = 0; i < dwDataSize; i++){
+			pOutput += sprintf(pOutput, "%02X", pbData[i]);
+		}
+
+		returnCode = ERROR_SUCCESS;
+	}
+	__finally {
+		if (hHash) {
+			CryptDestroyHash(hHash);
+			hHash = 0;
+		}
+
+		if (hProv){
+			CryptReleaseContext(hProv, 0);
+			hProv = 0;
+		}
+
+		if (lpInput){
+			free(lpInput);
+			lpInput = NULL;
+		}
+
+		if (lpOutput){
+			PA_SetTextParameter(params, 3, lpOutput, dwOutSize);
+			free(lpOutput);
+			lpOutput = NULL;
+		}
+
+		if (pbData){
+			free(pbData);
+			pbData = NULL;
+		}
+
+		PA_ReturnLong(params, returnCode);
+
+		_CrtDumpMemoryLeaks();
 	}
 }

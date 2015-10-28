@@ -137,6 +137,7 @@ void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
 void gui_SetForegroundWindow(PA_PluginParameters params); // WJF 9/16/15 #43929
 void gui_SetFocusEx(PA_PluginParameters params); // WJF 10/19/15 Win-3
 void fileEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/28/15 Win-4
+void sys_HashText(PA_PluginParameters params); // WJF 10/28/15 Win-4
 
 // ----- Other modules -------
 //window background-related
@@ -240,5 +241,9 @@ HWND  handleArray_retrieve(DWORD hWndIndex);
 void utilitiesLock(void); 
 void utilitiesSleep(const char * filePath);
 void utilitiesYield(const char * filePath);
+
+#define _CRTDBG_MAP_ALLOC // include Microsoft memory leak detection procedures
+#define _INC_MALLOC          // exclude standard memory alloc procedures       
+
 
 #endif // __4DPLUGING_H__

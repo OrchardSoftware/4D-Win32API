@@ -866,6 +866,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 	case 129:
 		gui_SetFocusEx(params); // WJF 10/19/15 Win-3
 		break;
+
+	case 130:
+		fileEncryption(params, FALSE); // WJF 10/28/15 Win-4
+		break;
+
+	case 131:
+		fileEncryption(params, TRUE); // WJF 10/28/15 Win-4
+		break;
+
 	}
 
 }
@@ -1630,7 +1639,7 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 {
 	LONG_PTR			windowTitle_len;
 	char				*windowTitle;
-	long				returnValue;
+	long				returnValue = 0;
 	LONG_PTR			windowHandle = 0;
 
 	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
@@ -4704,6 +4713,8 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 	}
 
 	TWAINCapture->done = TRUE;
+	
+	return 0;
 }
 
 void TWAIN_AcquireImage(PA_PluginParameters params)
@@ -6749,6 +6760,8 @@ DWORD handleArray_remove(PA_PluginParameters params){
 	}
 
 	PA_ReturnLong(params, errorCode);
+
+	return errorCode;
 }
 
 //  FUNCTION:	handleArray_free (PA_PluginParameters params)
@@ -6934,4 +6947,216 @@ void gui_SetFocusEx(PA_PluginParameters params){
 	}
 
 	PA_ReturnLong(params, error);
+}
+
+//  FUNCTION: fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
+//
+//  PURPOSE:	Encrypts/Decrypts a file
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 10/28/15 Win-4
+void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
+{
+	HCRYPTPROV	hProv = 0;
+	HCRYPTHASH	hHash = 0;
+	HCRYPTKEY	hKey = 0;
+	HANDLE		hSourceFile = NULL;
+	HANDLE		hDestFile = NULL;
+	CHAR		*fileSource = NULL;
+	CHAR		*fileDest = NULL;
+	DWORD		dwSize = 0;
+	BYTE		pbPass[33] = "0";
+	DWORD		dwPassLength = 0;
+	DWORD		BUFFER_SIZE = 0;
+	BYTE		IV[17] = "0";
+	DWORD		dwIVLength = 0;
+	BYTE		tempIV[17] = "0";
+	DWORD		error = 0;
+	LPCSTR		myContainer = "MyContainer";
+	PBYTE		pbBuffer = NULL;
+	DWORD		dwBlockLen = 0;
+	DWORD		dwBufferLen = 0;
+	DWORD		dwCount = 0;
+	BOOL		fEOF = FALSE;
+	LONG		returnCode = 1;
+
+	__try {
+
+		dwSize = PA_GetTextParameter(params, 1, NULL);
+
+		if (!(fileSource = (CHAR *)malloc(dwSize))){
+			__leave;
+		}
+
+		dwSize = PA_GetTextParameter(params, 1, fileSource);
+
+		dwSize = PA_GetTextParameter(params, 2, NULL);
+
+		if (!(fileDest = (CHAR *)malloc(dwSize))){
+			__leave;
+		}
+
+		dwSize = PA_GetTextParameter(params, 2, fileDest);
+
+		dwPassLength = PA_GetTextParameter(params, 3, pbPass);
+
+		if (dwPassLength > 32) {
+			__leave;
+		}
+
+		dwIVLength = PA_GetTextParameter(params, 4, tempIV);
+
+		for (int i = 0; i < 16; i++){
+			if (i <= dwIVLength){
+				if (tempIV[i] == '\0'){
+					IV[i] = '0';
+				}
+				else {
+					IV[i] = tempIV[i];
+				}
+			}
+			else {
+				IV[i] = '0';
+			}
+		}
+
+		hSourceFile = CreateFile(fileSource, FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+		if (hSourceFile == INVALID_HANDLE_VALUE){
+			__leave;
+		}
+
+		hDestFile = CreateFile(fileDest, FILE_WRITE_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+		if (hDestFile == INVALID_HANDLE_VALUE){
+			__leave;
+		}
+
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
+		}
+
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
+
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
+
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
+			__leave;
+		}
+
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
+		else {
+			hHash = 0;
+		}
+
+		// Set IV
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+			__leave;
+		}
+
+		dwBlockLen = 1000 - 1000 % AES_BLOCK_SIZE;
+
+		if (bDecrypt)
+		{
+			dwBufferLen = dwBlockLen;
+		}
+		else {
+			dwBufferLen = dwBlockLen + AES_BLOCK_SIZE;
+		}
+		
+		if (!(pbBuffer = (BYTE *)malloc(dwBufferLen))){
+			__leave;
+		}
+
+		do{
+			if (!ReadFile(hSourceFile, pbBuffer, dwBlockLen, &dwCount, NULL)){
+				__leave;
+			}
+
+			if (dwCount < dwBlockLen){
+				fEOF = TRUE;
+			}
+
+			if (bDecrypt){
+				if (!CryptDecrypt(hKey, 0, fEOF, 0, pbBuffer, &dwCount)){
+					__leave;
+				}
+			}
+			else {
+				if (!CryptEncrypt(hKey, NULL, fEOF, 0, pbBuffer, &dwCount, dwBufferLen)){
+					__leave;
+				}
+			}
+
+			if (!WriteFile(hDestFile, pbBuffer, dwCount, &dwCount, NULL)){
+				__leave;
+			}
+
+		} while (!fEOF);
+
+		returnCode = ERROR_SUCCESS;
+
+	}
+	__finally{
+
+		if (hSourceFile){
+			CloseHandle(hSourceFile);
+		}
+
+		if (hDestFile){
+			CloseHandle(hDestFile);
+		}
+
+		if (pbBuffer){
+			free(pbBuffer);
+			pbBuffer = NULL;
+		}
+
+		if (fileSource){
+			free(fileSource);
+			fileSource = NULL;
+		}
+
+		if (fileDest){
+			free(fileDest);
+			fileDest = NULL;
+		}
+
+		if (hKey) {
+			CryptDestroyKey(hKey);
+			hKey = 0;
+		}
+
+		if (hHash) {
+			CryptDestroyHash(hHash);
+			hHash = 0;
+		}
+
+		if (hProv){
+			CryptReleaseContext(hProv, 0);
+			hProv = 0;
+		}
+
+		PA_ReturnLong(params, returnCode);
+	}
 }

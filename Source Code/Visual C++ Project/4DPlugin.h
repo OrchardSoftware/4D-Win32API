@@ -136,6 +136,7 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd); // WJF 9/15/15 #437
 void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
 void gui_SetForegroundWindow(PA_PluginParameters params); // WJF 9/16/15 #43929
 void gui_SetFocusEx(PA_PluginParameters params); // WJF 10/19/15 Win-3
+void fileEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/28/15 Win-4
 
 // ----- Other modules -------
 //window background-related

@@ -7317,6 +7317,5 @@ void sys_HashText(PA_PluginParameters params){
 
 		PA_ReturnLong(params, returnCode);
 
-		_CrtDumpMemoryLeaks();
 	}
 }

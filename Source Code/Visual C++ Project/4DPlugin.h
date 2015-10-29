@@ -242,8 +242,4 @@ void utilitiesLock(void);
 void utilitiesSleep(const char * filePath);
 void utilitiesYield(const char * filePath);
 
-#define _CRTDBG_MAP_ALLOC // include Microsoft memory leak detection procedures
-#define _INC_MALLOC          // exclude standard memory alloc procedures       
-
-
 #endif // __4DPLUGING_H__

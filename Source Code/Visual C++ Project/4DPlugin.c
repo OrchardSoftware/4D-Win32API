@@ -716,11 +716,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 100:
-		sys_EncryptAES(params); // WJF 5/6/15 #42665
+		textEncryption(params, FALSE); // WJF 5/6/15 #42665 // WJF 10/29/15 Win-4 sys_EncryptAES -> textEncryption
 		break;
 
 	case 101:
-		sys_DecryptAES(params); // WJF 5/6/15 #42665
+		textEncryption(params, TRUE); // WJF 5/6/15 #42665 // WJF 10/29/15 Win-4 sys_DecryptAES -> textEncryption
 		break;
 
 	case 102:
@@ -6223,289 +6223,6 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 	PA_ReturnLong(params, errorCode);
 }
 
-
-//  FUNCTION: sys_EncryptAES(PA_PluginParameters params)
-//
-//  PURPOSE:	Encrypts a message in AES
-//
-//  COMMENTS:	
-//
-//	DATE:		WJF 5/5/15 #42665
-void sys_EncryptAES(PA_PluginParameters params)
-{
-	// WJF 7/24/15 #43363 Increased all array sizes by 1 to account for null terminator and initialized all byte and pbyte variables
-	HCRYPTPROV	hProv = 0;
-	HCRYPTHASH	hHash = 0;
-	HCRYPTKEY	hKey = 0;
-	PBYTE		pbBuffer;
-	DWORD		dwSize = 0;
-	BYTE		pbMessage[257] = "0";
-	BYTE		pbPass[33] = "0";
-	DWORD		dwPassLength = 0;
-	DWORD		BUFFER_SIZE = 0;
-	BYTE		IV[17] = "0";
-	DWORD		dwIVLength;
-	BYTE		tempIV[17] = "0";
-	DWORD		error = 0;
-	LPCSTR		myContainer = "MyContainer"; // WJF 7/23/15 #43348 Removed the free call on this variable
-	BYTE		pbOutput[280] = "0";
-
-	__try{
-
-		dwSize = PA_GetTextParameter(params, 1, pbMessage);
-
-		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwSize > 256) {
-			__leave;
-		}
-
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-
-		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwPassLength > 32) {
-			__leave;
-		}
-
-		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
-
-		for (int i = 0; i < 16; i++){
-			if (i <= dwIVLength){
-				if (tempIV[i] == '\0'){
-					IV[i] = '0';
-				}
-				else {
-					IV[i] = tempIV[i];
-				}
-			}
-			else {
-				IV[i] = '0';
-			}
-		}
-
-		BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
-
-		// Get security provider
-		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
-			error = GetLastError();
-			if (error == 2148073487){
-				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-					__leave;
-				}
-			}
-			else {
-				__leave;
-			}
-		}
-
-		// Create hash object
-		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
-			__leave;
-		}
-
-		// Hash the password
-		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
-			__leave;
-		}
-
-		// Derive the key from the hashed password
-		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
-			__leave;
-		}
-
-		// Destroy the hash object
-		if (!(CryptDestroyHash(hHash))){
-			__leave;
-		}
-		else {
-			hHash = 0;
-		}
-
-		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
-			__leave;
-		}
-
-		pbBuffer = malloc(BUFFER_SIZE); // Allocate to AES block size
-
-		memcpy(pbBuffer, pbMessage, dwSize);
-
-		// Encrypt the message
-		if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
-			free(pbBuffer); // WJF 7/24/15 #43363 Noticed this possible memory leak.
-			__leave;
-		}
-
-		pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
-
-		// WJF 5/20/15 #42772
-		memcpy(pbOutput, pbBuffer, dwSize); 
-		free(pbBuffer);
-	}
-	__except (GetExceptionCode()){
-
-	}
-	if (hKey) {
-		CryptDestroyKey(hKey);
-		hKey = 0;
-	}
-
-	if (hHash) {
-		CryptDestroyHash(hHash);
-		hHash = 0;
-	}
-	if (hProv){ // WJF 5/20/15 #42772 Moved to last
-		CryptReleaseContext(hProv, 0);
-		hProv = 0;
-	}
-
-	PA_ReturnText(params, pbOutput, dwSize);
-
-}
-//  FUNCTION: sys_DecryptAES(PA_PluginParameters params)
-//
-//  PURPOSE:	Decrypts an AES message
-//
-//  COMMENTS:	
-//
-//	DATE:		WJF 5/5/15 #42665
-void sys_DecryptAES(PA_PluginParameters params)
-{
-	// WJF 7/24/15 #43363 Increased all array sizes by 1 to account for null terminator and initialized all byte and pbyte variables
-	HCRYPTPROV		hProv = 0;
-	HCRYPTHASH		hHash = 0;
-	HCRYPTKEY		hKey = 0;
-	DWORD			dwSize = 0;
-	BYTE			pbMessage[257] = "0";
-	BYTE			pbPass[33] = "0";
-	DWORD			dwPassLength = 0;
-	PBYTE			pbBuffer = NULL;
-	DWORD			dwIVLength = 0;
-	BYTE			IV[17] = "0"; 
-	BYTE			tempIV[17] = "0"; 
-	LPCSTR			myContainer = "myContainer";	// WJF 7/23/15 #43348 Removed the free call on this var
-	DWORD			error = 0;
-	BYTE			pbOutput[257] = "0";
-
-	__try{
-
-		dwSize = PA_GetTextParameter(params, 1, pbMessage);
-
-		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwSize > 256) {
-			__leave;
-		}
-
-		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
-
-		// WJF 7/23/15 #43348 Per Spencer, adding more error prevention
-		if (dwPassLength > 32) {
-			__leave;
-		}
-
-		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
-
-		for (int i = 0; i < 16; i++){
-			if (i <= dwIVLength){
-				if (tempIV[i] == '\0'){
-					IV[i] = '0';
-				}
-				else {
-					IV[i] = tempIV[i];
-				}
-			}
-			else {
-				IV[i] = '0';
-			}
-		}
-
-		// Clean decryption input
-		for (int i = 0; i < strlen(pbMessage); i++){
-			if (pbMessage[i] <= 32) {
-				memmove(&pbMessage[i], &pbMessage[i + 1], strlen(pbMessage) - i);
-				dwSize--;
-				i--;
-			}
-		}
-
-		// Get security provider
-		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
-			error = GetLastError();
-			if (error == 2148073487){
-				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
-					__leave;
-				}
-			}
-			else {
-				__leave;
-			}
-		}
-		
-		// Create hash object
-		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
-			__leave;
-		}
-
-		// Hash the password
-		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
-			__leave;
-		}
-
-		// Derive the key from the hashed password
-		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_EXPORTABLE, &hKey))){
-			__leave;
-		}
-
-		// Destroy the hash object
-		if (!(CryptDestroyHash(hHash))){
-			__leave;
-		}
-		else {
-			hHash = 0;
-		}
-
-		// Set IV
-		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
-			__leave;
-		}
-
-		pbBuffer = malloc(dwSize);
-
-		memcpy(pbBuffer, pbMessage, dwSize);
-
-		pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
-
-		if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
-			free(pbBuffer); // WJF 7/24/15 #43363 Noticed this possible memory leak
-			__leave;
-		}
-		
-		// WJF 5/20/15 #42772
-		memcpy(pbOutput, pbBuffer, dwSize);
-		free(pbBuffer); 
-
-	}
-	__except (GetExceptionCode()){
-
-	}
-
-	if (hKey) {
-		CryptDestroyKey(hKey);
-		hKey = 0;
-	}
-
-	if (hHash) {
-		CryptDestroyHash(hHash);
-		hHash = 0;
-	}
-
-	if (hProv){ // WJF 5/20/15 #42772 Moved to end
-		CryptReleaseContext(hProv, 0);
-		hProv = 0;
-	}
-
-	PA_ReturnText(params, pbOutput, dwSize);
-
-}
-
 //  FUNCTION:	gui_TakeScreenshot (PA_PluginParameters params)
 //
 //  PURPOSE:	Takes a screenshot of the desktop
@@ -7317,5 +7034,169 @@ void sys_HashText(PA_PluginParameters params){
 
 		PA_ReturnLong(params, returnCode);
 
+	}
+}
+
+//  FUNCTION: textEncryption(PA_PluginParameters params, BOOL bDecrypt)
+//
+//  PURPOSE:	Encrypts/Decrypts a message in AES
+//
+//  COMMENTS:	Rewrote with updated practices and merged decrypt/encrypt into one method
+//
+//	DATE:		WJF 10/29/15 Win-4 
+void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
+{
+	HCRYPTPROV	hProv = 0;
+	HCRYPTHASH	hHash = 0;
+	HCRYPTKEY	hKey = 0;
+	PBYTE		pbBuffer;
+	DWORD		dwSize = 0;
+	BYTE		*pbMessage = 0L;
+	BYTE		pbPass[33] = "0";
+	DWORD		dwPassLength = 0;
+	DWORD		BUFFER_SIZE = 0;
+	BYTE		IV[17] = "0";
+	DWORD		dwIVLength;
+	BYTE		tempIV[17] = "0";
+	DWORD		error = 0;
+	LPCSTR		myContainer = "MyContainer";
+
+	__try{
+
+		dwSize = PA_GetTextParameter(params, 1, pbMessage);
+		
+		if (!(pbMessage = (BYTE *)malloc(dwSize+1))){
+			__leave;
+		}
+
+		dwSize = PA_GetTextParameter(params, 1, pbMessage);
+
+		dwPassLength = PA_GetTextParameter(params, 2, pbPass);
+
+		if (dwPassLength > 32) {
+			__leave;
+		}
+
+		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
+
+		for (int i = 0; i < 16; i++){
+			if (i <= dwIVLength){
+				if (tempIV[i] == '\0'){
+					IV[i] = '0';
+				}
+				else {
+					IV[i] = tempIV[i];
+				}
+			}
+			else {
+				IV[i] = '0';
+			}
+		}
+
+		// Clean decryption input
+		if (bDecrypt){
+			for (int i = 0; i < strlen(pbMessage); i++){
+				if (pbMessage[i] <= 32) {
+					memmove(&pbMessage[i], &pbMessage[i + 1], strlen(pbMessage) - i);
+					dwSize--;
+					i--;
+				}
+			}
+		}
+
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
+		}
+
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
+
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
+
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
+			__leave;
+		}
+
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
+		else {
+			hHash = 0;
+		}
+
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+			__leave;
+		}
+
+		if (bDecrypt){
+			BUFFER_SIZE = dwSize + 1;
+		}
+		else {
+			BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
+		}
+
+		pbBuffer = (BYTE *)malloc(BUFFER_SIZE); // Allocate to AES block size
+
+		memcpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize);
+
+		if (bDecrypt){
+			pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
+			// Decrypt the message
+			if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
+				__leave;
+			}
+		}
+		else {
+			// Encrypt the message
+			if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
+				__leave;
+			}
+		}
+
+		if (!bDecrypt){
+			pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
+		}
+	}
+	__finally {
+		if (hKey) {
+			CryptDestroyKey(hKey);
+			hKey = 0;
+		}
+
+		if (hHash) {
+			CryptDestroyHash(hHash);
+			hHash = 0;
+		}
+		if (hProv){ 
+			CryptReleaseContext(hProv, 0);
+			hProv = 0;
+		}
+
+		if (pbBuffer){
+			PA_ReturnText(params, pbBuffer, dwSize);
+			free(pbBuffer);
+			pbBuffer = NULL;
+		}
+
+		if (pbMessage){
+			free(pbMessage);
+			pbMessage = NULL;
+		}
 	}
 }

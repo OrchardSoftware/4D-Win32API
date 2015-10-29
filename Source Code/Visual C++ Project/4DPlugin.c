@@ -879,6 +879,14 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_HashText(params); // WJF 10/28/15 Win-4
 		break;
 
+	case 133:
+		blobEncryption(params, FALSE); // WJF 10/29/15 Win-4
+		break;
+
+	case 134:
+		blobEncryption(params, TRUE); // WJF 10/29/15 Win-4
+		break;
+
 	}
 
 }
@@ -7317,5 +7325,191 @@ void sys_HashText(PA_PluginParameters params){
 
 		PA_ReturnLong(params, returnCode);
 
+	}
+}
+
+//  FUNCTION: blobEncryption(PA_PluginParameters params, BOOL bDecrypt)
+//
+//  PURPOSE:	Encrypts/Decrypts a 4D BLOB
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 10/29/15 Win-4
+void blobEncryption(PA_PluginParameters params, BOOL bDecrypt)
+{
+	HCRYPTPROV	hProv = 0;
+	HCRYPTHASH	hHash = 0;
+	HCRYPTKEY	hKey = 0;
+	PBYTE		pbBuffer = NULL;
+	DWORD		dwSize = 0;
+	PBYTE		pbBlob = 0L;
+	BYTE		pbPass[33] = "0";
+	DWORD		dwPassLength = 0;
+	DWORD		BUFFER_SIZE = 0;
+	BYTE		IV[17] = "0";
+	DWORD		dwIVLength;
+	BYTE		tempIV[17] = "0";
+	DWORD		error = 0;
+	LPCSTR		myContainer = "MyContainer";
+	BOOL		fEOF = FALSE;
+	DWORD		dwBlockLen = 0;
+	DWORD       dwBufferLen = 0;
+	PBYTE		pbOutput = NULL;
+	DWORD		dwCount = 0;
+
+	__try{
+
+		dwSize = PA_GetBlobParameter(params, 1, pbBlob);
+
+		if (!(pbBlob = (BYTE *)malloc(dwSize))){
+			__leave;
+		}
+
+		dwSize = PA_GetBlobParameter(params, 1, pbBlob);
+
+		dwPassLength = PA_GetTextParameter(params, 3, pbPass);
+
+		if (dwPassLength > 32) {
+			__leave;
+		}
+
+		dwIVLength = PA_GetTextParameter(params, 4, tempIV);
+
+		for (int i = 0; i < 16; i++){
+			if (i <= dwIVLength){
+				if (tempIV[i] == '\0'){
+					IV[i] = '0';
+				}
+				else {
+					IV[i] = tempIV[i];
+				}
+			}
+			else {
+				IV[i] = '0';
+			}
+		}
+
+		// Get security provider
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			error = GetLastError();
+			if (error == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
+		}
+
+		// If we're decrypting, decode base64
+		if (bDecrypt){
+			pbBlob = (BYTE *)base64_decode((const char *)pbBlob, dwSize, &dwSize);
+		}
+
+		// Create hash object
+		if (!(CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash))){
+			__leave;
+		}
+
+		// Hash the password
+		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+			__leave;
+		}
+
+		// Derive the key from the hashed password
+		if (!(CryptDeriveKey(hProv, CALG_AES_256, hHash, CRYPT_NO_SALT, &hKey))){
+			__leave;
+		}
+
+		// Destroy the hash object
+		if (!(CryptDestroyHash(hHash))){
+			__leave;
+		}
+		else {
+			hHash = 0;
+		}
+
+		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+			__leave;
+		}
+
+		dwBlockLen = 1000 - 1000 % AES_BLOCK_SIZE;
+
+		if (bDecrypt)
+		{
+			dwBufferLen = dwBlockLen;
+		}
+		else {
+			dwBufferLen = dwBlockLen + AES_BLOCK_SIZE;
+		}
+
+		if (!(pbBuffer = (BYTE *)malloc(dwBufferLen))){ // Allocate to AES block size
+			__leave;
+		}
+
+		if (!(pbOutput = (BYTE *)malloc(dwSize + AES_BLOCK_SIZE))){
+			__leave;
+		}
+
+		do{
+			memcpy_s(pbBuffer, dwBufferLen, pbBlob, dwBlockLen);
+
+			if ((dwSize - dwCount) < dwBlockLen){
+				fEOF = TRUE;
+			}
+
+			if (bDecrypt){
+				if (!CryptDecrypt(hKey, 0, fEOF, 0, pbBuffer, &dwCount)){
+					__leave;
+				}
+			}
+			else {
+				if (!CryptEncrypt(hKey, NULL, fEOF, 0, pbBuffer, &dwCount, dwBufferLen)){
+					__leave;
+				}
+			}
+
+			memcpy_s(pbOutput, dwSize + AES_BLOCK_SIZE, pbBuffer, dwBlockLen);
+			pbOutput += dwBlockLen;
+			dwCount += dwBlockLen;
+
+		} while (!fEOF);
+
+		// If we're encrypting, encode Base64
+		if (!bDecrypt){
+			pbOutput = (BYTE *)base64_encode((const unsigned char *)pbOutput, dwSize + AES_BLOCK_SIZE, &dwSize); 
+		}
+	}
+	__finally{
+		if (hKey) {
+			CryptDestroyKey(hKey);
+			hKey = 0;
+		}
+
+		if (hHash) {
+			CryptDestroyHash(hHash);
+			hHash = 0;
+		}
+		if (hProv){ // WJF 5/20/15 #42772 Moved to last
+			CryptReleaseContext(hProv, 0);
+			hProv = 0;
+		}
+
+		if (pbBuffer){
+			free(pbBuffer);
+			pbBuffer = NULL;
+		}
+		
+		if (pbOutput){
+			PA_SetBlobParameter(params, 2, pbOutput, dwSize);
+			free(pbOutput);
+			pbOutput = NULL;
+		}
+
+		if (pbBlob){
+			free(pbBlob);
+			pbBlob = NULL;
+		}
 	}
 }

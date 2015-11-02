@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <wincrypt.h> // WJF 5/5/15 #42665 For AES Encryption
 #include "base64.h" // WJF 5/8/15 #42665 For base64 encoding/decoding
+#include <math.h> // WJF 11/2/15 Win-6 Used for Pow
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus
@@ -137,6 +138,7 @@ void gui_SetFocusEx(PA_PluginParameters params); // WJF 10/19/15 Win-3
 void fileEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/28/15 Win-4
 void sys_HashText(PA_PluginParameters params); // WJF 10/28/15 Win-4
 void textEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/29/15 Win-4
+void sys_GetDiskFreeSpace(PA_PluginParameters params); // WJF 11/2/15 Win-6
 
 // ----- Other modules -------
 //window background-related

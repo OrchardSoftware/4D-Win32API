@@ -879,6 +879,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_HashText(params); // WJF 10/28/15 Win-4
 		break;
 
+	case 133:
+		sys_GetDiskFreeSpace(params); // WJF 11/2/15 Win-6
+		break;
+
 	}
 
 }
@@ -7199,4 +7203,31 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			pbMessage = NULL;
 		}
 	}
+}
+
+//  FUNCTION:   sys_GetDiskFreeSpace (PA_PluginParameters params)
+//
+//  PURPOSE:	Returns the amount of free space left on the specified volume
+//
+//  COMMENTS:	Implements GetDiskFreeSpaceEx
+//
+//	DATE:		WJF 11/2/15 Win-6
+void sys_GetDiskFreeSpace(PA_PluginParameters params){
+	CHAR			directoryPath[MAX_PATH];
+	LONG_PTR		pathSize = 0;
+	ULARGE_INTEGER	ulintFreeBytes;
+	LONG			returnCode = 1;
+	LONG			lResult = -1;
+
+	pathSize = PA_GetTextParameter(params, 1, directoryPath);
+
+	if (GetDiskFreeSpaceEx(directoryPath, NULL, NULL, &ulintFreeBytes)){
+		returnCode = ERROR_SUCCESS;
+		lResult = ((ulintFreeBytes.QuadPart) / (pow(1024, 3)));
+	}
+
+	PA_SetLongParameter(params, 2, lResult);
+
+	PA_ReturnLong(params, returnCode);
+	
 }

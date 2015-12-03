@@ -38,8 +38,9 @@
 #include <winspool.h>
 #include "PrivateTypes.h"
 #include "EntryPoints.h"
-#include "EZTWAIN.h" // REB 6/23/09 #14151
-#include "TWAIN.h" // REB 6/23/09 #14151
+// WJF 9/14/15 #43727 No longer needed
+//#include "EZTWAIN.h" // REB 6/23/09 #14151 
+//#include "TWAIN.h" // REB 6/23/09 #14151
 #include "utilities.h" // REB 3/28/11 #25290
 #include "process.h" // REB 2/25/13 #35165
 
@@ -149,10 +150,16 @@ extern struct		TOOLBARRESTRICT
 // REB 2/26/13 #35165 Structure to communicate with the helper thread
 typedef struct	_TWAIN_CAPTURE
 {
-	LONG_PTR	returnValue;
-	HANDLE		DIBHandle;
+	long		returnValue; // WJF 9/14/15 #43727 Changed to long from LONG_PTR
+	// HANDLE		DIBHandle; // WJF 9/10/15 #43727 No longer needed
 	BOOL		done;
-
+	char		*filePath; // WJF 9/10/15 #43727 File path to save the image to
+	BOOL		showUI; // WJF 9/10/15 #43727 True to show TWAIN UI, false to hide
+	BOOL		get64; // WJF 9/10/15 #43727 True to load 64-bit TWAIN drivers, false to load 32-bit
+	BOOL		wiaMode; // WJF 9/21/15 #43940 True to get/acquire WIA
+	BOOL		getMultiple; // WJF 9/21/15 #43940 True to acquire multiple images at once
+	long		numPictures; // WJF 9/21/15 #43940 Number of pictures returned
+	
 } TWAIN_CAPTURE;
 
 
@@ -192,7 +199,9 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 	case kInitPlugin:
 	case kServerInitPlugin:
-
+#ifdef _WIN64 // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
+	case k64Init: 
+#endif
 		// get MDI & parent window on init 4/15/02
 		// REB 2/20/09 #19122 Use new method to get handles.  PA_GetHWND(0) does not work in v11 like it did in previous version.
 		// REB 3/24/10 It appears that PA_GetHWND(0) works again, at least in Win7, but I'm leaving this change in place.
@@ -255,6 +264,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 		SystemParametersInfo(SPI_GETDRAGFULLWINDOWS, 0, &g_bDragFull, 0);
 		hSubclassMutex = CreateMutex(NULL, FALSE, "Win32APIMutexToProtect4DProc");  // MJG 3/26/04
+
+		handleArray_init(); // WJF 9/1/15 #43731
+	
+		twainSource = NULL; // WJF 9/11/15 #43727
 
 		break;
 
@@ -323,15 +336,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 2:
-		gui_GetWndRect(params);
+		gui_GetWndRect(params, FALSE);
 		break;
 
 	case 3:
-		gui_SetWndRect(params);
+		gui_SetWndRect(params, FALSE);
 		break;
 
 	case 4:
-		gui_ShowWindow(params);
+		gui_ShowWindow(params, FALSE);
 		break;
 
 	case 5:
@@ -339,7 +352,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 6:
-		gui_SetWindowTitle(params);
+		gui_SetWindowTitle(params, FALSE);
 		break;
 
 	case 7:
@@ -347,15 +360,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 8:
-		gui_DisableCloseBox(params);
+		gui_DisableCloseBox(params, FALSE);
 		break;
 
 	case 9:
-		gui_SetWindowLong(params);
+		gui_SetWindowLong(params, FALSE);
 		break;
 
 	case 10:
-		gui_FlashWindow(params);
+		gui_FlashWindow(params, FALSE);
 		break;
 
 	case 11:
@@ -375,7 +388,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 15:
-		gui_DelMenuItem(params);
+		gui_DelMenuItem(params, FALSE);
 		break;
 
 	case 16:
@@ -387,11 +400,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 18:
-		gui_LoadIcon(params);
+		gui_LoadIcon(params, FALSE);
 		break;
 
 	case 19:
-		gui_SetIcon(params);
+		gui_SetIcon(params, FALSE);
 		break;
 
 	case 20:
@@ -459,11 +472,11 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 36:
-		gui_ToolTipCreate(params);
+		gui_ToolTipCreate(params, FALSE);
 		break;
 
 	case 37:
-		gui_ToolTipShowOnObject(params);
+		gui_ToolTipShowOnObject(params, FALSE);
 		break;
 
 	case 38:
@@ -491,15 +504,15 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 44:
-		gui_RestrictWindow(params);
+		gui_RestrictWindow(params, FALSE);
 		break;
 
 	case 45:
-		gui_GetWindowStyle(params);
+		gui_GetWindowStyle(params, FALSE);
 		break;
 
 	case 46:
-		gui_GetWindowState(params);
+		gui_GetWindowState(params, FALSE);
 		break;
 
 	case 47:
@@ -620,7 +633,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 78:
-		gui_MessageBox(params); // REB 12/3/09
+		gui_MessageBox(params, FALSE); // REB 12/3/09
 		break;
 
 	case 79:
@@ -690,9 +703,9 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_DeleteRegKey(params); // WJF 4/14/15 #27474
 		break;
 
-	/*case 98:
-		sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
-		break;*/
+		/*case 98:
+			sys_DeleteRegKey64(params); // WJF 4/14/15 #27474
+			break;*/
 
 	case 98:
 		sys_DeleteRegValue(params); // WJF 4/14/15 #27474
@@ -711,14 +724,150 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 102:
-		gui_TakeScreenshot(params); // WJF 7/7/15 #43138
+		gui_TakeScreenshot(params, FALSE); // WJF 7/7/15 #43138
 		break;
 
 	case 103:
 		gui_LoadBackground(params, TRUE); // WJF 7/24/15 #43311
 		break;
 
+	case 104:
+		sys_SetRegKey(params, selector); // WJF 8/31/15 #43731
+		break;
+
+	case 105:
+		handleArray_remove(params); // WJF 9/1/15 #43731
+		break;
+
+	case 106:
+		handleArray_free(params); // WJF 9/1/15 #43731
+		break;
+
+	case 107: // WJF 9/15/15 #43731
+		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		if (!(IsWindow(hWnd))){
+
+			if (!(IsWindow(windowHandles.MDIs_4DhWnd))){
+				Unistring = PA_GetApplicationFullPath();
+				pathName = UnistringToCString(&Unistring);
+				charPos = strrchr(pathName, '\\');
+				*charPos = 0;
+				windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+
+				free(pathName); 
+
+				NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
+				do {
+					if (IsWindow(NexthWnd)){
+						GetWindowText(NexthWnd, WindowName, 255);
+						GetClassName(NexthWnd, szClassName, 255);
+						if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+							windowHandles.MDIs_4DhWnd = NexthWnd;
+							break;
+						}
+						NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
+					}
+				} while (IsWindow(NexthWnd));
+
+			}
+			hWnd = windowHandles.MDIs_4DhWnd;
+		}
+
+		gui_GetWindowEx(params, hWnd);
+		break;
+
+	case 108:
+		gui_GetWindowFrom4DWinEx(params); // WJF 9/15/15 #43731
+		break;
+
+	case 109:
+		gui_SetForegroundWindow(params, FALSE); // WJF 9/16/15 #43929
+		break;
+
+		// WJF 9/16/15 #43731 Ex Function calls
+	case 110:
+		gui_GetWndRect(params, TRUE);
+		break;
+
+	case 111:
+		gui_SetWndRect(params, TRUE);
+		break;
+
+	case 112:
+		gui_ShowWindow(params, TRUE);
+		break;
+
+	case 113:
+		gui_SetWindowTitle(params, TRUE);
+		break;
+
+	case 114:
+		gui_DisableCloseBox(params, TRUE);
+		break;
+
+	case 115:
+		gui_SetWindowLong(params, TRUE);
+		break;
+
+	case 116:
+		gui_DelMenuItem(params, TRUE);
+		break;
+
+	case 117:
+		gui_LoadIcon(params, TRUE);
+		break;
+
+	case 118:
+		gui_SetIcon(params, TRUE);
+		break;
+
+	case 119:
+		gui_MessageBox(params, TRUE);
+		break;
+
+	case 120:
+		gui_TakeScreenshot(params, TRUE);
+		break;
+
+	case 121:
+		gui_SetForegroundWindow(params, TRUE);
+		break;
+
+	case 122:
+		gui_GetWindowStyle(params, TRUE);
+		break;
+
+	case 123:
+		gui_RestrictWindow(params, TRUE);
+		break;
+
+	case 124:
+		gui_GetWindowState(params, TRUE);
+		break;
+
+	case 125:
+		gui_SetWindowStyle(params, TRUE);
+		break;
+
+	case 126:
+		gui_ToolTipCreate(params, TRUE);
+		break;
+
+	case 127:
+		gui_ToolTipShowOnObject(params, TRUE);
+		break;
+
+	case 128:
+		gui_FlashWindow(params, TRUE);
+		break;
+
+		// WJF 9/16/15 #43731 End Ex function calls
+
+	case 129:
+		gui_SetFocusEx(params); // WJF 10/19/15 Win-3
+		break;
 	}
+
 }
 
 // ------------------------------- Win32API Commands ------------------------------
@@ -1481,7 +1630,8 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 {
 	LONG_PTR			windowTitle_len;
 	char				*windowTitle;
-	LONG_PTR			returnValue;
+	long				returnValue;
+	LONG_PTR			windowHandle = 0;
 
 	//windowTitle_len = PA_GetTextParameter( params, 1, windowTitle );
 	//windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
@@ -1493,22 +1643,26 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 	windowTitle[windowTitle_len] = '\0';
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
-		returnValue = (LONG_PTR)hWnd;
+		windowHandle = (LONG_PTR)hWnd;
 
 	}
 	else {
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
-			returnValue = (LONG_PTR)windowHandles.fourDhWnd;
+			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
 		}
 		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
-			returnValue = (LONG_PTR)windowHandles.MDIhWnd;
+			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
 		}
 		else {
-			returnValue = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
+			windowHandle = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
 		}
 		if (!returnValue) {
 			returnValue = -3;
 		}
+	}
+
+	if (windowHandle){
+		returnValue = (long)windowHandle;
 	}
 
 	free(windowTitle);
@@ -1521,9 +1675,9 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 //  FUNCTION: gui_GetWndRect( PA_PluginParameters params )
 //
 
-void gui_GetWndRect(PA_PluginParameters params)
+void gui_GetWndRect(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR x;
 	LONG_PTR y;
 	LONG_PTR w;
@@ -1535,15 +1689,20 @@ void gui_GetWndRect(PA_PluginParameters params)
 	MONITORINFO monitorInfo;
 	RECT wRect;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	x = PA_GetLongParameter(params, 2);
 	y = PA_GetLongParameter(params, 3);
 	w = PA_GetLongParameter(params, 4);
 	h = PA_GetLongParameter(params, 5);
 	mode = PA_GetLongParameter(params, 6);
 
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
 
-	WindowhWnd = (HWND)hWnd;
 	if (IsWindow(WindowhWnd)) {
 
 		// Allowing a return to the original functionality
@@ -1602,9 +1761,9 @@ void gui_GetWndRect(PA_PluginParameters params)
 //  FUNCTION: gui_SetWndRect( PA_PluginParameters params )
 //
 
-void gui_SetWndRect(PA_PluginParameters params)
+void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR x;
 	LONG_PTR y;
 	LONG_PTR w;
@@ -1613,7 +1772,7 @@ void gui_SetWndRect(PA_PluginParameters params)
 	HWND WindowhWnd, hWndTaskBar;
 	RECT taskBarCoords;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	x = PA_GetLongParameter(params, 2);
 	y = PA_GetLongParameter(params, 3);
 	w = PA_GetLongParameter(params, 4);
@@ -1653,7 +1812,13 @@ void gui_SetWndRect(PA_PluginParameters params)
 		}
 	}
 
-	WindowhWnd = (HWND)hWnd;
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		if (SetWindowPos(WindowhWnd, HWND_TOP, x, y, w, h,
 			SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER)) {
@@ -1675,17 +1840,23 @@ void gui_SetWndRect(PA_PluginParameters params)
 //  FUNCTION: gui_ShowWindow( PA_PluginParameters params )
 //
 
-void gui_ShowWindow(PA_PluginParameters params)
+void gui_ShowWindow(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR showState;
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	showState = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)hWnd;
+	if (isEx){ // WJF 9/16/15 #43731 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		// REB 2/26/09 #16207 Handle this slightly differently if we are using a toolbar.
 		if (toolBarRestrictions.toolBarOnDeck == 1){
@@ -1755,20 +1926,25 @@ void sys_GetUserName(PA_PluginParameters params)
 //  FUNCTION: gui_SetWindowTitle( PA_PluginParameters params )
 //
 
-void gui_SetWindowTitle(PA_PluginParameters params)
+void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR windowTitle_len;
 	char windowTitle[255];
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	windowTitle_len = PA_GetTextParameter(params, 2, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
 
+	if (isEx){ // WJF 9/16/15 #43731 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
 
-	WindowhWnd = (HWND)hWnd;
 	if (IsWindow(WindowhWnd)) {
 		SetWindowText(WindowhWnd, windowTitle);
 		returnValue = 1;
@@ -1806,20 +1982,27 @@ void sys_IsMultiByte(PA_PluginParameters params)
 //	MODIFICATIONS: 09/09/02 Added functionality to restore the close box.
 //								 Pass in the window handle as a negative to restore.
 
-void gui_DisableCloseBox(PA_PluginParameters params)
+void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR				hWnd;
-	LONG_PTR				returnValue;
+	LONG_PTR			hWndIndex;
+	LONG_PTR			returnValue;
 	HWND				WindowhWnd;
 	HMENU				hSysMenu;
 	BOOL				bUndo = FALSE;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to Index
 
-	if (hWnd < 0) {
+	if (hWndIndex < 0) {
 		bUndo = TRUE;
 	}
-	WindowhWnd = (HWND)abs(hWnd);
+
+	if (isEx){ // WJF 9/16/15 #43731 Added Ex version to use internal handle Array
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		hSysMenu = GetSystemMenu(WindowhWnd, 0);
 		if (!bUndo) {
@@ -1844,9 +2027,9 @@ void gui_DisableCloseBox(PA_PluginParameters params)
 //  PURPOSE:  Multipurpose function to set window styles etc
 //
 
-void gui_SetWindowLong(PA_PluginParameters params)
+void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR s;
 	LONG_PTR mode;
 	LONG_PTR level;
@@ -1854,12 +2037,18 @@ void gui_SetWindowLong(PA_PluginParameters params)
 	HWND WindowhWnd;
 	LONG style;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 8/31/15 #43731 Changed to index from handle to make 64-bit safe
 	s = PA_GetLongParameter(params, 2);
 	mode = PA_GetLongParameter(params, 3);
 	level = PA_GetLongParameter(params, 4);
 
-	WindowhWnd = (HWND)hWnd;
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 
 		if (level == 0)
@@ -1930,21 +2119,28 @@ void gui_WinHelp(PA_PluginParameters params)
 //  FUNCTION: gui_DelMenuItem( PA_PluginParameters params )
 //
 
-void gui_DelMenuItem(PA_PluginParameters params)
+void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
+	LONG_PTR hWndIndex;
 	LONG_PTR menuNum;
 	LONG_PTR menuItem;
 	LONG_PTR returnValue;
 	HWND WindowhWnd;
 	HMENU hSubMenu, hMenu;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 Changed to get index of internal handle array
 	menuNum = PA_GetLongParameter(params, 2);
 	menuItem = PA_GetLongParameter(params, 3);
 
 	returnValue = 0;
-	WindowhWnd = (HWND)hWnd;
+	
+	if (isEx){ // WJF 9/16/15 #43731 Added ex version to use internal handle array
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+	}
+
 	if (IsWindow(WindowhWnd)) {
 		hMenu = GetMenu(WindowhWnd);
 		if (IsMenu(hMenu)) {
@@ -2271,13 +2467,14 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 //  FUNCTION: gui_LoadIcon( PA_PluginParameters params )
 //
 
-void gui_LoadIcon(PA_PluginParameters params)
+void gui_LoadIcon(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR iconName_len;
 	char iconName[255];  //complete path of icon file
 	LONG_PTR hIcon;
 	LONG_PTR returnValue;
 	HICON tmpIcon;
+	DWORD iconIndex = 0;
 
 	iconName_len = PA_GetTextParameter(params, 1, iconName);
 	iconName[iconName_len] = '\0';  // Explicitly set the length
@@ -2296,7 +2493,13 @@ void gui_LoadIcon(PA_PluginParameters params)
 		returnValue = 0;
 	}
 
-	PA_SetLongParameter(params, 2, hIcon);
+	if (isEx){ // WJF 9/16/15 #43731
+		iconIndex = handleArray_add(hIcon); 
+		PA_SetLongParameter(params, 2, iconIndex); 
+	}
+	else {
+		PA_SetLongParameter(params, 2, hIcon);
+	}
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -2306,17 +2509,26 @@ void gui_LoadIcon(PA_PluginParameters params)
 //  FUNCTION: gui_SetIcon( PA_PluginParameters params )
 //
 
-void gui_SetIcon(PA_PluginParameters params)
+void gui_SetIcon(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWnd;
-	LONG_PTR hIcon;
+	LONG_PTR hWndIndex;
+	LONG_PTR hIconIndex;
 	LONG_PTR returnValue;
+	LONG_PTR hIcon;
 	HWND WindowhWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
-	hIcon = PA_GetLongParameter(params, 2);
+	// WJF 9/1/15 #43731 We are now getting indexes to an internal array
+	hWndIndex = PA_GetLongParameter(params, 1); 
+	hIconIndex = PA_GetLongParameter(params, 2);
 
-	WindowhWnd = (HWND)hWnd;
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve(hWndIndex); 
+		hIcon = (LONG_PTR)handleArray_retrieve(hIconIndex);
+	}
+	else {
+		WindowhWnd = (HWND)hWndIndex;
+		hIcon = hIconIndex;
+	}
 
 	if ((IsWindow(WindowhWnd)) && (hIcon != 0)) {
 
@@ -2339,21 +2551,24 @@ void gui_SetIcon(PA_PluginParameters params)
 
 void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 {
-	LONG_PTR h4DWnd;
-	LONG_PTR returnValue;
-	LONG_PTR serverValue;
+	LONG_PTR h4DWnd = 0;
+	LONG_PTR windowHandle = 0; 
+	LONG_PTR serverValue = 0;
+	long returnValue = 0;
 
 	h4DWnd = PA_GetLongParameter(params, 1);
 	serverValue = PA_GetLongParameter(params, 2);
 
 	if (serverValue == 1) // AMS 5/20/14 #39556 PA_GetHWND(h4DWnd) does not work on 4D Server // AMS 6/8/14 #39789
 	{
-		returnValue = PA_GetHWND(PA_GetWindowFocused());
+		windowHandle = PA_GetHWND(PA_GetWindowFocused());
 	}
 	else
 	{
-		returnValue = PA_GetHWND(h4DWnd);
+		windowHandle = PA_GetHWND(h4DWnd);
 	}
+
+	returnValue = (long)windowHandle;
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -2790,6 +3005,11 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	OSVERSIONINFOEX		osvinfo;
 	LONG_PTR			returnValue = 0;
 	char				servicePackInfo[255] = "";
+	char				filePath[MAX_PATH] = "";
+	FILE				*fp = NULL;
+	char				utilitiesPath[MAX_PATH] = "";
+	char				*pos = NULL;
+	char				osVer[16] = "";
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx(&osvinfo);
@@ -2832,9 +3052,10 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	}
 	else
 	{
+		// WJF 9/22/15 #43601 Moved all version helper API calls to Orchard Utilities
 		// AMS2 12/17/14 #37816 Because GetVersionEx is deprecated, new versions of windows need to use version helper API functions to detect the OS version along with defining the new version number.
 		// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
-		if (IsWindows8OrGreater())
+		/*if (IsWindows8OrGreater())
 		{
 			returnValue = OS_WIN8;
 		}
@@ -2842,12 +3063,38 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		if (IsWindows8Point1OrGreater())
 		{
 			returnValue = OS_WIN81;
+		}*/
+
+		// WJF 9/21/15 #43601 Calling Orchard Utilities because it supports Windows 10 detection
+		GetTempPath(MAX_PATH, filePath);
+
+		strcat_s(filePath, MAX_PATH, "osVersion.txt");
+
+		strcpy_s(utilitiesPath, MAX_PATH, pathName);
+
+		pos = strrchr(utilitiesPath, '\\');
+
+		strcpy_s(pos, MAX_PATH, "orchard_utilities.exe");
+
+		ShellExecute(windowHandles.fourDhWnd, "", utilitiesPath, "-os", NULL, SW_HIDE);
+
+		if (GetLastError() == ERROR_SUCCESS){
+			utilitiesYield(filePath);
+
+			fp = fopen(filePath, "r");
+
+			if (fp){
+				fgets(osVer, 16, fp);
+
+				returnValue = atoi(osVer);
+			}
 		}
 
-		if (IsWindowsServer())
+		// WJF 9/22/15 #43601 Removed
+		/*if (IsWindowsServer())
 		{
 			++returnValue; // Server version numbers are the same as the OS version number but are incremented by one
-		}
+		}*/
 	}
 
 	if (!bInternalCall) {
@@ -4006,23 +4253,147 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 }
 
 
-
+// Note, this does not need to use the semaphore since it is already waiting on a file
 void TWAIN_GetSources(PA_PluginParameters params)
 {
 
 	LONG_PTR			returnValue, OK, state, debug;
-	DWORD			index = 1;
-	PA_Variable		atSources;
-	TW_IDENTITY		NewSourceId;
+	DWORD				index = 1;
+	PA_Variable			atSources;
+	// TW_IDENTITY			NewSourceId; // WJF 9/14/15 #43727 Removed
+	char				lpParameters[16] = "-S"; // WJF 9/21/15 #43940 3 -> 16
+	char				filePath[MAX_PATH] = "";
+	BOOL				get64 = FALSE;
+	FILE				*fp = NULL;
+	char				source[256] = ""; 
+	char				pluginPath[MAX_PATH] = "";
+	char				*pos = NULL;
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
 
-	debug = PA_GetLongParameter(params, 2);
+	debug = PA_GetLongParameter(params, 2); 
 
-	returnValue = -1;
+	get64 = PA_GetLongParameter(params, 3);
 
-	if (debug) returnValue = TWAIN_SelectImageSource(windowHandles.fourDhWnd);
+	returnValue = 1;
+
+	// WJF 9/11/15 #43727 Begin changes
+
+	strcpy_s(pluginPath, MAX_PATH, pathName);
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\0");
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\\\0");
+
+	// WJF 9/21/15 #43940 OrchardTwain -> Orchard_Utilities
+	if (get64){
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\Orchard_Utilities.exe");
+	}
+	else {
+		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
+	}
+		
+	GetTempPath(MAX_PATH, filePath);
+
+	strcat_s(filePath, MAX_PATH, "twainSources.txt");
+
+	utilitiesLock(); // WJF 9/21/15 #43940
+
+	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
+
+	if (GetLastError() == ERROR_SUCCESS){
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+
+		utilitiesYield(NULL); // WJF 9/21/15 #43940 Moved to common method
+
+		fp = fopen(filePath, "r");
+
+		if (fp){
+			while (fgets(source, 256, fp) != NULL){
+				if (strcmp(source, "-1") == 0){ // Failed to load Twain library
+					returnValue = -1;
+				}
+				else if (strcmp(source, "-2") == 0){ // Failed to open Data Source Manager
+					returnValue = -2;
+				}
+				else if (strcmp(source, "") == 0){ // Empty line
+					// do nothing
+				}
+				else { // Valid Product Name
+					pos = strrchr(source, '\n');
+					strcpy_s(pos, 256, "\0");
+					strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+					PA_ResizeArray(&atSources, index);
+					PA_SetTextInArray(atSources, index, source, strlen(source));
+					++index;
+				}
+
+			}
+
+			fclose(fp);
+
+			fp = NULL;
+
+			DeleteFile(filePath);
+
+			// WJF 9/21/15 #43940 Begin Changes
+			GetTempPath(MAX_PATH, filePath);
+
+			strcat_s(filePath, MAX_PATH, "wiaSources.txt");
+
+			strcpy_s(lpParameters, 16, "-ws");
+
+			utilitiesLock();
+
+			ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
+
+			if (GetLastError() == ERROR_SUCCESS){
+				PA_YieldAbsolute();
+				PA_YieldAbsolute();
+				PA_YieldAbsolute();
+
+				utilitiesYield(NULL); // WJF 9/21/15 #43601 Moved to common method
+
+				fp = fopen(filePath, "r");
+
+				if (fp){
+					while (fgets(source, 256, fp) != NULL){
+						if (strcmp(source, "") != 0){
+							pos = strrchr(source, '\n');
+							strcpy_s(pos, 256, "\0");
+							strcat_s(source, 256, "-WIA");
+							PA_ResizeArray(&atSources, index);
+							PA_SetTextInArray(atSources, index, source, strlen(source));
+							++index;
+						}
+
+					}
+
+					fclose(fp);
+
+					fp = NULL;
+				}
+
+				DeleteFile(filePath); // WJF 9/21/15 #43940
+			}
+			else {
+				returnValue = -1;
+			}
+			// WJF 9/21/15 #43940 End changes
+		}
+		else {
+			returnValue = -2; // WJF 9/21/15 #43940 0 -> -2
+		}
+	}
+	// Removed
+	/*if (debug) returnValue = TWAIN_SelectImageSource(windowHandles.fourDhWnd);
 
 	memset(&NewSourceId, 0, sizeof NewSourceId);
 
@@ -4040,6 +4411,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 			OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
 		}
 	}
+	*/
+	// WJF 9/11/15 #43727 End changes
 
 	PA_SetVariableParameter(params, 1, atSources, 0);
 	PA_ReturnLong(params, returnValue);
@@ -4048,16 +4421,34 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 void TWAIN_SetSource(PA_PluginParameters params)
 {
-	LONG_PTR			returnValue, OK, state;
-	TW_IDENTITY		NewSourceId;
+	LONG_PTR			returnValue, OK;
 	LONG_PTR			source_len;
 	char			sourceName[255];
 
 	source_len = PA_GetTextParameter(params, 1, sourceName);
 	sourceName[source_len] = '\0';
 
-	returnValue = 0;
+	returnValue = 1;
 
+	// WJF 9/11/15 #43727 Begin changes
+	if (twainSource){ // If we've already set a source, clear it
+		free(twainSource);
+
+		twainSource = NULL;
+	}
+
+	twainSource = (char *)malloc(source_len + 1);
+
+	// WJF 9/29/15 Added a check to see if it was actually allocated and a new error code
+	if (twainSource){
+		strcpy_s(twainSource, source_len + 1, sourceName);
+	}
+	else { 
+		returnValue = 0;
+	}
+
+	// Removed
+	/* 
 	memset(&NewSourceId, 0, sizeof NewSourceId);
 
 	// If the source is already open, close it to reset the connection.
@@ -4079,27 +4470,240 @@ void TWAIN_SetSource(PA_PluginParameters params)
 				OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
 			}
 		}
-	}
+	} */
+	// WJF 9/1/15 #43727 End changes
 
 	PA_ReturnLong(params, returnValue);
 }
 
+//  FUNCTION:	OrchTwain_Get(LPCSTR filePath, BOOL Get64)
+//
+//  PURPOSE:	Launches the external OrchTwain DLL and waits for the operation to finish
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/10/15 #43727
+long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOOL IsWIA, BOOL GetMultiple){
+	char lpParameters[MAX_PATH_PLUS] = "";
+	char filePathLock[MAX_PATH_PLUS] = "";
+	char pluginPath[MAX_PATH] = "";
+	char *path = NULL;
+	char *pos = NULL;
+	FILE *fp = NULL;
+	long returnValue = 1;
+	char sourceName[256] = "";
+	
+	strcpy_s(pluginPath, MAX_PATH, pathName);
 
+	pos = strrchr(pluginPath, '\\');
 
+	strcpy(pos, "\0");
+
+	pos = strrchr(pluginPath, '\\');
+
+	strcpy(pos, "\\\0");
+
+	if (Get64){
+		strcpy_s(pos, MAX_PATH, "\\Windows64\\Orchard_Utilities.exe");
+	}
+	else {
+		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
+	}
+	
+	// WJF 9/21/15 #43940
+	if (twainSource){
+		pos = NULL;
+		pos = strstr(twainSource, "-TWAIN");
+
+		if (!pos){
+			pos = strstr(twainSource, "-WIA");
+
+			if (pos){
+				IsWIA = TRUE;
+			}
+		}
+
+		// WJF 9/24/15 #43940 
+		strcpy_s(sourceName, 256, twainSource); 
+		pos = NULL;
+		pos = strrchr(sourceName, '-');
+
+		if (pos){
+			strcpy_s(pos, MAX_PATH, "\0");
+		}
+	}
+	
+	if (IsWIA){ // WJF 9/21/15 #43940
+		strcpy_s(lpParameters, MAX_PATH_PLUS, "-wa ");
+	}
+	else {
+		strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
+	}
+
+	strcat_s(lpParameters, MAX_PATH_PLUS, filePath);
+
+	if (GetMultiple){
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 1");
+	}
+	else {
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 0");
+	}
+	
+	if (ShowUI){
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 1 ");
+	}
+	else {
+		strcat_s(lpParameters, MAX_PATH_PLUS, " 0 ");
+	}
+
+	if (twainSource){
+		if (strcmp(sourceName, "") != 0){
+			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+			strcat_s(lpParameters, MAX_PATH_PLUS, sourceName);
+			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+		}
+	}
+
+	utilitiesLock(); // WJF 9/21/15 #43601 Moved to common method
+
+	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
+
+	if (GetLastError() == ERROR_SUCCESS){
+		utilitiesSleep(NULL); // WJF 9/21/15 #43601 Moved to common method
+
+		returnValue = 0;
+	}
+
+	return returnValue;
+}
+
+//  FUNCTION:	utilitiesLock()
+//
+//  PURPOSE:	Creates the semaphore for the orchard_utilties application
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesLock(){
+	char lockPath[MAX_PATH] = "";
+	FILE *fp = NULL;
+
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	fp = fopen(lockPath, "w");
+
+	if (fp){
+		fprintf(fp, "Locked\n");
+
+		fclose(fp);
+
+		fp = NULL;
+	}
+
+}
+
+//  FUNCTION:	utilitiesSleep()
+//
+//  PURPOSE:	Waits until the utilities application semaphore is cleared
+//
+//  COMMENTS:	Use this when NOT in the main Win32API thread
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesSleep(const char * filePath){
+	char lockPath[MAX_PATH] = "";
+	
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	SetLastError(ERROR_SUCCESS);
+
+	if (filePath){
+		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
+			Sleep(100);
+		}
+	}
+	else {
+		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			Sleep(100);
+		}
+	}
+}
+
+//  FUNCTION:	utilitiesYield()
+//
+//  PURPOSE:	Waits until the utilities application semaphore is cleared
+//
+//  COMMENTS:	Use this when in the main Win32API thread
+//
+//	DATE:		WJF 9/21/15 #43601
+void utilitiesYield(const char * filePath){
+	char lockPath[MAX_PATH] = "";
+
+	GetTempPath(MAX_PATH, lockPath);
+
+	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+
+	SetLastError(ERROR_SUCCESS);
+
+	if (filePath){
+		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
+			PA_YieldAbsolute();
+		}
+	}
+	else {
+		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+			PA_YieldAbsolute();
+		}
+	}
+}
 
 // REB 2/26/13 #35165 Intermediary method we can call as a new thread.
 unsigned __stdcall TWAIN_GetImage(void *arg)
 {
-	LONG_PTR		returnValue = 0;
 	TWAIN_CAPTURE*	TWAINCapture;
+	char			iterator[16] = "";
+	char			*pos = NULL;
+	BOOL			bContinue = TRUE;
+	char			filePath[MAX_PATH] = "";
+	long			i = 0;
 
-	TWAINCapture = (TWAIN_CAPTURE*)arg;
-	TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
-	TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
+	TWAINCapture = (TWAIN_CAPTURE*)arg; 
+	// WJF 9/10/15 #43727 Removed
+	//TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
+	//TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
+
+	TWAINCapture->returnValue = OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI, TWAINCapture->wiaMode, TWAINCapture->getMultiple); // WJF 9/10/15 #43727 // WJF 9/21/15 #43940
+	
+	if (TWAINCapture->getMultiple){
+		while (bContinue){
+			SetLastError(ERROR_SUCCESS);
+
+			i++;
+
+			strcpy_s(filePath, MAX_PATH, TWAINCapture->filePath);
+
+			pos = strrchr(filePath, '.');
+
+			_itoa(i, iterator, 10);
+
+			strcpy_s(pos, MAX_PATH, iterator);
+
+			strcat_s(filePath, MAX_PATH, ".bmp");
+
+			if ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
+				bContinue = FALSE;
+				i--;
+			}
+
+		}
+
+		TWAINCapture->numPictures = i;
+	}
 
 	TWAINCapture->done = TRUE;
-	TWAINCapture->returnValue = returnValue;
-
 }
 
 void TWAIN_AcquireImage(PA_PluginParameters params)
@@ -4109,17 +4713,25 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	char*			charPos;
 	char			fileName[255] = "";
 	char			fileName2[255] = "";
-	char*			pathName, *pch = NULL;
+	char			 *pch = NULL;
 	char			command[255] = "";
 	char			pathChar[1] = "\\";
-	HANDLE			DIBHandle = NULL;
+	// HANDLE			DIBHandle = NULL; // WJF 9/10/15 #43727 No longer needed
 	HANDLE			CaptureThread;
 	PA_Unistring	Unistring;
 	TWAIN_CAPTURE	TWAINCapture; // REB 2/26/13 #35165
-	char *BLOB = NULL; // AMS 7/3/14 #39391
-	LONG_PTR len = 0; // AMS 7/3/14 #39391
-	char cmdName[256] = ""; // WJF 6/29/15 #42792
-	char cName[256] = ""; // WJF 6/29/15 #42792
+	char			*BLOB = NULL; // AMS 7/3/14 #39391
+	LONG_PTR		len = 0; // AMS 7/3/14 #39391
+	char			cmdName[256] = ""; // WJF 6/29/15 #42792
+	char			cName[256] = ""; // WJF 6/29/15 #42792
+	char			pathName[MAX_PATH] = ""; // WJF 9/15/15 #43727 Initialize this value
+	char			iterator[16] = ""; // WJF 9/21/15 #43940
+	BOOL			x64 = FALSE; // WJF 9/21/15 #43727
+	BOOL			wiaMode = FALSE; // WJF 9/21/15 #43940
+	BOOL			getMultiple = FALSE; // WJF 9/21/15 #43940
+	char			fileName3[255] = ""; // WJF 9/21/15 #43940
+	char			cName2[256] = ""; // WJF 9/21/15 #43940
+	char			command2[256] = ""; // WJF 9/21/15 #43940
 
 	showDialog = PA_GetLongParameter(params, 1);
 
@@ -4132,42 +4744,47 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 		len = PA_GetTextParameter(params, 2, BLOB);
 	}
 
-	Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
-	pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
-	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
+	x64 = PA_GetLongParameter(params, 3); // WJF 9/21/15 #43727
+
+	getMultiple = PA_GetLongParameter(params, 4); // WJF 9/21/15 #43940
+
+	wiaMode = PA_GetLongParameter(params, 5); // WJF 9/21/15 #43940
+
+	//Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
+	//pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
+//	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
+	GetTempPath(MAX_PATH, pathName);
 	charPos = strrchr(pathName, '\\');
 	strncpy(fileName, pathName, (charPos - pathName + 1));
-	strcat(fileName, "\TWNIMG.bmp");
-
-	pch = fileName;
-
-	charPos = strchr(fileName, '\\');
-	while (charPos != NULL){
-		strncat(fileName2, pch, (charPos - pch));
-		pch = charPos;
-		charPos = strchr((charPos + 1), '\\');
-		if (charPos != NULL){
-			strcat(fileName2, "\\");
-		}
-		else{
-			// add the remainder of fileName to fileName2.
-			strcat(fileName2, "\\");
-			strcat(fileName2, pch);
-		}
-	}
+	strncat_s(fileName, 255, "TWNIMG.bmp", strlen("TWNIMG.bmp"));
 
 	// Allow the image dialog to display if so desired.
+	// WJF 9/10/15 #43727 Changed to use a new variable instead of the EZTWAIN function
 	if (showDialog){
-		TWAIN_SetHideUI(0);
+		TWAINCapture.showUI = TRUE;
 	}
 	else{
-		TWAIN_SetHideUI(1);
+		TWAINCapture.showUI = FALSE;
 	}
 
 	// REB 2/26/13 #35165 Load our variables into the structure we can pass to the new thread
 	TWAINCapture.returnValue = 0;
-	TWAINCapture.DIBHandle = DIBHandle;
+	// TWAINCapture.DIBHandle = DIBHandle; // WJF 9/10/15 #43727 Removed
 	TWAINCapture.done = FALSE;
+
+	TWAINCapture.get64 = x64; // WJF 9/10/15 #43727
+
+	TWAINCapture.getMultiple = getMultiple; // WJF 9/21/15 #43940
+
+	TWAINCapture.wiaMode = wiaMode; // WJF 9/21/15 #43940
+
+	TWAINCapture.numPictures = 1; // WJF 9/21/15 #43940 Default
+	
+	TWAINCapture.filePath = (char *)malloc(MAX_PATH_PLUS); // WJF 9/15/15 #43727
+
+	strcpy_s(TWAINCapture.filePath, MAX_PATH_PLUS, ""); // WJF 9/15/15 #43727
+
+	strncpy_s(TWAINCapture.filePath, MAX_PATH_PLUS, fileName, strlen(fileName)); // WJF 9/10/15 #43727
 
 	//DIBHandle = TWAIN_AcquireNative( windowHandles.fourDhWnd, TWAIN_ANYTYPE, &returnValue);
 	// REB 2/26/13 #35165 Start a new thread to handle the image acquisition so that we can yield time
@@ -4186,19 +4803,27 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	}
 
 	// REB 2/26/13 #35165 Now get the values from the structure
-	DIBHandle = TWAINCapture.DIBHandle;
+	//DIBHandle = TWAINCapture.DIBHandle; // WJF 9/10/15 #43727
 	returnValue = TWAINCapture.returnValue;
 
 
 	// Updated so that return code is 1 for success, 0 for cancel and negative for error codes.
 	// Suppress eztwain error dialogs
-	if (DIBHandle != NULL && returnValue >= 0){
-		returnValue = TWAIN_WriteNativeToFilename(DIBHandle, fileName2);
+	// WJF 9/10/15 #43727 We are now checking to see if the file exists rather than for a valid DIB handle
+	strcpy_s(fileName3, 255, fileName);
+	charPos = strrchr(fileName3, '.');
+	strcpy_s(charPos, 255, "1");
+	strcat_s(fileName3, 255, ".bmp");
+	if ((GetFileAttributes(fileName3) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){
+		
+		// returnValue = TWAIN_WriteNativeToFilename(DIBHandle, fileName2); // WJF 9/10/15 #43727 Removed
 
 		// TWAIN_WriteNativetoFilename returns 0 on success
 		if (returnValue == 0) {
 
 			returnValue = 1;
+
+			strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
 
 			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
@@ -4222,17 +4847,82 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				//strcpy(command, "DOCUMENT TO BLOB(\"");
-				strncpy(command, cName, sizeof(command));
-				strcat(command, "(\"");
-				strcat(command, fileName2);
-				strcat(command, "\";xTWAINBLOB)");
+				for (int i = 0; i < TWAINCapture.numPictures; i++){// WJF 9/21/15 #43940 
+					pch = fileName;
 
-				// REB 4/20/11 #27322 Conver the C string to a Unistring
-				Unistring = CStringToUnistring(&command);
-				PA_ExecuteMethod(&Unistring);
-				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
-				//PA_ExecuteMethod(command, strlen(command));
+					// WJF 9/21/15 #43940
+					strcpy_s(fileName, 255, fileName3);
+					charPos = strrchr(fileName, '.');
+					_itoa(i+1, iterator, 10);
+					strcpy_s(charPos, 255, iterator);
+					strcat_s(fileName, 255, ".bmp");
+					strcpy_s(fileName2, 255, "");
+					
+					charPos = strchr(fileName, '\\');
+					while (charPos != NULL){
+						strncat(fileName2, pch, (charPos - pch));
+						pch = charPos;
+						charPos = strchr((charPos + 1), '\\');
+						if (charPos != NULL){
+							strcat(fileName2, "\\");
+						}
+						else{
+							// add the remainder of fileName to fileName2.
+							strcat(fileName2, "\\");
+							strcat(fileName2, pch);
+						}
+					}
+
+					if (getMultiple){ // WJF 9/22/15 #43940
+						//strcpy(command, "DOCUMENT TO BLOB(\"");
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTempTWAINBlob)"); 
+
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring); 
+
+						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
+
+						j = 0;
+
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
+						for (int k = 0; k < sizeof(cmdName); k++)
+						{
+							if (cmdName[k] != '\0')
+							{
+								cName2[j] = cmdName[k];
+								j++;
+							}
+						}
+
+						strcpy_s(command2, 255, cName2);
+						strcat_s(command2, 255, "(xTempTWAINBlob;xTWAINBlob;*)");
+
+						Unistring = CStringToUnistring(&command2);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+					}
+					else {
+						//strcpy(command, "DOCUMENT TO BLOB(\"");
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTWAINBLOB)");
+
+						// REB 4/20/11 #27322 Conver the C string to a Unistring
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
+						//PA_ExecuteMethod(command, strlen(command));
+					}
+
+					DeleteFile(fileName); // WJF 9/21/15 #43940 Moved to loop
+				}
 			}
 			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
 			{ // WJF 6/29/15 #42792 Changed this to be like the above section because of a memory leak with varArray[0]. Now users will have to pass the name of the blob as text.
@@ -4254,7 +4944,85 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				strncpy(command, cName, sizeof(command));
+				// WJF 9/21/15 #43940 
+				for (int i = 0; i < TWAINCapture.numPictures; i++){
+					pch = fileName;
+
+					strcpy_s(fileName, 255, fileName3);
+					charPos = strrchr(fileName, '.');
+					_itoa(i + 1, iterator, 10);
+					strcpy_s(charPos, 255, iterator);
+					strcat_s(fileName, 255, ".bmp");
+					strcpy_s(fileName2, 255, "");
+
+					charPos = strchr(fileName, '\\');
+					while (charPos != NULL){
+						strncat(fileName2, pch, (charPos - pch));
+						pch = charPos;
+						charPos = strchr((charPos + 1), '\\');
+						if (charPos != NULL){
+							strcat(fileName2, "\\");
+						}
+						else{
+							// add the remainder of fileName to fileName2.
+							strcat(fileName2, "\\");
+							strcat(fileName2, pch);
+						}
+					}
+
+					if (getMultiple){ 
+						strncpy(command, cName, sizeof(command));
+						strcat(command, "(\"");
+						strcat(command, fileName2);
+						strcat(command, "\";xTempTWAINBlob)");
+
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
+
+						j = 0;
+
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
+						for (int k = 0; k < sizeof(cmdName); k++)
+						{
+							if (cmdName[k] != '\0')
+							{
+								cName2[j] = cmdName[k];
+								j++;
+							}
+						}
+
+						strcpy_s(command2, 255, cName2);
+						strcat_s(command2, 255, "(xTempTWAINBlob;");
+						strcat_s(command2, 255, BLOB);
+						strcat_s(command2, 255, ";*)");
+
+						Unistring = CStringToUnistring(&command2);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+
+					}
+					else {
+						strcpy_s(command, 255, cName);
+						strcat_s(command, 255, "(\"");
+						strcat_s(command, 255, fileName2);
+						strcat_s(command, 255, "\";");
+						strcat_s(command, 255, BLOB);
+						strcat_s(command, 255, ")");
+
+						Unistring = CStringToUnistring(&command);
+						PA_ExecuteMethod(&Unistring);
+						PA_DisposeUnistring(&Unistring);
+					}
+
+					DeleteFile(fileName);
+				}
+
+				// WJF 9/22/15 #43940 Removed
+				/*strncpy(command, cName, sizeof(command));
 				strcat(command, "(\"");
 				strcat(command, fileName2);
 				strcat(command, "\";");
@@ -4263,7 +5031,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				Unistring = CStringToUnistring(&command);
 				PA_ExecuteMethod(&Unistring);
-				PA_DisposeUnistring(&Unistring);
+				PA_DisposeUnistring(&Unistring);*/
 
 				/*PA_Unistring _path = CStringToUnistring(fileName);
 				PA_Variable varArray[2];
@@ -4285,11 +5053,10 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				PA_SetBlobParameter(params, 2, twainBlob, blobSize);
 
-				PA_DisposeUnistring(&_path); // WJF 6/25/15 #42792
-
+				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 				free(twainBlob); */
 			}
-			DeleteFile(fileName);
+			
 		}
 	}
 
@@ -4298,11 +5065,16 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 		free(BLOB); // AMS 7/10/14 #39391
 	}
 	
-	free(pathName); // WJF 6/25/15 #42792
+	//free(pathName); // WJF 6/25/15 #42792
+
+	if (TWAINCapture.filePath){
+		free(TWAINCapture.filePath);
+		TWAINCapture.filePath = NULL;
+	}
 
 	PA_ReturnLong(params, returnValue);
 
-	TWAIN_FreeNative(DIBHandle);
+	// TWAIN_FreeNative(DIBHandle); // WJF 9/10/15 #43727 No longer needed
 
 }
 
@@ -4365,9 +5137,10 @@ void sys_IsAppFrontmost(PA_PluginParameters params)
 //
 // DATE:			DJD 2008-09-12
 //
-void gui_MessageBox(PA_PluginParameters params)
+void gui_MessageBox(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR ownerHandle;
+	LONG_PTR ownerHandleIndex;
+	HWND ownerHandle;
 	LONG_PTR messageText_len;
 	char messageText[32000];
 	LONG_PTR dialogTitle_len;
@@ -4375,14 +5148,21 @@ void gui_MessageBox(PA_PluginParameters params)
 	LONG_PTR dialogType;
 	LONG_PTR returnValue;
 
-	ownerHandle = PA_GetLongParameter(params, 1);
+	ownerHandleIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	messageText_len = PA_GetTextParameter(params, 2, messageText);
 	messageText[messageText_len] = '\0';
 	dialogTitle_len = PA_GetTextParameter(params, 3, dialogTitle);
 	dialogTitle[dialogTitle_len] = '\0';
 	dialogType = PA_GetLongParameter(params, 4);
 
-	returnValue = MessageBoxEx((HWND)ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0);
+	if (isEx){
+		ownerHandle = handleArray_retrieve(ownerHandleIndex); // WJF 9/16/15 #43731
+	}
+	else {
+		ownerHandle = (HWND)ownerHandleIndex;
+	}
+	
+	returnValue = MessageBoxEx(ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0); // WJF 9/1/15 #43731 Removed typecasting on the handle
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -4705,6 +5485,8 @@ void sys_EnableTaskManager(PA_PluginParameters params)
 void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 {
 	LONG_PTR returnValue, regKey, retErr, dataSize, arraySize, value, expandDataSize, keyState;
+	DWORD dwVal = 0;
+	__int64 val64 = 0;
 	LONG_PTR i, len;
 	char regSub[MAXBUF];
 	char regName[MAXBUF];
@@ -4771,6 +5553,11 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				dwDataType = REG_BINARY;
 				retErr = ERROR_SUCCESS;
 				break;
+
+			case 104:
+				dwDataType = REG_QWORD;
+				retErr = ERROR_SUCCESS;
+				break;
 			}
 		}
 
@@ -4799,7 +5586,8 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 			case REG_DWORD:
 			case REG_DWORD_BIG_ENDIAN:
 				value = PA_GetLongParameter(params, 4);
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &value, sizeof(value));
+				dwVal = value; // WJF 8/31/15 #43731 Truncate to 32-bit DWORD
+				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &dwVal, sizeof(dwVal));
 
 				if (retErr == ERROR_SUCCESS){
 					returnValue = 1;
@@ -4873,6 +5661,21 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				free(newDataBuffer);
 
 				break;
+
+			case REG_QWORD: // WJF 8/31/15 #43731 Added Support for 64-bit QWORD
+				value = PA_GetLongParameter(params, 4);
+			    val64 = value; // Force to 64-bit
+				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &val64, sizeof(val64));
+
+				if (retErr == ERROR_SUCCESS){
+					returnValue = 1;
+				}
+				else{
+					returnValue = retErr * -1;
+				}
+
+				break;
+
 			}
 		}
 	}
@@ -5696,9 +6499,9 @@ void sys_DecryptAES(PA_PluginParameters params)
 //
 //	DATE:		WJF 7/7/15 #43138
 
-void gui_TakeScreenshot(PA_PluginParameters params){
+void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 
-	LONG_PTR				hWnd;
+	LONG_PTR				hWndIndex;
 	RECT					rcClient;
 	int						lError = 0;
 	HDC						hdcScreen;
@@ -5716,12 +6519,20 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 	DWORD					dwFilePathLength;
 	BITMAPFILEHEADER		bmfHeader;
 	BITMAPINFOHEADER		bi;
+	HWND					hWnd;
 
-	hWnd = PA_GetLongParameter(params, 1);
+	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array;
 
 	dwFilePathLength = PA_GetTextParameter(params, 2, NULL);
 	filePath = (char *)malloc(dwFilePathLength);
 	dwFilePathLength = PA_GetTextParameter(params, 2, filePath);
+
+	if (isEx){ // WJF 9/16/15 #43731
+		hWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	}
+	else {
+		hWnd = (HWND)hWndIndex;
+	}
 
 	if (IsWindow(hWnd)) {
 		// Get a screen DC and a DC for the window for which the handle was provided
@@ -5835,4 +6646,292 @@ void gui_TakeScreenshot(PA_PluginParameters params){
 
 	PA_ReturnLong(params, lError);
 
+}
+
+
+//  FUNCTION:	handleArray_add (LONG_PTR hWND)
+//
+//  PURPOSE:	Adds a handle to the internal handle array
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
+DWORD handleArray_add(LONG_PTR hWND){
+	int i = 0;
+	BOOL hasEmptySlot = FALSE;
+	DWORD dwResult = 0;
+
+	// Wait for the mutex
+	dwResult = WaitForSingleObject(hArrayMutex, 2000);
+
+	if (dwResult == WAIT_OBJECT_0){
+		__try{
+			// Find first empty slot
+			while (i < HANDLEARRAY_CAPACITY){
+				if (handleArray[i] == 0){
+					hasEmptySlot = TRUE;
+					break;
+				}
+				else {
+					i++;
+				}
+			}
+
+			if (hasEmptySlot){
+				handleArray[i] = hWND;
+			}
+		}
+		__finally {
+			ReleaseMutex(hArrayMutex);
+		}
+
+		if (hasEmptySlot){
+			return i;
+		}
+		else {
+			return -1;
+		}
+	}
+	else {
+		return -1;
+	}
+}
+
+//  FUNCTION:	handleArray_init ()
+//
+//  PURPOSE:	Initializes the internal handle array and its mutex object
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
+DWORD handleArray_init(){
+
+	for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
+		handleArray[i] = 0;
+		
+	hArrayMutex = CreateMutex(NULL, FALSE, NULL);
+
+	if (hArrayMutex == NULL){
+		return GetLastError();
+	}
+	else {
+		return ERROR_SUCCESS;
+	}
+
+
+}
+
+//  FUNCTION:	handleArray_remove (PA_PluginParameters params)
+//
+//  PURPOSE:	Removes a handle from the internal handle array
+//
+//  COMMENTS:	gui_FreeHandle
+//
+//	DATE:		WJF 9/1/15 #43731
+DWORD handleArray_remove(PA_PluginParameters params){
+	LONG index = 0;
+	DWORD errorCode = -1;
+
+	index = PA_GetLongParameter(params, 1);
+
+	if ((index >= 0) && (index < HANDLEARRAY_CAPACITY)){
+
+		errorCode = WaitForSingleObject(hArrayMutex, 2000);
+		if (errorCode == WAIT_OBJECT_0){
+			__try{
+				handleArray[index] = 0;
+			}
+			__finally {
+				ReleaseMutex(hArrayMutex);
+			}
+		}
+
+	}
+
+	PA_ReturnLong(params, errorCode);
+}
+
+//  FUNCTION:	handleArray_free (PA_PluginParameters params)
+//
+//  PURPOSE:	"Frees" all handle in the internal handle array, setting their values to 0.
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/1/15 #43731
+DWORD handleArray_free(PA_PluginParameters params){
+	DWORD errorCode = 0;
+
+	errorCode = WaitForSingleObject(hArrayMutex, 2000);
+
+	if (errorCode == WAIT_OBJECT_0){
+		__try {
+			for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
+				handleArray[i] = 0;
+		}
+		__finally {
+			ReleaseMutex(hArrayMutex);
+		}
+	}
+
+	PA_ReturnLong(params, errorCode);
+
+	return errorCode;
+}
+
+//  FUNCTION:	handleArray_retrieve (DWORD handleIndex)
+//
+//  PURPOSE:	Common method to return a handle from the handleArray
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/16/15 #43731
+HWND handleArray_retrieve(DWORD handleIndex){
+	LONG_PTR handle = 0;
+	
+	if ((handleIndex >= 0) && (handleIndex < HANDLEARRAY_CAPACITY)){
+		handle = handleArray[handleIndex];
+	}
+
+	return (HWND)handle;
+}
+
+//  FUNCTION:	gui_GetWindowEx (PA_PluginParameters params, HWND hWnd)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
+{
+	LONG_PTR			windowTitle_len;
+	char				*windowTitle;
+	long				returnValue = -1;
+	LONG_PTR			windowHandle = 0;
+
+	windowTitle_len = PA_GetTextParameter(params, 1, NULL) + 1;
+	windowTitle = malloc(windowTitle_len * sizeof(char));
+	memset(windowTitle, 0, (windowTitle_len * sizeof(char)));
+	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
+	windowTitle[windowTitle_len] = '\0';
+
+	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
+		windowHandle = (LONG_PTR)hWnd;
+
+	}
+	else {
+		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
+			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
+		}
+		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
+			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
+		}
+		else {
+			windowHandle = (LONG_PTR)getWindowHandle(windowTitle, hWnd);
+		}
+		if (!windowHandle) {
+			returnValue = -3;
+		}
+	}
+
+	if (windowHandle){
+		returnValue = handleArray_add(windowHandle);
+	}
+
+	free(windowTitle);
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_GetWindowFrom4DWinEx (PA_PluginParameters params)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
+{
+	LONG_PTR h4DWnd = 0;
+	LONG_PTR windowHandle = 0;
+	LONG_PTR serverValue = 0;
+	long returnValue = 0;
+
+	h4DWnd = PA_GetLongParameter(params, 1);
+
+	windowHandle = PA_GetHWND(h4DWnd);
+
+	returnValue = handleArray_add(windowHandle); 
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_SetForegroundWindow (PA_PluginParameters params)
+//
+//  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
+//
+//  COMMENTS:	Needed for Automated Testing
+//
+//	DATE:		WJF 9/15/15 #43731
+void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
+{
+	LONG_PTR			index = 0;
+	BOOL				bResult = FALSE;
+	long				returnValue = 0;
+	HWND				hWnd = NULL;
+
+	index = PA_GetLongParameter(params, 1);
+
+	if (isEx){ 
+		hWnd = handleArray_retrieve((DWORD)index);
+	}
+	else {
+		hWnd = (HWND)index;
+	}
+	
+	if (IsWindow(hWnd)){
+		bResult = SetForegroundWindow(hWnd);
+	}
+
+	if (bResult){
+		returnValue = 1;
+	}
+
+	PA_ReturnLong(params, returnValue);
+}
+
+//  FUNCTION:	gui_SetFocusEx (PA_PluginParameters params)
+//
+//  PURPOSE:	Sets the focus to the specified window
+//
+//  COMMENTS:   
+//
+//	DATE:		WJF 10/19/15 Win-3
+void gui_SetFocusEx(PA_PluginParameters params){
+	HWND hWnd = NULL;
+	DWORD index = 0;
+	DWORD targetThread = 0;
+	DWORD thisThread = 0;
+	LONG error = 1;
+
+	index = PA_GetLongParameter(params, 1);
+
+	hWnd = handleArray_retrieve(index);
+
+	if (IsWindow(hWnd)){
+		thisThread = GetCurrentThreadId();
+		targetThread = GetWindowThreadProcessId(hWnd, 0);
+		
+		if (thisThread == targetThread){
+			SetFocus(hWnd);
+			error = 0;
+		}
+		else if (AttachThreadInput(thisThread, targetThread, TRUE)){
+			SetFocus(hWnd);
+			AttachThreadInput(thisThread, targetThread, FALSE);
+			error = 0;
+		}
+	}
+
+	PA_ReturnLong(params, error);
 }

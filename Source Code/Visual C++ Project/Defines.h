@@ -18,7 +18,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 6.6.3
+#define WIN32API_VERSION 7.0.0
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2
@@ -96,6 +96,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define OS_SERVER2012	621 // REB 10/31/12 #34333
 #define OS_WIN81		630 // AMS2 9/26/14 #37816
 #define OS_SERVER2012R2	631 // AMS2 9/26/14 #37816
+#define OS_WIN10		1000 // WJF 9/21/15 #43601
 
 #define BM_TILE				1
 #define BM_SCALE			2
@@ -261,3 +262,11 @@ typedef LL* pLL;
 //#define strncpy(d, s, n) strcpy_s((d) ,(n) ,(s)) // Mark De Wever #12225
 
 #define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665
+
+#define MAX_PATH_PLUS 388 // WJF 9/11/15 #43727
+
+#ifdef _WIN64
+#define k64Init 0x00000000ffffffff // WJF 9/1/15 #43731/#43732 The selector value is returning this in 64-bit
+#endif
+
+#define HANDLEARRAY_CAPACITY 4096 // WJF 9/1/15 #43731 32 KB in 64-bit, 16 in 32-bit

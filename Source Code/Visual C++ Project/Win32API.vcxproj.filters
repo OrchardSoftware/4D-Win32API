@@ -34,9 +34,6 @@
     <ClCompile Include="4DPlugin2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EZTWAIN.C">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="linkedList.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,33 +57,19 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="ASINTPPC.lib">
-      <Filter>Source Files</Filter>
-    </Library>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="4DPlugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EZTWAIN.H">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="language.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Twain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="4D Plugin API\4DPluginAPI.h">
-      <Filter>4D Plugin API</Filter>
-    </ClInclude>
-    <ClInclude Include="ASI_spec.h">
       <Filter>4D Plugin API</Filter>
     </ClInclude>
     <ClInclude Include="4D Plugin API\EntryPoints.h">
@@ -114,5 +97,8 @@
     <None Include="4D Plugin API\4DPluginAPI.def">
       <Filter>4D Plugin API</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="Win32API.manifest" />
   </ItemGroup>
 </Project>

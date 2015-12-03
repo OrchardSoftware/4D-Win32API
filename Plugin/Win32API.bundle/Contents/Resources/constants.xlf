@@ -1,0 +1,853 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<xliff version="1.0" xmlns:d4="http://www.4d.com/d4-ns">
+
+  <group id="1" restype="x-4DK#">
+    <trans-unit id="2">
+      <source>WINAPI_SetWindowStyle</source>
+    </trans-unit>
+    <trans-unit d4:value="64" id="3">
+      <source>RW_DISABLE_MIN</source>
+    </trans-unit>
+    <trans-unit d4:value="128" id="4">
+      <source>RW_ENABLE_MIN</source>
+    </trans-unit>
+    <trans-unit d4:value="256" id="5">
+      <source>RW_DISABLE_MAX</source>
+    </trans-unit>
+    <trans-unit d4:value="512" id="6">
+      <source>RW_ENABLE_MAX</source>
+    </trans-unit>
+    <trans-unit d4:value="1024" id="7">
+      <source>RW_DISABLE_CLOSE</source>
+    </trans-unit>
+    <trans-unit d4:value="2048" id="8">
+      <source>RW_ENABLE_CLOSE</source>
+    </trans-unit>
+    <trans-unit d4:value="4096" id="9">
+      <source>RW_DISABLE_RESIZE</source>
+    </trans-unit>
+    <trans-unit id="10">
+      <source>RW_ENABLE_RESIZE</source>
+    </trans-unit>
+  </group>
+
+  <group id="11" restype="x-4DK#">
+    <trans-unit id="12">
+      <source>WINAPI_GetRegistryType</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="13">
+      <source>GR_TYPE_BINARY</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="14">
+      <source>GR_TYPE_LONGINT</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="15">
+      <source>GR_TYPE_TEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="16">
+      <source>GR_TYPE_ARRAYTEXT</source>
+    </trans-unit>
+  </group>
+
+  <group id="17" restype="x-4DK#">
+    <trans-unit id="18">
+      <source>WINAPI_GetRegistry</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="19">
+      <source>GR_HKEY_CLASSES_ROOT</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="20">
+      <source>GR_HKEY_CURRENT_USER</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="21">
+      <source>GR_HKEY_DYN_DATA</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="22">
+      <source>GR_HKEY_LOCAL_MACHINE</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="23">
+      <source>GR_HKEY_USERS</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="24">
+      <source>GR_HKEY_CURRENT_CONFIG</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="25">
+      <source>GR_HKEY_PERFORMANCE_DATA</source>
+    </trans-unit>
+  </group>
+
+  <group id="26" restype="x-4DK#">
+    <trans-unit id="27">
+      <source>WINAPI_SysColor</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="28">
+      <source>COLOR_SCROLLBAR</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="29">
+      <source>COLOR_DESKTOP</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="30">
+      <source>COLOR_ACTIVECAPTION</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="31">
+      <source>COLOR_INACTIVECAPTION</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="32">
+      <source>COLOR_MENU</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="33">
+      <source>COLOR_WINDOW</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="34">
+      <source>COLOR_WINDOWFRAME</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="35">
+      <source>COLOR_MENUTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="8" id="36">
+      <source>COLOR_WINDOWTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="9" id="37">
+      <source>COLOR_CAPTIONTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="10" id="38">
+      <source>COLOR_ACTIVEBORDER</source>
+    </trans-unit>
+    <trans-unit d4:value="11" id="39">
+      <source>COLOR_INACTIVEBORDER</source>
+    </trans-unit>
+    <trans-unit d4:value="12" id="40">
+      <source>COLOR_APPWORKSPACE</source>
+    </trans-unit>
+    <trans-unit d4:value="13" id="41">
+      <source>COLOR_HIGHLIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="14" id="42">
+      <source>COLOR_HIGHLIGHTTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="15" id="43">
+      <source>COLOR_3DFACE</source>
+    </trans-unit>
+    <trans-unit d4:value="16" id="44">
+      <source>COLOR_3DSHADOW</source>
+    </trans-unit>
+    <trans-unit d4:value="17" id="45">
+      <source>COLOR_GRAYTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="18" id="46">
+      <source>COLOR_BTNTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="19" id="47">
+      <source>COLOR_INACTIVECAPTIONTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="20" id="48">
+      <source>COLOR_3DHIGHLIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="21" id="49">
+      <source>COLOR_3DDKSHADOW</source>
+    </trans-unit>
+    <trans-unit d4:value="22" id="50">
+      <source>COLOR_3DLIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="23" id="51">
+      <source>COLOR_INFOTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="24" id="52">
+      <source>COLOR_INFOBK</source>
+    </trans-unit>
+    <trans-unit d4:value="26" id="53">
+      <source>COLOR_HOTLIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="27" id="54">
+      <source>COLOR_GRADIENTACTIVECAPTION</source>
+    </trans-unit>
+    <trans-unit d4:value="28" id="55">
+      <source>COLOR_GRADIENTINACTIVECAPTION</source>
+    </trans-unit>
+  </group>
+
+  <group id="56" restype="x-4DK#">
+    <trans-unit id="57">
+      <source>WINAPI_SetColor</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="58">
+      <source>SC_NO_CUSTOM_COLORS</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="59">
+      <source>SC_HAS_CUSTOM_COLORS</source>
+    </trans-unit>
+  </group>
+
+  <group id="60" restype="x-4DK#">
+    <trans-unit id="61">
+      <source>WINAPI_WindowState</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="62">
+      <source>IS_MINIMIZED</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="63">
+      <source>IS_MAXIMIZED</source>
+    </trans-unit>
+  </group>
+
+  <group id="64" restype="x-4DK#">
+    <trans-unit id="65">
+      <source>WINAPI_RestrictWindow</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="66">
+      <source>RW_RELEASE</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="67">
+      <source>RW_NO_SIZE</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="68">
+      <source>RW_NO_MOVE</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="69">
+      <source>RW_NO_MIN</source>
+    </trans-unit>
+    <trans-unit d4:value="8" id="70">
+      <source>RW_NO_MAX</source>
+    </trans-unit>
+    <trans-unit d4:value="1024" id="71">
+      <source>RW_SUBCLASS_INIT</source>
+    </trans-unit>
+    <trans-unit d4:value="16" id="72">
+      <source>RW_NO_NEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="32" id="73">
+      <source>RW_NO_CLOSE</source>
+    </trans-unit>
+    <trans-unit d4:value="-32" id="74">
+      <source>RW_RESTORE_CLOSE</source>
+    </trans-unit>
+  </group>
+
+  <group id="75" restype="x-4DK#">
+    <trans-unit id="76">
+      <source>WINAPI_DateTime</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="77">
+      <source>DT_FORCE_UPDATE</source>
+    </trans-unit>
+  </group>
+
+  <group id="78" restype="x-4DK#">
+    <trans-unit id="79">
+      <source>WINAPI_CommandLine</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="80">
+      <source>CL_DRAGDROP</source>
+    </trans-unit>
+  </group>
+
+  <group id="81" restype="x-4DK#">
+    <trans-unit id="82">
+      <source>WINAPI_EnumPrinters</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="83">
+      <source>EP_USE_REGISTRY</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="84">
+      <source>EP_NAMES_ONLY</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="85">
+      <source>EP_USE_OPEN</source>
+    </trans-unit>
+  </group>
+
+  <group id="86" restype="x-4DK#">
+    <trans-unit id="87">
+      <source>WINAPI_FileCheck</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="88">
+      <source>ERROR_FILE_NOT_FOUND</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="89">
+      <source>ERROR_PATH_NOT_FOUND</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="90">
+      <source>ERROR_ACCESS_DENIED</source>
+    </trans-unit>
+    <trans-unit d4:value="32" id="91">
+      <source>ERROR_SHARING_VIOLATION</source>
+    </trans-unit>
+    <trans-unit d4:value="80" id="92">
+      <source>ERROR_FILE_EXISTS</source>
+    </trans-unit>
+  </group>
+
+  <group id="93" restype="x-4DK#">
+    <trans-unit id="94">
+      <source>WINAPI_TrayIcon</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="95">
+      <source>TI_ADD</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="96">
+      <source>TI_MODIFY</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="97">
+      <source>TI_DELETE</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="98">
+      <source>TI_MESSAGE</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="99">
+      <source>TI_ICON</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="100">
+      <source>TI_TIP</source>
+    </trans-unit>
+    <trans-unit d4:value="16" id="101">
+      <source>TI_INFO</source>
+    </trans-unit>
+    <trans-unit d4:value="256" id="102">
+      <source>TI_HIDE</source>
+    </trans-unit>
+    <trans-unit d4:value="512" id="103">
+      <source>TI_SHOW</source>
+    </trans-unit>
+    <trans-unit d4:value="513" id="104">
+      <source>TI_LBUTTONDOWN</source>
+    </trans-unit>
+    <trans-unit d4:value="516" id="105">
+      <source>TI_RBUTTONDOWN</source>
+    </trans-unit>
+    <trans-unit d4:value="515" id="106">
+      <source>TI_LBUTTONDBLCLK</source>
+    </trans-unit>
+    <trans-unit d4:value="518" id="107">
+      <source>TI_RBUTTONDBLCLK</source>
+    </trans-unit>
+  </group>
+
+  <group id="108" restype="x-4DK#">
+    <trans-unit id="109">
+      <source>WINAPI_ToolTip</source>
+    </trans-unit>
+    <trans-unit id="110">
+      <source>TT_BALLOON</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="111">
+      <source>TT_RECTANGLE</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="112">
+      <source>TT_CENTER</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="113">
+      <source>TT_TOPRIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="114">
+      <source>TT_TOPLEFT</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="115">
+      <source>TT_BOTTOMRIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="116">
+      <source>TT_BOTTOMLEFT</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="117">
+      <source>TT_CLOSE_ON_CLICK</source>
+    </trans-unit>
+  </group>
+
+  <group id="118" restype="x-4DK#">
+    <trans-unit id="119">
+      <source>WINAPI_BitMap</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="120">
+      <source>BM_TILE</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="121">
+      <source>BM_SCALE</source>
+    </trans-unit>
+    <trans-unit d4:value="" id="122">
+      <source>BM_CLOSE</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="123">
+      <source>BM_SCALETOMAXCLIENT</source>
+    </trans-unit>
+  </group>
+
+  <group id="124" restype="x-4DK#">
+    <trans-unit id="125">
+      <source>WINAPI_PlayWav</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="126">
+      <source>MB_OK</source>
+    </trans-unit>
+    <trans-unit d4:value="32" id="127">
+      <source>MB_QUESTION</source>
+    </trans-unit>
+    <trans-unit d4:value="48" id="128">
+      <source>MB_EXCLAMATION</source>
+    </trans-unit>
+    <trans-unit d4:value="64" id="129">
+      <source>MB_ASTERISK</source>
+    </trans-unit>
+  </group>
+
+  <group id="130" restype="x-4DK#">
+    <trans-unit id="131">
+      <source>WINAPI_WindowMetrics</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="132">
+      <source>WM_BORDER_WIDTH</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="133">
+      <source>WM_BORDER_HEIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="134">
+      <source>WM_CAPTION_HEIGHT</source>
+    </trans-unit>
+    <trans-unit d4:value="15" id="135">
+      <source>WM_MENU_HEIGHT</source>
+    </trans-unit>
+  </group>
+
+  <group id="136" restype="x-4DK#">
+    <trans-unit id="137">
+      <source>WINAPI_OSVersion</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="138">
+      <source>OS_WIN95</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="139">
+      <source>OS_WIN98</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="140">
+      <source>OS_ME</source>
+    </trans-unit>
+    <trans-unit d4:value="351" id="141">
+      <source>OS_NT351</source>
+    </trans-unit>
+    <trans-unit d4:value="400" id="142">
+      <source>OS_NT4</source>
+    </trans-unit>
+    <trans-unit d4:value="500" id="143">
+      <source>OS_W2K</source>
+    </trans-unit>
+    <trans-unit d4:value="510" id="144">
+      <source>OS_XP</source>
+    </trans-unit>
+    <trans-unit d4:value="520" id="145">
+      <source>OS_WIN03</source>
+    </trans-unit>
+    <trans-unit d4:value="600" id="146">
+      <source>OS_VISTA_LONGHORN</source>
+    </trans-unit>
+    <trans-unit d4:value="610" id="147">
+      <source>OS_WIN7</source>
+    </trans-unit>
+    <trans-unit d4:value="601" id="148">
+      <source>OS_SERVER2K8</source>
+    </trans-unit>
+    <trans-unit d4:value="611" id="149">
+      <source>OS_SERVER2K8R2</source>
+    </trans-unit>
+    <trans-unit d4:value="620" id="150">
+      <source>OS_WIN8</source>
+    </trans-unit>
+    <trans-unit d4:value="621" id="151">
+      <source>OS_SERVER2012</source>
+    </trans-unit>
+    <trans-unit d4:value="630" id="152">
+      <source>OS_WIN81</source>
+    </trans-unit>
+    <trans-unit d4:value="631" id="153">
+      <source>OS_SERVER2012R2</source>
+    </trans-unit>
+  </group>
+
+  <group id="154" restype="x-4DK#">
+    <trans-unit id="155">
+      <source>WINAPI_FlashWindow</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="156">
+      <source>FLASHW_STOP</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="157">
+      <source>FLASHW_CAPTION</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="158">
+      <source>FLASHW_TIMER</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="159">
+      <source>FLASHW_ALL</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="160">
+      <source>FLASHW_TRAY</source>
+    </trans-unit>
+    <trans-unit d4:value="12" id="161">
+      <source>FLASHW_BRING_TO_FOREGROUND</source>
+    </trans-unit>
+  </group>
+
+  <group id="162" restype="x-4DK#">
+    <trans-unit id="163">
+      <source>WINAPI_PrintSettings</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="164">
+      <source>PS_PRINTER</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="165">
+      <source>PS_SIZE</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="166">
+      <source>PS_SOURCE</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="167">
+      <source>PS_COPIES</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="168">
+      <source>PS_PORTRAITORLANDSCAPE</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="169">
+      <source>PS_PRINTEDTOFILE</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="170">
+      <source>PS_PRINTPREVIEW</source>
+    </trans-unit>
+  </group>
+
+  <group id="171" restype="x-4DK#">
+    <trans-unit id="172">
+      <source>WINAPI_RegionSettings</source>
+    </trans-unit>
+    <trans-unit id="173">
+      <source>RS_SHORTDATEFORMAT</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="174">
+      <source>RS_LONGDATEFORMAT</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="175">
+      <source>RS_DATESEPARATOR</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="176">
+      <source>RS_TIMEFORMAT</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="177">
+      <source>RS_TIMESEPARATOR</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="178">
+      <source>RS_AMSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="179">
+      <source>RS_PMSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="8" id="180">
+      <source>RS_MEASURESYSTEM</source>
+    </trans-unit>
+    <trans-unit d4:value="9" id="181">
+      <source>RS_DECIMALSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="10" id="182">
+      <source>RS_NUMBERLEADINGZEROS</source>
+    </trans-unit>
+    <trans-unit d4:value="11" id="183">
+      <source>RS_DIGITSAFTERDECIMAL</source>
+    </trans-unit>
+    <trans-unit d4:value="12" id="184">
+      <source>RS_NUMBERGROUPINGSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="13" id="185">
+      <source>RS_NEGATIVESYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="14" id="186">
+      <source>RS_CURRENCYSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="15" id="187">
+      <source>RS_CURRENCYDECIMALSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="16" id="188">
+      <source>RS_CURRENCYDIGITSAFTERDECIMAL</source>
+    </trans-unit>
+    <trans-unit d4:value="17" id="189">
+      <source>RS_CURRENCYGROUPINGSYMBOL</source>
+    </trans-unit>
+    <trans-unit d4:value="18" id="190">
+      <source>RS_LISTSEPARATOR</source>
+    </trans-unit>
+  </group>
+
+  <group id="191" restype="x-4DK#">
+    <trans-unit id="192">
+      <source>WINAPI_FileDialogs</source>
+    </trans-unit>
+    <trans-unit d4:value="4096" id="193">
+      <source>FD_FILE_MUST_EXIST</source>
+    </trans-unit>
+    <trans-unit d4:value="8192" id="194">
+      <source>FD_CREATE_PROMPT</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="195">
+      <source>FD_OVERWRITE_PROMPT</source>
+    </trans-unit>
+    <trans-unit d4:value="32768" id="196">
+      <source>FD_HIDE_UP_BUTTON</source>
+    </trans-unit>
+    <trans-unit d4:value="16384" id="197">
+      <source>FD_DISABLE_EDIT_FIELD</source>
+    </trans-unit>
+    <trans-unit d4:value="256" id="198">
+      <source>FD_DISABLE_LOOKIN_FIELD</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="199">
+      <source>FD_FILES_ONLY</source>
+    </trans-unit>
+    <trans-unit d4:value="512" id="200">
+      <source>FD_HIDE_TOOLBAR</source>
+    </trans-unit>
+    <trans-unit d4:value="1024" id="201">
+      <source>FD_HIDE_NEWDIRECTORY_BUTTON</source>
+    </trans-unit>
+    <trans-unit d4:value="2048" id="202">
+      <source>FD_SELECT_DIRECTORY</source>
+    </trans-unit>
+  </group>
+
+  <group id="203" restype="x-4DK#">
+    <trans-unit id="204">
+      <source>WINAPI_WinHelp</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="205">
+      <source>HELP_CONTEXT</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="206">
+      <source>HELP_QUIT</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="207">
+      <source>HELP_INDEX</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="208">
+      <source>HELP_HELPONHELP</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="209">
+      <source>HELP_SETINDEX</source>
+    </trans-unit>
+    <trans-unit d4:value="8" id="210">
+      <source>HELP_CONTEXTPOPUP</source>
+    </trans-unit>
+    <trans-unit d4:value="11" id="211">
+      <source>HELP_FINDER</source>
+    </trans-unit>
+    <trans-unit d4:value="32768" id="212">
+      <source>HELP_TCARD</source>
+    </trans-unit>
+  </group>
+
+  <group id="213" restype="x-4DK#">
+    <trans-unit id="214">
+      <source>WINAPI_Misc</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="215">
+      <source>WIN_TRUE</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="216">
+      <source>WIN_FALSE</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="217">
+      <source>WIN_ENABLE</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="218">
+      <source>WIN_DISABLE</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="219">
+      <source>WIN_STYLE</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="220">
+      <source>WIN_EXSTYLE</source>
+    </trans-unit>
+  </group>
+
+  <group id="221" restype="x-4DK#">
+    <trans-unit id="222">
+      <source>WINAPI_WindowStyles</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="223">
+      <source>WS_OVERLAPPED</source>
+    </trans-unit>
+    <trans-unit d4:value="-2147483648" id="224">
+      <source>WS_POPUP</source>
+    </trans-unit>
+    <trans-unit d4:value="268435456" id="225">
+      <source>WS_VISIBLE</source>
+    </trans-unit>
+    <trans-unit d4:value="12582912" id="226">
+      <source>WS_CAPTION</source>
+    </trans-unit>
+    <trans-unit d4:value="8388608" id="227">
+      <source>WS_BORDER</source>
+    </trans-unit>
+    <trans-unit d4:value="4191304" id="228">
+      <source>WS_DLGFRAME</source>
+    </trans-unit>
+    <trans-unit d4:value="524288" id="229">
+      <source>WS_SYSMENU</source>
+    </trans-unit>
+    <trans-unit d4:value="262144" id="230">
+      <source>WS_THICKFRAME</source>
+    </trans-unit>
+    <trans-unit d4:value="1073741824" id="231">
+      <source>WS_CHILD</source>
+    </trans-unit>
+    <trans-unit d4:value="134217728" id="232">
+      <source>WS_DISABLED</source>
+    </trans-unit>
+    <trans-unit d4:value="67108864" id="233">
+      <source>WS_CLIPSIBLINGS</source>
+    </trans-unit>
+    <trans-unit d4:value="33554432" id="234">
+      <source>WS_CLIPCHILDREN</source>
+    </trans-unit>
+    <trans-unit d4:value="2097152" id="235">
+      <source>WS_VSCROLL</source>
+    </trans-unit>
+    <trans-unit d4:value="1048576" id="236">
+      <source>WS_HSCROLL</source>
+    </trans-unit>
+    <trans-unit d4:value="131072" id="237">
+      <source>WS_MINIMIZEBOX</source>
+    </trans-unit>
+    <trans-unit d4:value="65536" id="238">
+      <source>WS_MAXIMIZEBOX</source>
+    </trans-unit>
+  </group>
+
+  <group id="239" restype="x-4DK#">
+    <trans-unit id="240">
+      <source>WINAPI_ShowWindow</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="241">
+      <source>SW_HIDE</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="242">
+      <source>SW_SHOWNORMAL</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="243">
+      <source>SW_SHOWMINIMIZED</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="244">
+      <source>SW_SHOWMAXIMIZED</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="245">
+      <source>SW_MAXIMIZE</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="246">
+      <source>SW_SHOWNOACTIVATE</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="247">
+      <source>SW_SHOW</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="248">
+      <source>SW_MINIMIZE</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="249">
+      <source>SW_SHOWMINNOACTIVE</source>
+    </trans-unit>
+    <trans-unit d4:value="8" id="250">
+      <source>SW_SHOWNA</source>
+    </trans-unit>
+    <trans-unit d4:value="9" id="251">
+      <source>SW_RESTORE</source>
+    </trans-unit>
+  </group>
+
+  <group id="252" restype="x-4DK#">
+    <trans-unit id="253">
+      <source>WINAPI_MessageBox</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="254">
+      <source>MB_OK</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="255">
+      <source>MB_OKCANCEL</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="256">
+      <source>MB_ABORTRETRYIGNORE</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="257">
+      <source>MB_YESNOCANCEL</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="258">
+      <source>MB_YESNO</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="259">
+      <source>MB_RETRYCANCEL</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="260">
+      <source>MB_CANCELTRYCONTINUE</source>
+    </trans-unit>
+    <trans-unit d4:value="16" id="261">
+      <source>MB_ICONSTOP</source>
+    </trans-unit>
+    <trans-unit d4:value="32" id="262">
+      <source>MB_ICONQUESTION</source>
+    </trans-unit>
+    <trans-unit d4:value="48" id="263">
+      <source>MB_ICONWARNING</source>
+    </trans-unit>
+    <trans-unit d4:value="64" id="264">
+      <source>MB_ICONINFORMATION</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="265">
+      <source>MB_DEFBUTTON1</source>
+    </trans-unit>
+    <trans-unit d4:value="256" id="266">
+      <source>MB_ DEFBUTTON2</source>
+    </trans-unit>
+    <trans-unit d4:value="512" id="267">
+      <source>MB_ DEFBUTTON3</source>
+    </trans-unit>
+    <trans-unit d4:value="768" id="268">
+      <source>MB_ DEFBUTTON4</source>
+    </trans-unit>
+    <trans-unit d4:value="0" id="269">
+      <source>MB_APPLMODAL</source>
+    </trans-unit>
+    <trans-unit d4:value="4096" id="270">
+      <source>MB_SYSTEMMODAL</source>
+    </trans-unit>
+    <trans-unit d4:value="8192" id="271">
+      <source>MB_TASKMODAL</source>
+    </trans-unit>
+    <trans-unit d4:value="1" id="272">
+      <source>MB_IDOK</source>
+    </trans-unit>
+    <trans-unit d4:value="2" id="273">
+      <source>MB_IDCANCEL</source>
+    </trans-unit>
+    <trans-unit d4:value="3" id="274">
+      <source>MB_IDABORT</source>
+    </trans-unit>
+    <trans-unit d4:value="4" id="275">
+      <source>MB_IDRETRY</source>
+    </trans-unit>
+    <trans-unit d4:value="5" id="276">
+      <source>MB_IDIGNORE</source>
+    </trans-unit>
+    <trans-unit d4:value="6" id="277">
+      <source>MB_IDYES</source>
+    </trans-unit>
+    <trans-unit d4:value="7" id="278">
+      <source>MB_IDNO</source>
+    </trans-unit>
+    <trans-unit d4:value="10" id="279">
+      <source>MB_IDTRYAGAIN</source>
+    </trans-unit>
+    <trans-unit d4:value="11" id="280">
+      <source>MB_IDCONTINUE</source>
+    </trans-unit>
+  </group>
+
+  <group id="281" restype="x-4DK#">
+    <trans-unit id="282">
+      <source>WINAPI_Version</source>
+    </trans-unit>
+    <trans-unit d4:value="Win32API Version 6.6.3" id="283">
+      <source>WIN32API_VERSION</source>
+    </trans-unit>
+  </group>
+
+</xliff>

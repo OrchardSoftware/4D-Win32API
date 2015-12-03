@@ -6,7 +6,7 @@
 // Description : This file stores all the internal structures
 //				 used by 4D Plugin API and useless for API user.
 //
-// rev : v12.0
+// rev : v13
 //
 // ---------------------------------------------------------------
 
@@ -33,7 +33,7 @@ typedef struct LineBlock
 		char				fString[42];
 		double				fReal;			
 		PA_Date				fDate;
-		long				fLongint;
+		PA_long32				fLongint;
 		short				fInteger;
 		char				fBoolean;
 		PA_Unichar*			fUnichars;
@@ -59,7 +59,7 @@ typedef struct EngineBlock
 // to the EngineBlock of 4D 2004
 	short				fTable;
 	short				fField;
-	long				fRecord;
+	PA_long32				fRecord;
 	char				fManyToOne;
 	char				fOneToMany;
 	char				fName[256];
@@ -72,7 +72,7 @@ typedef struct EngineBlock
 	double				fReal;	
 	short				fFiller;
 	PA_Date				fDate;
-	long				fLongint;			
+	PA_long32				fLongint;
 	short				fShort;		
 	char				fString[82];		
 	short				fTextSize;
@@ -97,18 +97,18 @@ typedef struct EngineBlock
 	typedef void (__stdcall *Call4DProcPtr)( short, EngineBlock* );
 #endif
 
-FOURDCALL FourDPackex( long selector, void* params, void** data, void* result );
+FOURDCALL FourDPackex( PA_long32 selector, void* params, void** data, void* result );
 
 extern Call4DProcPtr gCall4D;
 
 // this structure is sent to Plugin at init.
 typedef struct PackInitBlock
 {
-	long			fVersion;
-	long			fLength;
-	long			fCPUType;
+	PA_long32			fVersion;
+	PA_long32			fLength;
+	PA_long32			fCPUType;
 	Call4DProcPtr	fCall4D;
- 	long			fSupportedVersion;
+ 	PA_long32			fSupportedVersion;
 	Call4DProcPtr	fCall4Dex;
 } PackInitBlock;
 

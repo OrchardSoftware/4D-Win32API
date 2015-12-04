@@ -29,7 +29,6 @@ char *base64_encode(const unsigned char *data,
 		encoded_data[*output_length - 1 - i] = '=';
 
 	free(data); // WJF 5/20/15 #42772
-	data = NULL; // WJF 10/29/15 Win-4
 
 	return encoded_data;
 }

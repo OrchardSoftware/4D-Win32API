@@ -8,4 +8,4 @@ Win32API 7.0 is developed in Visual Studio 2013 and is not compatible with older
 
 Win32API 7.0 has been tested with 4D v12, 4D v13, 4D v14, and 4D v15. If you need to support older versions of 4D or versions of Windows older than Windows XP SP3, please use an older version of Win32API.
 
-Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Drew Waddell](mailto:dwaddell@orchardsoft.com).
+Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [William Ford](mailto:wford@orchardsoft.com).

@@ -1209,112 +1209,32 @@ void sys_PrintDirect2Driver( PA_PluginParameters params )
 //
 //-------------------------------------------------
 
-void sys_KillProcessByName( PA_PluginParameters params )
+void sys_KillProcessByName(PA_PluginParameters params)
 {
-	HANDLE hProcessSnap;              // Handle to the process snapshot
-	HANDLE hProcess;                  // Handle to the process itself
-	PROCESSENTRY32 pe32;              // ProcessEntry to get info about processes
-  char processName[MAXBUF] = "";    // String to hold the printerName param ($1)
-	LONG_PTR lMode = 1;                   // Long to hold the working mode ($2)
-	                                  // 1 = just first process matching name
-	                                  // 2 = all processes matching name
-	BOOL bCleanFirst = FALSE;         // Boolean to see if we should try to cleanly close the app
-	                                  // before killing it mercilessly
-	BOOL bOrigCleanFirst = FALSE;     // Keeps track of original bCleanFirst value
-	                                  // to reset between loop iterations ($3)
-	BOOL bDone = FALSE;               // This will keep track of whether or not we are finished
-	                                  // Looping through processes.
+
+	CHAR *processName = NULL;			// WJF 12/17/15 Win-7 We were allocating a massive buffer for no reason, changed to pointer from static array
+	DWORD dwProcessName = 0;
+	LONG_PTR lMode = 1;					// Long to hold the working mode ($2) 1 = just first process matching name 2 = all processes matching name
+	BOOL bOrigCleanFirst = FALSE;		// Keeps track of original bCleanFirst value to reset between loop iterations ($3)
+	LONG lReturn = 0;
+
 	// Get the function parameters.
-	PA_GetTextParameter(params, 1, processName);
+	dwProcessName = PA_GetTextParameter(params, 1, processName); // WJF 12/17/15 Win-7 Get size to allocate
+
+	// WJF 12/17/15 Win-7
+	processName = (CHAR *)malloc(dwProcessName + 1);
+	if (processName != NULL){
+		dwProcessName = PA_GetTextParameter(params, 1, processName);
+
 	lMode = PA_GetLongParameter(params, 2);
 	bOrigCleanFirst = (PA_GetLongParameter(params, 3) == 1 ? TRUE : FALSE);
 
-  // Take a snapshot of all processes in the system.
-	// If we fail, return the error code
-  hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if(hProcessSnap == INVALID_HANDLE_VALUE)
-  {
-    PA_ReturnLong(params, (LONG_PTR)GetLastError());
-		return;
-  }
+	lReturn = killProcessByName(processName, lMode, bOrigCleanFirst); // WJF 12/17/15 Win-7 Moved to common method
 
-	// Set the size of the structure before using it.
-  pe32.dwSize = sizeof( PROCESSENTRY32 );
+	}
 
-  // Retrieve information about the first process,
-  // If we can't do it, then return the error code
-  if(!Process32First( hProcessSnap, &pe32))
-  {
-    CloseHandle( hProcessSnap );     // Must clean up the snapshot object!
-    PA_ReturnLong(params, (LONG_PTR)GetLastError());
-		return;
-  }
+	PA_ReturnLong(params, lReturn);
 
-  // Now walk the snapshot of processes, and
-  // display information about each process in turn
-  do
-  {
-    
-		// Check the name
-		if (strcmp(pe32.szExeFile, processName) == 0)
-		{
-
-			bCleanFirst = bOrigCleanFirst;
-		  // Get the process
-		  // We need to make sure that we have the TERMINATE right
-      hProcess = OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE, FALSE, pe32.th32ProcessID);
-			
-			// Couldn't get the process
-			// Clean up the handle
-			// and return the error
-      if(hProcess == NULL) {
-				CloseHandle(hProcessSnap);
-        PA_ReturnLong(params, (LONG_PTR)GetLastError());
-			  return;
-			}
-
-			if(bCleanFirst)
-			{
-        // TerminateClean() posts WM_CLOSE to all windows whose PID
-        // matches your process's.
-        EnumWindows((WNDENUMPROC)TerminateClean, (LPARAM) pe32.th32ProcessID) ;
-
-				if(WaitForSingleObject(hProcess, 500)!=WAIT_OBJECT_0)
-				{
-          bCleanFirst = TRUE;
-				}
-			}
-
-			if(!bCleanFirst)
-			{
-        // Kill the process
-        if(TerminateProcess(hProcess, 1)) {;
-			    // Success!
-			    // If we're in mode 1 then we are finished
-			    // If not, then we will need to keep going
-  			  if(lMode == 1) {
-	  			  bDone = TRUE;
-					} // end 
-				} else {
-          // Fail!
-				  // Clean up and return the error
-          CloseHandle(hProcess);
-				  CloseHandle(hProcessSnap);
-				  PA_ReturnLong(params, (LONG_PTR)GetLastError());
-				  return;
-				}
-			}
-
-			// Close our handle
-      CloseHandle(hProcess);
-    } // end if
-		Process32Next(hProcessSnap, &pe32); // WJF 6/2/15 #42839 Moved out of while condition
-
-  } while((GetLastError()!=18) && (!bDone)); // WJF 6/2/15 #42839 Added GetLastError Check, corrected logical or syntax, and added inversion to bDone
-
-	// Close the handle and return success
-  CloseHandle(hProcessSnap);
-  PA_ReturnLong(params, -1 * (LONG_PTR)bCleanFirst);
 }
 	
 // ------------------------------------------------

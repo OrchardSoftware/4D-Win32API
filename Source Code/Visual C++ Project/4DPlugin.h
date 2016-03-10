@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <wincrypt.h> // WJF 5/5/15 #42665 For AES Encryption
 #include "base64.h" // WJF 5/8/15 #42665 For base64 encoding/decoding
+#include <math.h> // WJF 11/2/15 Win-6 Used for Pow
+#include <time.h> // WJF 12/17/15 Win-7 
 
 // MWD 10/21/05 #9246 Define Function for DLL entrypoint.
 #ifdef _cplusplus
@@ -129,13 +131,15 @@ LONG_PTR sys_GetOSVersionEX( BOOL bInternalCall, PA_PluginParameters params);  /
 void sys_SendRawPrinterData( PA_PluginParameters params); // AMS2 12/9/14 #40598
 void sys_DeleteRegValue(PA_PluginParameters params); // WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params); // WJF 4/14/15 #27474
-void sys_EncryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
-void sys_DecryptAES(PA_PluginParameters params); // WJF 5/6/15 #42665
 void gui_TakeScreenshot(PA_PluginParameters params); // WJF 7/7/15 #43138
 void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd); // WJF 9/15/15 #43731
 void gui_GetWindowFrom4DWinEx(PA_PluginParameters params); // WJF 9/15/15 #43731
 void gui_SetForegroundWindow(PA_PluginParameters params); // WJF 9/16/15 #43929
 void gui_SetFocusEx(PA_PluginParameters params); // WJF 10/19/15 Win-3
+void fileEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/28/15 Win-4
+void sys_HashText(PA_PluginParameters params); // WJF 10/28/15 Win-4
+void textEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/29/15 Win-4
+void sys_GetDiskFreeSpace(PA_PluginParameters params); // WJF 11/2/15 Win-6
 
 // ----- Other modules -------
 //window background-related
@@ -237,7 +241,8 @@ HWND  handleArray_retrieve(DWORD hWndIndex);
 
 // WJF 9/21/15 #43601
 void utilitiesLock(void); 
-void utilitiesSleep(const char * filePath);
-void utilitiesYield(const char * filePath);
+DWORD utilitiesYield(const char * filePath, BOOL bTimer, BOOL bSleep); // WJF 12/17/15 Win-7 Added bTimer, bSleep, and removed utilitiesSleep();
+
+LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigCleanFirst); // WJF 12/17/15 Win-7
 
 #endif // __4DPLUGING_H__

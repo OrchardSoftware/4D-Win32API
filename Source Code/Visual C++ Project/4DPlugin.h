@@ -17,6 +17,7 @@
 #ifndef __4DPLUGIN_H__
 #define __4DPLUGIN_H__
 
+#include "4D Plugin API\4DPluginAPI.h"
 #include <Windows.h>
 #include <TlHelp32.h> // for snapshot of process in win95/98 etc
 #include <stdio.h> // for snapshot
@@ -140,6 +141,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/28/15 
 void sys_HashText(PA_PluginParameters params); // WJF 10/28/15 Win-4
 void textEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/29/15 Win-4
 void sys_GetDiskFreeSpace(PA_PluginParameters params); // WJF 11/2/15 Win-6
+void sys_ProcessStart(PA_PluginParameters params); // WJF 4/20/16 Win-14
 
 // ----- Other modules -------
 //window background-related
@@ -244,5 +246,11 @@ void utilitiesLock(void);
 DWORD utilitiesYield(const char * filePath, BOOL bTimer, BOOL bSleep); // WJF 12/17/15 Win-7 Added bTimer, bSleep, and removed utilitiesSleep();
 
 LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigCleanFirst); // WJF 12/17/15 Win-7
+
+// WJF 6/17/16 Win-18 Logging
+void openLogFile();
+void closeLogFile();
+void writeLogFile(const char * strLog);
+void logMaintenance(const char * szLogDir);
 
 #endif // __4DPLUGING_H__

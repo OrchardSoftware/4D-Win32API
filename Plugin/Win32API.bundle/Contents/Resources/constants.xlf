@@ -458,6 +458,9 @@
     <trans-unit d4:value="631" id="153">
       <source>OS_SERVER2012R2</source>
     </trans-unit>
+	<trans-unit d4:value="1000" id="154">
+	  <source>OS_WIN10</source>
+	</trans-unit>
   </group>
 
   <group id="154" restype="x-4DK#">
@@ -845,7 +848,7 @@
     <trans-unit id="282">
       <source>WINAPI_Version</source>
     </trans-unit>
-    <trans-unit d4:value="Win32API Version 7.1" id="283">
+    <trans-unit d4:value="Win32API Version 7.2" id="283">
       <source>WIN32API_VERSION</source>
     </trans-unit>
   </group>

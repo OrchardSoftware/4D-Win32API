@@ -191,6 +191,18 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 	char				*pathName, *charPos;
 	char			WindowName[255];
 	char			szClassName[255];
+	char				szCommandID[128];
+	const char *		szCommandConst = "Command ID: ";
+	char				szSelector[128];
+
+	// WJF 6/17/16 Win-18
+	//if ((selector > 0) && (selector <= 200)) {
+	//	strcpy_s(szCommandID, 128, szCommandConst);
+	//	_itoa_s(selector, szSelector, 128, 10);
+	//	strcat_s(szCommandID, 128, szSelector);
+	//	strcat_s(szCommandID, 128, "\r\n");
+	//	writeLogFile(szCommandID);
+	//}
 
 	switch (selector)
 	{
@@ -269,6 +281,8 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 	
 		twainSource = NULL; // WJF 9/11/15 #43727
 
+		//openLogFile(); // WJF 6/17/16 Win-18
+
 		break;
 
 	case kDeinitPlugin:
@@ -288,6 +302,9 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		//gui_ShowTaskBar( params );
 		//gui_ShowTitleBar( params );
 		//gui_SetMDIOpaque( params );
+
+		//closeLogFile(); // WJF 6/17/16 Win-18
+
 		break;
 
 	case 1:
@@ -881,6 +898,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 
 	case 133:
 		sys_GetDiskFreeSpace(params); // WJF 11/2/15 Win-6
+		break;
+
+	case 134:
+		sys_ProcessStart(params); // WJF 4/20/16 Win-14
 		break;
 
 	}
@@ -2507,10 +2528,11 @@ void gui_LoadIcon(PA_PluginParameters params, BOOL isEx)
 		returnValue = 1;
 	}
 	else {
+		hIcon = -1; // WJF 7/6/16 Win-9
 		returnValue = 0;
 	}
 
-	if (isEx){ // WJF 9/16/15 #43731
+	if ((isEx) && (returnValue))  { // WJF 9/16/15 #43731 // WJF 7/6/16 Win-9 Check to make sure the icon is valid before storing it in the array
 		iconIndex = handleArray_add(hIcon); 
 		PA_SetLongParameter(params, 2, iconIndex); 
 	}
@@ -3025,9 +3047,12 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	char				filePath[MAX_PATH] = "";
 	FILE				*fp = NULL;
 	char				utilitiesPath[MAX_PATH] = "";
-	char				lockPath[MAX_PATH] = ""; // WJF 2/16/16 Win-8
 	char				*pos = NULL;
 	char				osVer[16] = "";
+	SHELLEXECUTEINFO	utilities;
+	BOOL				bSuccess = FALSE;
+	DWORD				dwExitCode = 0;
+	LPCSTR				lpParameters = "-ws";
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	GetVersionEx(&osvinfo);
@@ -3086,6 +3111,49 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		// WJF 9/21/15 #43601 Calling Orchard Utilities because it supports Windows 10 detection
 		GetTempPath(MAX_PATH, filePath);
 
+
+		// WJF 3/29/16 Win-11 Begin Changes
+		strcat_s(filePath, MAX_PATH, "osVersion.txt");
+
+		strcpy_s(utilitiesPath, MAX_PATH, pathName);
+
+		pos = strrchr(utilitiesPath, '\\');
+
+		pos++; // WJF 1/21/16 WIN-8 Move the pointer over one position so that that following strcpy_s call doesn't overwrite the slash character
+
+		strcpy_s(pos, MAX_PATH, "orchard_utilities.exe");
+
+		utilities.cbSize = sizeof(SHELLEXECUTEINFO);
+		utilities.fMask = SEE_MASK_NOCLOSEPROCESS;
+		utilities.hInstApp = NULL;
+		utilities.hwnd = windowHandles.fourDhWnd;
+		utilities.lpFile = utilitiesPath;
+		utilities.lpParameters = lpParameters;
+		utilities.lpDirectory = NULL;
+		utilities.nShow = SW_HIDE;
+		utilities.lpVerb = NULL;
+
+		if (ShellExecuteEx(&utilities)) {
+			PA_YieldAbsolute();
+			PA_YieldAbsolute();
+			PA_YieldAbsolute();
+
+			do {
+				bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+			} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
+
+			fp = fopen(filePath, "r");
+
+			if (fp){
+				fgets(osVer, 16, fp);
+
+				returnValue = atoi(osVer);
+			}
+		}
+		// WJF 3/29/16 Win-11 End changes
+
+		// WJF 3/29/16 Win-11 Rewrote
+		/*
 		// WJF 2/16/16 Win-8
 		strcpy_s(lockPath, MAX_PATH, filePath);
 		strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
@@ -3115,6 +3183,7 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 				}
 			}
 		}
+		*/
 
 		// WJF 9/22/15 #43601 Removed
 		/*if (IsWindowsServer())
@@ -4291,14 +4360,17 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	char				filePath[MAX_PATH] = "";
 	BOOL				get64 = FALSE;
 	FILE				*fp = NULL;
-	char				source[256] = ""; 
+	char				source[256] = "";
 	char				pluginPath[MAX_PATH] = "";
 	char				*pos = NULL;
+	SHELLEXECUTEINFO	utilities;
+	DWORD				dwExitCode = 0;
+	BOOL				bSuccess = FALSE;
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
 
-	debug = PA_GetLongParameter(params, 2); 
+	debug = PA_GetLongParameter(params, 2);
 
 	get64 = PA_GetLongParameter(params, 3);
 
@@ -4323,11 +4395,117 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	else {
 		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
 	}
-		
+
 	GetTempPath(MAX_PATH, filePath);
 
 	strcat_s(filePath, MAX_PATH, "twainSources.txt");
 
+	// WJF 3/29/16 Win-11 Begin Changes
+	utilities.cbSize = sizeof(SHELLEXECUTEINFO);
+	utilities.fMask = SEE_MASK_NOCLOSEPROCESS;
+	utilities.hInstApp = NULL;
+	utilities.hwnd = windowHandles.fourDhWnd;
+	utilities.lpFile = pluginPath;
+	utilities.lpParameters = lpParameters;
+	utilities.lpDirectory = NULL;
+	utilities.nShow = SW_HIDE;
+	utilities.lpVerb = NULL;
+
+	if (ShellExecuteEx(&utilities)) {
+
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+
+		do {
+			bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+			PA_YieldAbsolute();
+		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
+
+		fp = fopen(filePath, "r");
+
+		if (fp){
+			while (fgets(source, 256, fp) != NULL){
+				if (strcmp(source, "-1\n") == 0){ // Failed to load Twain library // WJF 3/7/16 Win-7 Added \n
+					returnValue = -1;
+				}
+				else if (strcmp(source, "-2\n") == 0){ // Failed to open Data Source Manager // WJF 3/7/16 Win-7 Added \n
+					returnValue = -2;
+				}
+				else if (strcmp(source, "") == 0){ // Empty line
+					// do nothing
+				}
+				else { // Valid Product Name
+					pos = strrchr(source, '\n');
+					strcpy_s(pos, 256, "\0");
+					strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+					PA_ResizeArray(&atSources, index);
+					PA_SetTextInArray(atSources, index, source, strlen(source));
+					++index;
+				}
+
+			}
+
+			fclose(fp);
+
+			fp = NULL;
+
+			DeleteFile(filePath);
+
+		}
+	}
+	else {
+		returnValue = -1;
+	}
+
+	GetTempPath(MAX_PATH, filePath);
+
+	strcat_s(filePath, MAX_PATH, "wiaSources.txt");
+
+	strcpy_s(lpParameters, 16, "-ws");
+
+	utilities.hProcess = NULL;
+	utilities.lpParameters = lpParameters;
+
+	if (ShellExecuteEx(&utilities)) {
+
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+
+		do {
+			bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+			PA_YieldAbsolute();
+		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
+
+		fp = fopen(filePath, "r");
+
+		if (fp){
+			while (fgets(source, 256, fp) != NULL){
+				if (strcmp(source, "") != 0){
+					pos = strrchr(source, '\n');
+					strcpy_s(pos, 256, "\0");
+					strcat_s(source, 256, "-WIA");
+					PA_ResizeArray(&atSources, index);
+					PA_SetTextInArray(atSources, index, source, strlen(source));
+					++index;
+				}
+
+			}
+
+			fclose(fp);
+
+			fp = NULL;
+		}
+
+		DeleteFile(filePath);
+
+	}
+	else {
+		returnValue = -2;
+	}
+	// WJF 3/29/16 Win-11 Rewrote
+	/*
 	utilitiesLock(); // WJF 9/21/15 #43940
 
 	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
@@ -4524,6 +4702,10 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	FILE *fp = NULL;
 	long returnValue = 1;
 	char sourceName[256] = "";
+	SHELLEXECUTEINFO utilities;
+	HRESULT hr;
+	DWORD dwExitCode = 0;
+	BOOL bSuccess = FALSE;
 	
 	strcpy_s(pluginPath, MAX_PATH, pathName);
 
@@ -4596,19 +4778,42 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 		}
 	}
 
-	utilitiesLock(); // WJF 9/21/15 #43601 Moved to common method
+	// WJF 3/29/16 Win-11
+	utilities.cbSize = sizeof(SHELLEXECUTEINFO);
+	utilities.fMask = SEE_MASK_NOCLOSEPROCESS;
+	utilities.hwnd = windowHandles.fourDhWnd;
+	utilities.lpVerb = NULL;
+	utilities.lpFile = pluginPath;
+	utilities.lpParameters = lpParameters;
+	utilities.lpDirectory = NULL;
+	utilities.nShow = SW_SHOW;
+	utilities.hInstApp = NULL;
+	ShellExecuteEx(&utilities);
 
-	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
+	// WJF 3/29/16 Win-11 Wait until the process closes
+	do {
+		Sleep(100);
+		bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+	} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
 
-	if (GetLastError() == ERROR_SUCCESS){
-		utilitiesYield(NULL, FALSE, TRUE); // WJF 9/21/15 #43601 Moved to common method // WJF 12/17/15 Win-7 utilitiesSleep() -> utilitiesYield()
+	returnValue = 0;
 
-		returnValue = 0;
-	}
+	// WJF 3/29/16 Win-11 Removed
+	// utilitiesLock(); // WJF 9/21/15 #43601 Moved to common method
+	//
+	//ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_SHOW);
+	//
+	//if (GetLastError() == ERROR_SUCCESS){
+	//	utilitiesYield(NULL, FALSE, TRUE); // WJF 9/21/15 #43601 Moved to common method // WJF 12/17/15 Win-7 utilitiesSleep() -> utilitiesYield()
+	//
+	//	returnValue = 0;
+	//}
 
 	return returnValue;
 }
 
+// WJF 3/29/16 Win-11 Removed
+/*
 //  FUNCTION:	utilitiesLock()
 //
 //  PURPOSE:	Creates the semaphore for the orchard_utilties application
@@ -4635,6 +4840,7 @@ void utilitiesLock(){
 	}
 
 }
+*/
 
 // WJF 12/17/15 Win-7 Removed
 /*
@@ -4666,6 +4872,8 @@ void utilitiesSleep(const char * filePath){
 	}
 }*/
 
+// WJF 3/29/16 Win-11 Removed
+/*
 //  FUNCTION:	utilitiesYield()
 //
 //  PURPOSE:	Waits until the utilities application semaphore is cleared
@@ -4724,6 +4932,7 @@ DWORD utilitiesYield(const char * filePath, BOOL bTimer, BOOL bSleep){
 	
 	return dwReturn;
 }
+*/
 
 // REB 2/26/13 #35165 Intermediary method we can call as a new thread.
 unsigned __stdcall TWAIN_GetImage(void *arg)
@@ -5959,10 +6168,9 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 void sys_SendRawPrinterData(PA_PluginParameters params){
 	PRINTDLG pd;                      // Structure to hold information about printer
 	DOCINFO di;                       // Structure to hold "document" information
-	char printerName[MAXBUF] = "";    // String to hold the printerName param ($1)
-	char data[MAXLABELBUF] = "";      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big.
+	char *printerName = NULL;   // String to hold the printerName param ($1) // WJF 5/5/16 Win-16 Changed to a pointer
+	char *data = NULL;      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big. // WJF 5/5/16 Win-16 Changed to a pointer
 	char *origDefault;                // String to hold the original default printer
-	INT_PTR printerName_len;              // Int to hold maximum length of printer name
 	INT_PTR ret;                          // Int to hold return value of functions                 
 	INT_PTR iErrCode = 1;                 // Int to hold the error code.
 	ULONG_PTR ulBytesNeeded;      // Holds size information
@@ -5972,17 +6180,36 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 	DOC_INFO_1 DocInfo;
 	DWORD      dwJob = 0L;
 	DWORD      dwBytesWritten = 0L;
+	DWORD		dwSize = 0;
 
 
 	// Set needed bytes to default value
 	ulBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
 
+	// WJF 5/13/16 Win-16 Removed because it wasn't used
 	// Set this to 255.
-	printerName_len = 255;
+	//printerName_len = 255;
 
 	// Get the function parameters.
-	PA_GetTextParameter(params, 1, printerName);
-	PA_GetTextParameter(params, 2, data);
+	// WJF 5/5/16 Win-16 
+	dwSize = PA_GetTextParameter(params, 1, NULL);
+	if (printerName = (char *)malloc(dwSize + 1)) {
+		dwSize = PA_GetTextParameter(params, 1, printerName);
+	} 
+	else {
+		PA_ReturnLong(params, -1);
+		return;
+	}
+
+	// WJF 5/5/16 Win-16
+	dwSize = PA_GetTextParameter(params, 2, NULL);
+	if (data = (char *)malloc(dwSize + 1)) {
+		dwSize = PA_GetTextParameter(params, 2, data);
+	}
+	else {
+		PA_ReturnLong(params, -1);
+		return;
+	}
 
 	// Allocate memory for Storing string for Original Default Printer & pBuf
 	origDefault = (char *)malloc(ulBytesNeeded);
@@ -6013,7 +6240,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 				bStatus = StartPagePrinter(hPrinter);
 				if (bStatus) {
 					// Send the data to the printer. 
-					bStatus = WritePrinter(hPrinter, data, MAXLABELBUF, &dwBytesWritten);
+					bStatus = WritePrinter(hPrinter, data, dwSize, &dwBytesWritten);
 					EndPagePrinter(hPrinter);
 				}
 				// Inform the spooler that the document is ending. 
@@ -6023,7 +6250,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 			ClosePrinter(hPrinter);
 		}
 		// Check to see if correct number of bytes were written. 
-		if (!bStatus || (dwBytesWritten != MAXLABELBUF))
+		if (!bStatus || (dwBytesWritten != dwSize))
 		{
 			bStatus = FALSE;
 			iErrCode = GetLastError();
@@ -6034,6 +6261,18 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 			iErrCode = 0;
 		}
 
+	}
+
+	// WJF 5/5/16 Win-16
+	if (printerName != NULL){
+		free(printerName);
+		printerName = NULL;
+	}
+
+	// WJF 5/5/16 Win-16
+	if (data != NULL){
+		free(data);
+		data = NULL;
 	}
 
 	ret = SetDefaultPrinter(origDefault); // WJF 6/9/15 #40818
@@ -6647,8 +6886,8 @@ void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
 
 	windowHandle = PA_GetHWND(h4DWnd);
 
-	returnValue = handleArray_add(windowHandle); 
-
+	returnValue = handleArray_add(windowHandle);
+	
 	PA_ReturnLong(params, returnValue);
 }
 
@@ -6736,8 +6975,8 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 	HCRYPTKEY	hKey = 0;
 	HANDLE		hSourceFile = NULL;
 	HANDLE		hDestFile = NULL;
-	CHAR		*fileSource = NULL;
-	CHAR		*fileDest = NULL;
+	CHAR		fileSource[MAX_PATH]; // WJF 4/18/16 Win-13 Pointer -> Array
+	CHAR		fileDest[MAX_PATH]; // WJF 4/18/16 Win-13 Pointer -> Array
 	DWORD		dwSize = 0;
 	BYTE		pbPass[33] = "0";
 	DWORD		dwPassLength = 0;
@@ -6756,19 +6995,21 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 
 	__try {
 
-		dwSize = PA_GetTextParameter(params, 1, NULL);
-
-		if (!(fileSource = (CHAR *)malloc(dwSize))){
-			__leave;
-		}
+		// WJF 4/18/16 Win-13 Removed 
+		//dwSize = PA_GetTextParameter(params, 1, NULL);
+		//
+		//if (!(fileSource = (CHAR *)malloc(dwSize))){
+		//	__leave;
+		//}
 
 		dwSize = PA_GetTextParameter(params, 1, fileSource);
 
-		dwSize = PA_GetTextParameter(params, 2, NULL);
-
-		if (!(fileDest = (CHAR *)malloc(dwSize))){
-			__leave;
-		}
+		// WJF 4/18/16 Win-13 Removed
+		//dwSize = PA_GetTextParameter(params, 2, NULL);
+		//
+		//if (!(fileDest = (CHAR *)malloc(dwSize))){
+		//	__leave;
+		//}
 
 		dwSize = PA_GetTextParameter(params, 2, fileDest);
 
@@ -6908,15 +7149,16 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			pbBuffer = NULL;
 		}
 
-		if (fileSource){
-			free(fileSource);
-			fileSource = NULL;
-		}
-
-		if (fileDest){
-			free(fileDest);
-			fileDest = NULL;
-		}
+		// WJF 4/18/16 Win-13 Removed
+		//if (fileSource){
+		//	free(fileSource);
+		//	fileSource = NULL;
+		//}
+		//
+		//if (fileDest){
+		//	free(fileDest);
+		//	fileDest = NULL;
+		//}
 
 		if (hKey) {
 			CryptDestroyKey(hKey);
@@ -7101,9 +7343,9 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 	HCRYPTPROV	hProv = 0;
 	HCRYPTHASH	hHash = 0;
 	HCRYPTKEY	hKey = 0;
-	PBYTE		pbBuffer;
+	PBYTE		pbBuffer = NULL; // WJF 6/13/16 Win-17 Initializing this to NULL now
 	DWORD		dwSize = 0;
-	BYTE		*pbMessage = 0L;
+	PBYTE		pbMessage = NULL;
 	BYTE		pbPass[33] = "0";
 	DWORD		dwPassLength = 0;
 	DWORD		BUFFER_SIZE = 0;
@@ -7205,13 +7447,16 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 
 		pbBuffer = (BYTE *)malloc(BUFFER_SIZE); // Allocate to AES block size
 
-		memcpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize);
+		strncpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize); // WJF 6/29/16 Win-18 memcpy_s -> strncpy_s
 
 		if (bDecrypt){
 			pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
 			// Decrypt the message
 			if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
 				__leave;
+			}
+			else { // WJF 6/29/16 Win-18
+				pbBuffer[dwSize] = '\0';
 			}
 		}
 		else {
@@ -7244,6 +7489,9 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			PA_ReturnText(params, pbBuffer, dwSize);
 			free(pbBuffer);
 			pbBuffer = NULL;
+		}
+		else { // WJF 6/13/16 Win-17
+			PA_ReturnText(params, "", 0);
 		}
 
 		if (pbMessage){
@@ -7393,4 +7641,58 @@ LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigClean
 	returnCode = (-1 * bCleanFirst);
 
 	return returnCode;
+}
+
+//  FUNCTION:   sys_ProcessStart(PA_PluginParameters params)
+//
+//  PURPOSE:	Starts a process synchronously, unlike sys_ShellExecute
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 4/20/16 Win-14
+void sys_ProcessStart(PA_PluginParameters params){
+	SHELLEXECUTEINFO proc;
+	char applicationPath[MAX_PATH];
+	char *parameters = NULL;
+	DWORD dwSize = 0;
+	BOOL bSuccess = FALSE;
+	DWORD dwExitCode = 0;
+
+	dwSize = PA_GetTextParameter(params, 1, applicationPath);
+
+	dwSize = PA_GetTextParameter(params, 2, NULL);
+
+	if (parameters = (char *)malloc(dwSize+1)) {
+		dwSize = PA_GetTextParameter(params, 2, parameters);
+	}
+
+	proc.cbSize = sizeof(SHELLEXECUTEINFO);
+	proc.fMask = SEE_MASK_NOCLOSEPROCESS;
+	proc.hInstApp = NULL;
+	proc.hwnd = windowHandles.fourDhWnd;
+	proc.lpDirectory = NULL;
+	proc.nShow = SW_HIDE;
+	proc.lpVerb = NULL;
+	proc.lpParameters = parameters;
+	proc.lpFile = applicationPath;
+
+	if (ShellExecuteEx(&proc)) {
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+		PA_YieldAbsolute();
+
+		do {
+			bSuccess = GetExitCodeProcess(proc.hProcess, &dwExitCode);
+			PA_YieldAbsolute();
+		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
+	}
+
+	if (parameters) {
+		free(parameters);
+		parameters = NULL;
+		proc.lpParameters = NULL;
+	}
+
+	PA_ReturnLong(params, dwExitCode);
+
 }

@@ -1,3 +1,6 @@
+#ifndef _UTILITIES_H
+#define _UTILITIES_H
+
 #include "4DPluginAPI.h"
 #include "4DPlugin.h"
 
@@ -16,3 +19,4 @@ LONG_PTR PA_GetTextInArray( PA_Variable, LONG_PTR, char*); // REB 3/28/11 #25290
 void PA_ReturnText (PA_PluginParameters, char*, LONG_PTR); // REB 3/28/11 #25290
 PA_Unistring CStringToUnistring(char* text); // REB 4/20/11 #27322
 char* UnistringToCString(PA_Unistring* UnistringText); // REB 4/20/11 #27322
+#endif

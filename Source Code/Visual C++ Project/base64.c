@@ -8,7 +8,7 @@ char *base64_encode(const unsigned char *data,
 
 	*output_length = ((input_length - 1) / 3) * 4 + 4;
 
-	char *encoded_data = malloc(*output_length);
+	char *encoded_data = malloc(*output_length + 1); // WJF 6/29/16 Win-18 Add 1 to length
 	if (encoded_data == NULL) return NULL;
 
 	for (int i = 0, j = 0; i < input_length;) {
@@ -27,6 +27,8 @@ char *base64_encode(const unsigned char *data,
 
 	for (int i = 0; i < mod_table[input_length % 3]; i++)
 		encoded_data[*output_length - 1 - i] = '=';
+
+	encoded_data[*output_length] = '\0'; // WJF 6/29/16 Win-18 Null terminate it
 
 	free(data); // WJF 5/20/15 #42772
 	data = NULL; // WJF 10/29/15 Win-4

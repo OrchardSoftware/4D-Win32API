@@ -771,6 +771,8 @@ void sys_GetRegKey( PA_PluginParameters params )
 	DWORD dwDataType;
 	DWORD dwReturnLong;
 	PA_Variable	paReturnArray;
+	BOOL bEnum64 = FALSE; // WJF 4/22/16 Win-15
+	int samFlag = KEY_READ; // WJF 4/22/16 Win-15
 
 	// AMS2 12/9/14 #41400 Initalized the dataSize variable. In 64 bit environments this can be randomly initalized to a size in bytes 
 	// that is larger than malloc can allot, causing it to return null and crash when returning to 4D. Remember to always initialize your size variables.
@@ -785,12 +787,18 @@ void sys_GetRegKey( PA_PluginParameters params )
 	regKey = PA_GetLongParameter( params, 1 );
 	PA_GetTextParameter( params, 2, regSub );
 	PA_GetTextParameter( params, 3, regName );
+	bEnum64 = PA_GetLongParameter(params, 5); // WJF 4/22/16 Win-15
+
+	// WJF 4/22/16 Win-15
+	if (bEnum64){
+		samFlag = samFlag | KEY_WOW64_64KEY;
+	}
 
 	// Convert the 4d registry constant into a Windows registry key.
 	hRootKey = getRootKey( regKey );
 
 	// Open the registry key.
-	retErr = RegOpenKeyEx(hRootKey, regSub, 0, KEY_READ, &hOpenKey);
+	retErr = RegOpenKeyEx(hRootKey, regSub, 0, samFlag, &hOpenKey); // WJF 4/22/16 Win-15 Passing samFlag for REGSAM now
 	
 	if(retErr == ERROR_SUCCESS){
 
@@ -958,6 +966,8 @@ void sys_GetRegEnum( PA_PluginParameters params )
 	DWORD i, j;
 	PA_Variable paReturnArray1;
 	PA_Variable paReturnArray2;
+	BOOL enum64 = FALSE;
+	int samFlag = KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE; // WJF 4/22/16 Win-15
 
 	dwSubKeys = dwValues = 0;
 	returnValue = regKey = retErr = 0;
@@ -969,6 +979,12 @@ void sys_GetRegEnum( PA_PluginParameters params )
 	PA_GetTextParameter( params, 2, regSub );
 	paReturnArray1 = PA_GetVariableParameter( params, 3 );
 	paReturnArray2 = PA_GetVariableParameter( params, 4 );
+	enum64 = PA_GetLongParameter(params, 5); // WJF 4/22/16 Win-15
+
+	// WJF 4/22/16 Win-15
+	if (enum64){
+		samFlag = samFlag | KEY_WOW64_64KEY;
+	}
 	
 	PA_ResizeArray(&paReturnArray1, 0);
 	PA_ResizeArray(&paReturnArray2, 0);
@@ -977,7 +993,7 @@ void sys_GetRegEnum( PA_PluginParameters params )
 	hRootKey = getRootKey( regKey );
 
 	// Open the registry key.
-	retErr = RegOpenKeyEx(hRootKey, regSub, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE , &hOpenKey);
+	retErr = RegOpenKeyEx(hRootKey, regSub, 0, samFlag, &hOpenKey); // WJF 4/22/16 Win-15 Passing in samFlag for REGSAM samDesired now
 	
 	if(retErr == ERROR_SUCCESS){
 		

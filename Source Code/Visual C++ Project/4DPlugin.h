@@ -142,6 +142,7 @@ void sys_HashText(PA_PluginParameters params); // WJF 10/28/15 Win-4
 void textEncryption(PA_PluginParameters params, BOOL bDecrypt); // WJF 10/29/15 Win-4
 void sys_GetDiskFreeSpace(PA_PluginParameters params); // WJF 11/2/15 Win-6
 void sys_ProcessStart(PA_PluginParameters params); // WJF 4/20/16 Win-14
+void sys_IsWow64Process(PA_PluginParameters params); // WJF 7/22/16 Win-26
 
 // ----- Other modules -------
 //window background-related

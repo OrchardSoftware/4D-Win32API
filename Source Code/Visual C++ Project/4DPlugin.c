@@ -904,6 +904,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		sys_ProcessStart(params); // WJF 4/20/16 Win-14
 		break;
 
+	case 135:
+		sys_IsWow64Process(params); // WJF 7/22/16 Win-26
+		break;
+
 	}
 
 }
@@ -7695,4 +7699,26 @@ void sys_ProcessStart(PA_PluginParameters params){
 
 	PA_ReturnLong(params, dwExitCode);
 
+}
+
+//  FUNCTION:   sys_IsWow64Process(PA_PluginParameters params)
+//
+//  PURPOSE:	Determines whether or not the current process is a WOW64 process (The operating system is 64-bit)
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 7/22/16 Win-26
+void sys_IsWow64Process(PA_PluginParameters params)
+{
+	BOOL		bSuccess = FALSE;
+	BOOL		bWOW64 = FALSE;
+	HANDLE		hCurrentProcess = NULL;
+
+	hCurrentProcess = GetCurrentProcess();
+
+	bSuccess = IsWow64Process(hCurrentProcess, &bWOW64);
+
+	PA_SetLongParameter(params, 1, bWOW64);
+
+	PA_ReturnLong(params, bSuccess);
 }

@@ -6,8 +6,8 @@ Win32API is provided free of charge to the 4D developer community, with complete
 
 Download the latestest stable release [here](https://github.com/OrchardSoftware/4D-Win32API/releases/latest).
 
-Win32API 8.1 is developed in Visual Studio 2013 and is not compatible with older versions of Visual Studio. 
+Win32API is developed in Visual Studio 2013 and is not compatible with older versions of Visual Studio. 
 
-Win32API 8.1 has been tested with 4D v15. If you need to support older versions of 4D or versions of Windows older than Windows XP SP3, please use an older version of Win32API.
+Win32API has been tested with 4D v15. If you need to support older versions of 4D or versions of Windows older than Windows XP SP3, please use an older version of Win32API.
 
 Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [William Ford](mailto:wford@orchardsoft.com).

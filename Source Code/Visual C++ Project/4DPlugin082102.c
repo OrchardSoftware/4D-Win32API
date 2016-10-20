@@ -941,7 +941,7 @@ void sys_GetRegEnum(PA_PluginParameters params)
 {
 	LONG returnValue, regKey, retErr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char regSub[MAXBUF];
-	DWORD regBufSize = MAX_REG_SIZE; // WJF 6/24/16 Win-31 LONG_PTR -> DWORD
+	DWORD regBufSize = MAX_REG_SIZE; // WJF 6/24/16 Win-21 LONG_PTR -> DWORD
 	CHAR regBuf[MAX_REG_SIZE];
 
 	FILETIME ftLastWriteTime;

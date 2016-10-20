@@ -848,9 +848,27 @@
     <trans-unit id="282">
       <source>WINAPI_Version</source>
     </trans-unit>
-    <trans-unit d4:value="Win32API Version 8.0" id="283">
+    <trans-unit d4:value="Win32API Version 8.1" id="283">
       <source>WIN32API_VERSION</source>
     </trans-unit>
+  </group>
+  
+  <group id="284" restype="x-4DK#">
+	<trans-unit d4:value="0" id="285">
+		<source>ALG_MD5</source>
+	</trans-unit>
+	<trans-unit d4:value="1" id="286">
+		<source>ALG_SHA1</source>
+	</trans-unit>
+	<trans-unit d4:value="2" id="287">
+		<source>ALG_SHA256</source>
+	</trans-unit>
+	<trans-unit d4:value="3" id="288">
+		<source>ALG_SHA384</source>
+	</trans-unit>
+	<trans-unit d4:value="4" id="289">
+		<source>ALG_SHA512</source>
+	</trans-unit>
   </group>
 
 </xliff>

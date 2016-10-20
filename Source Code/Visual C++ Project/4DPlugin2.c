@@ -188,7 +188,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 	HWND									hwndTarget;
 	TOOLINFO								toolInfo;
 	LONG_PTR								uId = 0, howToClose = 0, sendMsgReturn;
-	char									paramMessage[255], title[255], method[80]; // REB 8/1/08 #17556 Increased size of title from 40 to 255.
+	char									paramMessage[1024], title[255], method[80]; // REB 8/1/08 #17556 Increased size of title from 40 to 255. // WJF 9/23/16 Win-31 255 -> 1024
 	LPTSTR									lpTitle = title;
 	LONG_PTR								paramMessage_len = strlen(paramMessage);
 	LONG_PTR								title_len = strlen(title);
@@ -205,141 +205,170 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 	}
 
 	g_bTriggerMethod = FALSE;
+	__try { // WJF 9/23/16 Win-31 Wrapped in __try
+		uId = PA_GetLongParameter(params, 1);
 
-	uId = PA_GetLongParameter(params, 1);
-	paramMessage_len = PA_GetTextParameter(params, 2, paramMessage);
-	paramMessage[paramMessage_len] = '\0';
-	location = PA_GetLongParameter(params, 3);
-	howToClose = PA_GetLongParameter(params, 4);
-	title_len = PA_GetTextParameter(params, 5, title);
-	title[title_len] = '\0';
-	method_len = PA_GetTextParameter(params, 6, method);
-	method[method_len] = '\0';
-	left = PA_GetLongParameter(params, 7);
-	top = PA_GetLongParameter(params, 8);
-	right = PA_GetLongParameter(params, 9);
-	bottom = PA_GetLongParameter(params, 10);
-	balloonWidth = PA_GetLongParameter(params, 11); // ignore setting if zero
-	IsHandle = PA_GetLongParameter(params, 12); // WJF 9/1/15 #43731
+		// WJF 9/23/16 Win-31 Prevent buffer overflow
+		paramMessage_len = PA_GetTextParameter(params, 2, NULL);
+		if (paramMessage_len >= 1024) {
+			sendMsgReturn = -1;
+			__leave;
+		}
 
-	if ((left == 0) && (top == 0) && (right == 0) && (bottom == 0)) {
-		//check for process variables used in Get Object Rect in4D
-		// WJF 6/24/16 Win-21 Casting to PA_Unichar *
-		PALeft = PA_GetVariable((PA_Unichar *)("TT_LEFT"));
-		PATop = PA_GetVariable((PA_Unichar *)("TT_TOP"));
-		PARight = PA_GetVariable((PA_Unichar *)("TT_RIGHT"));
-		PABottom = PA_GetVariable((PA_Unichar *)("TT_BOTTOM"));
+		paramMessage_len = PA_GetTextParameter(params, 2, paramMessage);
+		paramMessage[paramMessage_len] = '\0';
+		location = PA_GetLongParameter(params, 3);
+		howToClose = PA_GetLongParameter(params, 4);
 
-		left = PA_GetLongintVariable(PALeft);
-		top = PA_GetLongintVariable(PATop);
-		right = PA_GetLongintVariable(PARight);
-		bottom = PA_GetLongintVariable(PABottom);
-	}
 
-	if ((left == 0) && (top == 0) && (right == 0) && (bottom == 0)) {
-		PA_ReturnLong(params, 0);
-		return;
-	}
-	if (!IsHandle) {  //uId's that are less than 500 it is assumed target // WJF 9/1/15 #43731 Assumptions don't work anymore becase we are now using an internal array for handles and are passing back an index. This index will be less than 500.
-		// window is window with focus
-		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
-	}
-	else {
-		if (isEx) { // WJF 9/16/15 #43731
-			hwndTarget = handleArray_retrieve((DWORD)uId);
+		// WJF 9/23/16 Win-31 Prevent buffer overflow
+		title_len = PA_GetTextParameter(params, 5, NULL);
+		if (title_len >= 255)
+		{
+			sendMsgReturn = -1;
+			__leave;
+		}
+
+		title_len = PA_GetTextParameter(params, 5, title);
+		title[title_len] = '\0';
+
+		// WJF 9/23/16 Win-31 Prevent buffer overflow
+		method_len = PA_GetTextParameter(params, 6, NULL);
+		if (method_len >= 80)
+		{
+			sendMsgReturn = -1;
+			__leave;
+		}
+
+		method_len = PA_GetTextParameter(params, 6, method);
+		method[method_len] = '\0';
+		left = PA_GetLongParameter(params, 7);
+		top = PA_GetLongParameter(params, 8);
+		right = PA_GetLongParameter(params, 9);
+		bottom = PA_GetLongParameter(params, 10);
+		balloonWidth = PA_GetLongParameter(params, 11); // ignore setting if zero
+		IsHandle = PA_GetLongParameter(params, 12); // WJF 9/1/15 #43731
+
+		if ((left == 0) && (top == 0) && (right == 0) && (bottom == 0)) {
+			//check for process variables used in Get Object Rect in4D
+			// WJF 6/24/16 Win-21 Casting to PA_Unichar *
+			PALeft = PA_GetVariable((PA_Unichar *)("TT_LEFT"));
+			PATop = PA_GetVariable((PA_Unichar *)("TT_TOP"));
+			PARight = PA_GetVariable((PA_Unichar *)("TT_RIGHT"));
+			PABottom = PA_GetVariable((PA_Unichar *)("TT_BOTTOM"));
+
+			left = PA_GetLongintVariable(PALeft);
+			top = PA_GetLongintVariable(PATop);
+			right = PA_GetLongintVariable(PARight);
+			bottom = PA_GetLongintVariable(PABottom);
+		}
+
+		if ((left == 0) && (top == 0) && (right == 0) && (bottom == 0)) {
+			PA_ReturnLong(params, 0);
+			return;
+		}
+		if (!IsHandle) {  //uId's that are less than 500 it is assumed target // WJF 9/1/15 #43731 Assumptions don't work anymore becase we are now using an internal array for handles and are passing back an index. This index will be less than 500.
+			// window is window with focus
+			hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
 		}
 		else {
-			hwndTarget = (HWND)uId;
+			if (isEx) { // WJF 9/16/15 #43731
+				hwndTarget = handleArray_retrieve((DWORD)uId);
+			}
+			else {
+				hwndTarget = (HWND)uId;
+			}
 		}
-	}
-	toolInfo.cbSize = sizeof(toolInfo);
-	toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
-	toolInfo.hwnd = hwndTarget;
-	toolInfo.uId = uId;
-	toolInfo.hinst = 0;
-	toolInfo.lpszText = lpParamMessage;
-	GetWindowRect(hwndTarget, &rect);
+		toolInfo.cbSize = sizeof(toolInfo);
+		toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
+		toolInfo.hwnd = hwndTarget;
+		toolInfo.uId = uId;
+		toolInfo.hinst = 0;
+		toolInfo.lpszText = lpParamMessage;
+		GetWindowRect(hwndTarget, &rect);
 
-	captionHeight = GetSystemMetrics(SM_CYCAPTION);
-	frameHeight = GetSystemMetrics(SM_CYFIXEDFRAME);
+		captionHeight = GetSystemMetrics(SM_CYCAPTION);
+		frameHeight = GetSystemMetrics(SM_CYFIXEDFRAME);
 
-	switch (location)
-	{
-	case TT_TOPRIGHT:
-		cx = rect.left + right;
-		cy = frameHeight + captionHeight + rect.top + top;
-		break;
-	case TT_TOPLEFT:
-		cx = rect.left + left;
-		cy = frameHeight + captionHeight + rect.top + top;
-		break;
-	case TT_BOTTOMRIGHT:
-		cx = rect.left + right;
-		cy = frameHeight + captionHeight + rect.top + bottom;
-		break;
-	case TT_BOTTOMLEFT:
-		cx = rect.left + left;
-		cy = frameHeight + captionHeight + rect.top + bottom;
-		break;
-	default:
-		cx = rect.left + left + ((right - left) / 2);
-		cy = frameHeight + captionHeight + rect.top + top + ((bottom - top) / 2);
-		break;
-	}
-	if (title_len != 0) {
-		switch (title[0]) // leading 1, 2, 0r 3 causes addition of icon
+		switch (location)
 		{
-		case '1':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle); // remove the number indicating the icon
-				lpTitle = title;
-				icon = NIIF_INFO;
-			}
+		case TT_TOPRIGHT:
+			cx = rect.left + right;
+			cy = frameHeight + captionHeight + rect.top + top;
 			break;
-
-		case '2':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle);
-				lpTitle = title;
-				icon = NIIF_WARNING;
-			}
+		case TT_TOPLEFT:
+			cx = rect.left + left;
+			cy = frameHeight + captionHeight + rect.top + top;
 			break;
-
-		case '3':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle);
-				lpTitle = title;
-				icon = NIIF_ERROR;
-			}
+		case TT_BOTTOMRIGHT:
+			cx = rect.left + right;
+			cy = frameHeight + captionHeight + rect.top + bottom;
+			break;
+		case TT_BOTTOMLEFT:
+			cx = rect.left + left;
+			cy = frameHeight + captionHeight + rect.top + bottom;
 			break;
 		default:
-			icon = NIIF_NONE;
+			cx = rect.left + left + ((right - left) / 2);
+			cy = frameHeight + captionHeight + rect.top + top + ((bottom - top) / 2);
+			break;
 		}
-	}
-	if (howToClose == TT_CLOSE_ON_CLICK) {
-		windowHandles.displayedTTOwnerhwnd = hwndTarget;
-		if (method_len != 0) {
-			strcpy(g_methodText, method);
-			returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
+		if (title_len != 0) {
+			switch (title[0]) // leading 1, 2, 0r 3 causes addition of icon
+			{
+			case '1':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle); // remove the number indicating the icon
+					lpTitle = title;
+					icon = NIIF_INFO;
+				}
+				break;
+
+			case '2':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle);
+					lpTitle = title;
+					icon = NIIF_WARNING;
+				}
+				break;
+
+			case '3':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle);
+					lpTitle = title;
+					icon = NIIF_ERROR;
+				}
+				break;
+			default:
+				icon = NIIF_NONE;
+			}
 		}
-	}
-	else {
-		windowHandles.displayedTTOwnerhwnd = NULL;
-	}
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-	if (balloonWidth != 0) {
-		SendMessage(windowHandles.hwndTT, TTM_SETMAXTIPWIDTH, 0, balloonWidth);
-	}
+		if (howToClose == TT_CLOSE_ON_CLICK) {
+			windowHandles.displayedTTOwnerhwnd = hwndTarget;
+			if (method_len != 0) {
+				strcpy(g_methodText, method);
+				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
+			}
+		}
+		else {
+			windowHandles.displayedTTOwnerhwnd = NULL;
+		}
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+		if (balloonWidth != 0) {
+			SendMessage(windowHandles.hwndTT, TTM_SETMAXTIPWIDTH, 0, balloonWidth);
+		}
 
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKPOSITION, (WPARAM)0, (LPARAM)(DWORD)MAKELONG(cx, cy));
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_SETTITLE, (WPARAM)icon, (LPARAM)(LPCTSTR)lpTitle);
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&toolInfo);
-	g_displayedTTId = uId;
-
-	PA_ReturnLong(params, (LONG)sendMsgReturn); // WJF 6/30/16 Win-21 Cast to LONG
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKPOSITION, (WPARAM)0, (LPARAM)(DWORD)MAKELONG(cx, cy));
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_SETTITLE, (WPARAM)icon, (LPARAM)(LPCTSTR)lpTitle);
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&toolInfo);
+		g_displayedTTId = uId;
+	}
+	__finally { // WJF 9/23/16 Win-31 Wrapped in __finally clause
+		PA_ReturnLong(params, (LONG)sendMsgReturn); // WJF 6/30/16 Win-21 Cast to LONG
+	}
 }
 
 // ------------------------------------------------
@@ -367,7 +396,7 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 	HWND									hwndTarget;
 	TOOLINFO							toolInfo;
 	LONG_PTR									uId = 0, howToClose = 0, sendMsgReturn;
-	char									paramMessage[255], title[40], method[80];
+	char									paramMessage[1024], title[255], method[80]; // WJF 9/21/16 Win-31 255 -> 1024, 40 -> 255 
 	LPTSTR								lpTitle = title;
 	LONG_PTR									paramMessage_len = strlen(paramMessage);
 	LONG_PTR									title_len = strlen(title);
@@ -377,80 +406,115 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 
 	g_bTriggerMethod = FALSE;
 
-	uId = PA_GetLongParameter(params, 1);
-	paramMessage_len = PA_GetTextParameter(params, 2, paramMessage);
-	paramMessage[paramMessage_len] = '\0';
-	cx = PA_GetLongParameter(params, 3);
-	cy = PA_GetLongParameter(params, 4);
-	howToClose = PA_GetLongParameter(params, 5);
-	title_len = PA_GetTextParameter(params, 6, title);
-	title[title_len] = '\0';
-	method_len = PA_GetTextParameter(params, 7, method);
-	method[method_len] = '\0';
-	balloonWidth = PA_GetLongParameter(params, 8); // ignore setting if zero
+	__try { // WJF 9/21/16 Win-31 Wrapped in __try
 
-	hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
+		uId = PA_GetLongParameter(params, 1);
 
-	toolInfo.cbSize = sizeof(toolInfo);
-	toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
-	toolInfo.hwnd = hwndTarget;
-	toolInfo.uId = uId;
-	toolInfo.hinst = 0;
-	toolInfo.lpszText = lpParamMessage;
+		// WJF 9/21/16 Win-31 Prevent buffer overflow
+		paramMessage_len = PA_GetTextParameter(params, 2, NULL);
+		if (paramMessage_len >= 1024) {
+			sendMsgReturn = -1;
+			__leave;
+		}
 
-	if (title_len != 0) {
-		switch (title[0]) // leading 1, 2, 0r 3 causes addition of icon
+		paramMessage_len = PA_GetTextParameter(params, 2, paramMessage);
+		paramMessage[paramMessage_len] = '\0';
+
+		cx = PA_GetLongParameter(params, 3);
+		cy = PA_GetLongParameter(params, 4);
+
+		howToClose = PA_GetLongParameter(params, 5);
+
+		// WJF 9/21/16 Win-31 Prevent buffer overflow
+		title_len = PA_GetTextParameter(params, 6, NULL);
+		if (title_len >= 255)
 		{
-		case '1':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle); // remove the number indicating the icon
-				lpTitle = title;
-				icon = NIIF_INFO;
-			}
-			break;
-
-		case '2':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle);
-				lpTitle = title;
-				icon = NIIF_WARNING;
-			}
-			break;
-
-		case '3':
-			lpTitle = &title[1];
-			if (*lpTitle != '\0') {
-				strcpy(title, lpTitle);
-				lpTitle = title;
-				icon = NIIF_ERROR;
-			}
-			break;
-		default:
-			icon = NIIF_NONE;
+			sendMsgReturn = -1;
+			__leave;
 		}
-	}
-	if (howToClose == TT_CLOSE_ON_CLICK) {
-		windowHandles.displayedTTOwnerhwnd = hwndTarget;
-		if (method_len != 0) {
-			strcpy(g_methodText, method);
-			returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
-		}
-	}
-	else {
-		windowHandles.displayedTTOwnerhwnd = NULL;
-	}
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-	if (balloonWidth != 0) {
-		SendMessage(windowHandles.hwndTT, TTM_SETMAXTIPWIDTH, 0, balloonWidth);
-	}
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKPOSITION, (WPARAM)0, (LPARAM)(DWORD)MAKELONG(cx, cy));
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_SETTITLE, (WPARAM)icon, (LPARAM)(LPCTSTR)lpTitle);
-	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&toolInfo);
-	g_displayedTTId = uId;
 
-	PA_ReturnLong(params, (LONG)sendMsgReturn); // WJF 6/30/16 Win-21 Cast to LONG
+		title_len = PA_GetTextParameter(params, 6, title);
+		title[title_len] = '\0';
+
+		// WJF 9/21/16 Win-31 Prevent buffer overflow
+		method_len = PA_GetTextParameter(params, 7, NULL);
+		if (method_len >= 80)
+		{
+			sendMsgReturn = -1;
+			__leave;
+		}
+
+		method_len = PA_GetTextParameter(params, 7, method);
+		method[method_len] = '\0';
+
+		balloonWidth = PA_GetLongParameter(params, 8); // ignore setting if zero
+
+		hwndTarget = (HWND)PA_GetHWND(PA_GetWindowFocused());
+
+		toolInfo.cbSize = sizeof(toolInfo);
+		toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
+		toolInfo.hwnd = hwndTarget;
+		toolInfo.uId = uId;
+		toolInfo.hinst = 0;
+		toolInfo.lpszText = lpParamMessage;
+
+		if (title_len != 0) {
+			switch (title[0]) // leading 1, 2, 0r 3 causes addition of icon
+			{
+			case '1':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle); // remove the number indicating the icon
+					lpTitle = title;
+					icon = NIIF_INFO;
+				}
+				break;
+
+			case '2':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle);
+					lpTitle = title;
+					icon = NIIF_WARNING;
+				}
+				break;
+
+			case '3':
+				lpTitle = &title[1];
+				if (*lpTitle != '\0') {
+					strcpy(title, lpTitle);
+					lpTitle = title;
+					icon = NIIF_ERROR;
+				}
+				break;
+			default:
+				icon = NIIF_NONE;
+			}
+		}
+		if (howToClose == TT_CLOSE_ON_CLICK) {
+			windowHandles.displayedTTOwnerhwnd = hwndTarget;
+			if (method_len != 0) {
+				strcpy(g_methodText, method);
+				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
+			}
+		}
+		else {
+			windowHandles.displayedTTOwnerhwnd = NULL;
+		}
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+		if (balloonWidth != 0) {
+			SendMessage(windowHandles.hwndTT, TTM_SETMAXTIPWIDTH, 0, balloonWidth);
+		}
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKPOSITION, (WPARAM)0, (LPARAM)(DWORD)MAKELONG(cx, cy));
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_SETTITLE, (WPARAM)icon, (LPARAM)(LPCTSTR)lpTitle);
+		sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&toolInfo);
+		g_displayedTTId = uId;
+
+	}
+	__finally { // WJF 9/21/16 Win-31
+		PA_ReturnLong(params, (LONG)sendMsgReturn); // WJF 6/30/16 Win-21 Cast to LONG
+	}
+
 }
 
 // ------------------------------------------------

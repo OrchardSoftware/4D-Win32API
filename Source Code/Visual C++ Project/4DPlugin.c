@@ -293,7 +293,8 @@ const char * const win32Commands[] = {
 	"sys_ProcessStart",
 	"sys_LoggingStart",
 	"sys_LoggingStop",
-	"sys_IsWow64Process"
+	"sys_IsWow64Process",
+	"sys_CryptGenRandom"
 };
 
 // MWD 10/21/05 #9246
@@ -1039,6 +1040,10 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 
 	case 137:
 		sys_IsWow64Process(params); // WJF 7/22/16 Win-26
+		break;
+
+	case 138:
+		sys_CryptGenRandom(params); // WJF 8/30/16 Win-30
 		break;
 	}
 }
@@ -2897,119 +2902,137 @@ void sys_GetTimeZone(PA_PluginParameters params)
 
 void sys_GetUTCOffset(PA_PluginParameters params)
 {
-	LONG						returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG						returnValue = 1; // WJF 6/30/16 Win-21 LONG_PTR -> LONG // WJF 10/8/16 Win-33 0 -> 1
 	LONG						bias = 0, weekNum = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	DWORD						dwOperatingMode = 0;
 
 	//struct _timeb tstruct;
 	TIME_ZONE_INFORMATION TimeZoneInformation; // REB 1/21/09 #19035
-	SYSTEMTIME SystemTime;
+	// SYSTEMTIME SystemTime; // WJF 10/14/16 Win-33 No longer used
 
-	GetTimeZoneInformation(&TimeZoneInformation);
-	GetLocalTime(&SystemTime);
+	dwOperatingMode = GetTimeZoneInformation(&TimeZoneInformation); // WJF 10/8/16 Win-33 Storing the return value
+	// GetLocalTime(&SystemTime); // WJF 10/14/16 Win-33 No longer used
 
 	bias = TimeZoneInformation.Bias;
 
-	//TimeZoneInformation.DaylightDate.wDayOfWeek // Sun - Sat
-	//TimeZoneInformation.DaylightDate.wDay // 1 -5 occurance of above day
+	// WJF 10/8/16 Win-33
+	switch (dwOperatingMode)
+	{
+		case TIME_ZONE_ID_UNKNOWN:
+		case TIME_ZONE_ID_STANDARD:
+			bias += TimeZoneInformation.StandardBias;
+			break;
+		case TIME_ZONE_ID_DAYLIGHT:
+			bias += TimeZoneInformation.DaylightBias;
+			break;
+		case TIME_ZONE_ID_INVALID:
+			returnValue = 0;
+			break;
+	}
 
-	// Calculate which occurance of the current day we are on.  Basically which week in the month we are on.
-	weekNum = ((SystemTime.wDay - 1) / 7) + 1; // Between 1 and 5
+	// WJF 10/8/16 Win-33 Removed this mess
+	////TimeZoneInformation.DaylightDate.wDayOfWeek // Sun - Sat
+	////TimeZoneInformation.DaylightDate.wDay // 1 -5 occurance of above day
 
-	if (SystemTime.wMonth == TimeZoneInformation.StandardDate.wMonth){
-		// We are in the month when we change back to standard
-		if (SystemTime.wDayOfWeek == TimeZoneInformation.StandardDate.wDayOfWeek){
-			// We are in the Week that the time changes
-			if (weekNum == TimeZoneInformation.StandardDate.wDay){
-				// This is the Day the time changes
-				if (SystemTime.wHour >= TimeZoneInformation.StandardDate.wHour){
-					bias += TimeZoneInformation.StandardBias;
-				}
-				else{
-					bias += TimeZoneInformation.DaylightBias;
-				};
-			}
-			else if (weekNum > TimeZoneInformation.StandardDate.wDay){
-				bias += TimeZoneInformation.StandardBias;
-			}
-			else{
-				bias += TimeZoneInformation.DaylightBias;
-			};
-		}
-		else if (SystemTime.wDayOfWeek > TimeZoneInformation.StandardDate.wDayOfWeek){
-			if (weekNum > TimeZoneInformation.StandardDate.wDay){
-				bias += TimeZoneInformation.StandardBias;
-			}
-			else{
-				bias += TimeZoneInformation.DaylightBias;
-			};
-		}
-		else{
-			bias += TimeZoneInformation.DaylightBias;
-		};
-	}
-	else if (SystemTime.wMonth == TimeZoneInformation.DaylightDate.wMonth){
-		// We are in the month when we change back to standard
-		if (SystemTime.wDayOfWeek == TimeZoneInformation.DaylightDate.wDayOfWeek){
-			// We are in the Week that the time changes
-			if (weekNum == TimeZoneInformation.DaylightDate.wDay){
-				// This is the Day the time changes
-				if (SystemTime.wHour >= TimeZoneInformation.DaylightDate.wHour){
-					bias += TimeZoneInformation.DaylightBias;
-				}
-				else{
-					bias += TimeZoneInformation.StandardBias;
-				};
-			}
-			else if (weekNum > TimeZoneInformation.DaylightDate.wDay){
-				bias += TimeZoneInformation.DaylightBias;
-			}
-			else{
-				bias += TimeZoneInformation.StandardBias;
-			};
-		}
-		else if (SystemTime.wDayOfWeek > TimeZoneInformation.DaylightDate.wDayOfWeek){
-			if (weekNum > TimeZoneInformation.DaylightDate.wDay){
-				bias += TimeZoneInformation.DaylightBias;
-			}
-			else{
-				bias += TimeZoneInformation.StandardBias;
-			};
-		}
-		else{
-			bias += TimeZoneInformation.StandardBias;
-		};
-	}
-	else if (TimeZoneInformation.StandardDate.wMonth > TimeZoneInformation.DaylightDate.wMonth){
-		// The period of daylight savings time uccurs within a single year.
-		if ((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) && (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
-			bias += TimeZoneInformation.DaylightBias;
-		}
-		else{
-			bias += TimeZoneInformation.StandardBias;
-		};
-	}
-	else{
-		// The period of daylight savings time is split between 2 years (say, November to April).
-		if ((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) || (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
-			bias += TimeZoneInformation.DaylightBias;
-		}
-		else{
-			bias += TimeZoneInformation.StandardBias;
-		};
-	};
+	//// Calculate which occurance of the current day we are on.  Basically which week in the month we are on.
+	//weekNum = ((SystemTime.wDay - 1) / 7) + 1; // Between 1 and 5
+
+	//if (SystemTime.wMonth == TimeZoneInformation.StandardDate.wMonth){
+	//	// We are in the month when we change back to standard
+	//	if (SystemTime.wDayOfWeek == TimeZoneInformation.StandardDate.wDayOfWeek){
+	//		// We are in the Week that the time changes
+	//		if (weekNum == TimeZoneInformation.StandardDate.wDay){
+	//			// This is the Day the time changes
+	//			if (SystemTime.wHour >= TimeZoneInformation.StandardDate.wHour){
+	//				bias += TimeZoneInformation.StandardBias;
+	//			}
+	//			else{
+	//				bias += TimeZoneInformation.DaylightBias;
+	//			};
+	//		}
+	//		else if (weekNum > TimeZoneInformation.StandardDate.wDay){
+	//			bias += TimeZoneInformation.StandardBias;
+	//		}
+	//		else{
+	//			bias += TimeZoneInformation.DaylightBias;
+	//		};
+	//	}
+	//	else if (SystemTime.wDayOfWeek > TimeZoneInformation.StandardDate.wDayOfWeek){
+	//		if (weekNum > TimeZoneInformation.StandardDate.wDay){
+	//			bias += TimeZoneInformation.StandardBias;
+	//		}
+	//		else{
+	//			bias += TimeZoneInformation.DaylightBias;
+	//		};
+	//	}
+	//	else{
+	//		bias += TimeZoneInformation.DaylightBias;
+	//	};
+	//}
+	//else if (SystemTime.wMonth == TimeZoneInformation.DaylightDate.wMonth){
+	//	// We are in the month when we change back to standard
+	//	if (SystemTime.wDayOfWeek == TimeZoneInformation.DaylightDate.wDayOfWeek){
+	//		// We are in the Week that the time changes
+	//		if (weekNum == TimeZoneInformation.DaylightDate.wDay){
+	//			// This is the Day the time changes
+	//			if (SystemTime.wHour >= TimeZoneInformation.DaylightDate.wHour){
+	//				bias += TimeZoneInformation.DaylightBias;
+	//			}
+	//			else{
+	//				bias += TimeZoneInformation.StandardBias;
+	//			};
+	//		}
+	//		else if (weekNum > TimeZoneInformation.DaylightDate.wDay){
+	//			bias += TimeZoneInformation.DaylightBias;
+	//		}
+	//		else{
+	//			bias += TimeZoneInformation.StandardBias;
+	//		};
+	//	}
+	//	else if (SystemTime.wDayOfWeek > TimeZoneInformation.DaylightDate.wDayOfWeek){
+	//		if (weekNum > TimeZoneInformation.DaylightDate.wDay){
+	//			bias += TimeZoneInformation.DaylightBias;
+	//		}
+	//		else{
+	//			bias += TimeZoneInformation.StandardBias;
+	//		};
+	//	}
+	//	else{
+	//		bias += TimeZoneInformation.StandardBias;
+	//	};
+	//}
+	//else if (TimeZoneInformation.StandardDate.wMonth > TimeZoneInformation.DaylightDate.wMonth){
+	//	// The period of daylight savings time uccurs within a single year.
+	//	if ((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) && (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
+	//		bias += TimeZoneInformation.DaylightBias;
+	//	}
+	//	else{
+	//		bias += TimeZoneInformation.StandardBias;
+	//	};
+	//}
+	//else{
+	//	// The period of daylight savings time is split between 2 years (say, November to April).
+	//	if ((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) || (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
+	//		bias += TimeZoneInformation.DaylightBias;
+	//	}
+	//	else{
+	//		bias += TimeZoneInformation.StandardBias;
+	//	};
+	//};
 
 	PA_SetLongParameter(params, 1, bias);
 
-	returnValue = PA_GetLongParameter(params, 1);
-	//_tzset();
-	//_ftime( &tstruct );
-	//PA_SetLongParameter( params, 1, tstruct.timezone );
-	if (returnValue == TIME_ZONE_ID_INVALID){
-		returnValue = 0;
-	}
-	else{
-		returnValue = 1;
-	};
+	// WJF 10/8/16 Win-33 Removed
+	//returnValue = PA_GetLongParameter(params, 1);
+	////_tzset();
+	////_ftime( &tstruct );
+	////PA_SetLongParameter( params, 1, tstruct.timezone );
+	//if (returnValue == TIME_ZONE_ID_INVALID){
+	//	returnValue = 0;
+	//}
+	//else{
+	//	returnValue = 1;
+	//};
 
 	PA_ReturnLong(params, returnValue);
 }
@@ -3156,7 +3179,7 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	DWORD				dwExitCode = 0;
 	// WJF 10/12/16 Win-37 -ws -> -os, This was probably missed in review and testing because 
 	// it wasn't tagged and we never delete the OS files. I only discovered this bug because I cleared my temp files.
-	LPCSTR				lpParameters = "-os";
+	LPCSTR				lpParameters = "-os"; 
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 #pragma warning(push, 0) // WJF 6/24/16 Win-21
@@ -7667,4 +7690,67 @@ void sys_IsWow64Process(PA_PluginParameters params)
 	PA_SetLongParameter(params, 1, bWOW64);
 
 	PA_ReturnLong(params, bSuccess);
+}
+
+//  FUNCTION:   sys_CryptGenRandom(PA_PluginParameters params)
+//
+//  PURPOSE:	Fills a buffer with cryptographically random bytes
+//
+//  COMMENTS:	
+//
+//	DATE:		WJF 8/30/16 Win-30
+void sys_CryptGenRandom(PA_PluginParameters params)
+{
+	DWORD		dwNumBytes = 0;
+	HCRYPTPROV	hProv = 0;
+	DWORD		dwError = ERROR_SUCCESS;
+	LPCSTR		myContainer = "MyContainer";
+	BOOL		bSuccess = FALSE;
+	PBYTE		pbRandomBytes = NULL;
+	LPSTR		szByteHexString = NULL;
+	DWORD		i = 0;
+	DWORD		dwStrLen = 0;
+
+	dwNumBytes = (DWORD)PA_GetLongParameter(params, 1);
+
+	dwStrLen = (dwNumBytes * 2) + 1;
+
+	__try {
+
+		if (!(pbRandomBytes = malloc(dwNumBytes))){
+			__leave;
+		}
+
+		if (!(szByteHexString = malloc(dwStrLen))){
+			__leave;
+		}
+
+		if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_NEWKEYSET))){
+			dwError = GetLastError();
+			if (dwError == 2148073487){
+				if (!(CryptAcquireContext(&hProv, myContainer, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, 0))){
+					__leave;
+				}
+			}
+			else {
+				__leave;
+			}
+		}
+
+		bSuccess = CryptGenRandom(hProv, dwNumBytes, pbRandomBytes);
+
+		if (bSuccess){
+			for (i = 0; i < dwNumBytes; i++){
+				sprintf_s(szByteHexString + i * 2, dwStrLen, "%02x", pbRandomBytes[i]);
+			}
+			szByteHexString[i * 2] = '\0';
+
+			PA_SetTextParameter(params, 2, szByteHexString, dwStrLen);
+		}
+
+		CryptReleaseContext(hProv, 0);
+	}
+	__finally{
+		PA_ReturnLong(params, bSuccess);
+	}
 }

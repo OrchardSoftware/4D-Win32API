@@ -412,5 +412,8 @@
     }, {
         "theme": "Win32API Commands",
         "syntax": "sys_IsWow64Process(&L):L"
+    }, {
+        "theme": "Win32API Commands",
+        "syntax": "sys_CryptGenRandom(&L;&T):L"
     }]
 }

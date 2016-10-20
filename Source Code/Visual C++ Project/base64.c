@@ -2,17 +2,16 @@
 #include <stdint.h>
 #include "base64.h"
 
-char *base64_encode(const unsigned char *data,
+// WJF 6/24/16 Win-21 Removed const qualifier
+char *base64_encode(unsigned char *data,
 	size_t input_length,
 	size_t *output_length) {
-
 	*output_length = ((input_length - 1) / 3) * 4 + 4;
 
 	char *encoded_data = malloc(*output_length + 1); // WJF 6/29/16 Win-18 Add 1 to length
 	if (encoded_data == NULL) return NULL;
 
-	for (int i = 0, j = 0; i < input_length;) {
-
+	for (size_t i = 0, j = 0; i < input_length;) { // WJF 6/24/16 Win-21 int -> size_t
 		uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
 		uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
 		uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
@@ -36,11 +35,9 @@ char *base64_encode(const unsigned char *data,
 	return encoded_data;
 }
 
-
 unsigned char *base64_decode(const char *data,
 	size_t input_length,
 	size_t *output_length) {
-
 	if (decoding_table == NULL) build_decoding_table();
 
 	if (input_length % 4 != 0) return NULL;
@@ -52,8 +49,7 @@ unsigned char *base64_decode(const char *data,
 	unsigned char *decoded_data = malloc(*output_length);
 	if (decoded_data == NULL) return NULL;
 
-	for (int i = 0, j = 0; i < input_length;) {
-
+	for (size_t i = 0, j = 0; i < input_length;) { // WJF 6/24/16 Win-21 int -> size_t
 		uint32_t sextet_a = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
 		uint32_t sextet_b = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
 		uint32_t sextet_c = data[i] == '=' ? 0 & i++ : decoding_table[data[i++]];
@@ -77,15 +73,12 @@ unsigned char *base64_decode(const char *data,
 	return decoded_data;
 }
 
-
 void build_decoding_table(void) {
-
 	decoding_table = malloc(256);
 
 	for (int i = 0; i < 64; i++)
-		decoding_table[(unsigned char)encoding_table[i]] = i;
+		decoding_table[(unsigned char)encoding_table[i]] = (char)i; // WJF 6/24/16 Win-21 Casting to char
 }
-
 
 void base64_cleanup() {
 	free(decoding_table);

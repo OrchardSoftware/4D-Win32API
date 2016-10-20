@@ -1,4 +1,4 @@
-// WJF 6/17/16 Win-18 
+// WJF 6/17/16 Win-18
 
 #include "4DPlugin.h"
 #include "utilities.h"
@@ -10,149 +10,102 @@
 
 HANDLE hLogFile = NULL;
 BOOL bLogIsOpen = FALSE;
+CHAR logFilePath[MAX_PATH];
+CHAR szLogsPath[MAX_PATH]; // WJF 7/11/16 Win-20 NULL pointer -> MAX_PATH array and made global
+LONG lNumDays = 0; // WJF 7/11/16 Win-20
+CHAR dateOpened[16]; // WJF 7/11/16 Win-20
 
-// Open the log file
-void openLogFile() {
-	char logFilePath[MAX_PATH];
-	char commandName[256] = { '\0' };
-	char cName[256] = { '\0' };
-	PA_Unistring unistring;
-	PA_Variable logsPath;
-	PA_Unistring uniLogs;
-	char * szLogsPath = NULL;
-	SYSTEMTIME lt;
-	char buffer[8];
-	HRESULT hr = 0;
+//  FUNCTION:   sys_LoggingStart(PA_PluginParameters params)
+//
+//  PURPOSE:	Start logging Win32API commands
+//
+//  COMMENTS:
+//
+//	DATE:		7/11/16 Win-20
+void sys_LoggingStart(PA_PluginParameters params) {
+	LONG returnValue = 0; // WJF 7/11/16 Win-20
 
-	PA_GetCommandName(485, commandName);
-
-	int j = 0;
-
-	// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
-	// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
-	for (int i = 0; i < sizeof(commandName); i++) // WJF 6/29/15 #43134 Changed <= to <
-	{
-		if (commandName[i] != '\0')
-		{
-			cName[j] = commandName[i];
-			j++;
-		}
-	}
-
-	cName[(strlen(cName))] = '\0';
-
-	strcat_s(cName, 256, "(Logs folder)");
-
-	unistring = CStringToUnistring(cName);
-
-	logsPath = PA_ExecuteFunction(&unistring);
-
-	uniLogs = PA_GetStringVariable(logsPath);
-
-	szLogsPath = UnistringToCString(&uniLogs);
-
-	if (szLogsPath != NULL) {
-		strcpy_s(logFilePath, MAX_PATH, szLogsPath);
-		free(szLogsPath);
-		szLogsPath = NULL;
-
-		strcat_s(logFilePath, MAX_PATH, "Win32API\\");
-
-		CreateDirectory(logFilePath, NULL);
-
-		logMaintenance(logFilePath);
-
-		strcat_s(logFilePath, MAX_PATH, "Win32API_");
-
-		GetLocalTime(&lt);
-
-		_itoa_s(lt.wYear, buffer, 8, 10);
-		strcat_s(logFilePath, MAX_PATH, buffer);
-
-		_itoa_s(lt.wMonth, buffer, 8, 10);
-		strcat_s(logFilePath, MAX_PATH, buffer);
-
-		_itoa_s(lt.wDay, buffer, 8, 10);
-		strcat_s(logFilePath, MAX_PATH, buffer);
-
-		strcat_s(logFilePath, MAX_PATH, ".log");
-
-		hLogFile = CreateFile(logFilePath, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-		if (hLogFile != INVALID_HANDLE_VALUE) {
-			bLogIsOpen = TRUE;
-		}
-	}
+	PA_GetTextParameter(params, 1, szLogsPath);
+	lNumDays = PA_GetLongParameter(params, 2);
 	
+	returnValue = logOpenFile();
+
+	PA_ReturnLong(params, returnValue); // WJF 7/11/16 Win-20
 }
 
-// Close the log file
-void closeLogFile(){
-	if (hLogFile != INVALID_HANDLE_VALUE) {
-		CloseHandle(hLogFile);
-	}
+//  FUNCTION:   sys_LoggingStop(PA_PluginParameters params)
+//
+//  PURPOSE:	Stop logging Win32API commands
+//
+//  COMMENTS:
+//
+//	DATE:		WJF 7/11/16 Win-20
+void sys_LoggingStop(PA_PluginParameters params){
+	PA_ReturnLong(params, logCloseFile()); // WJF 7/11/16 Win-20 Return long and moved to common method
 }
 
 // Write to the log file
 void writeLogFile(const char * szLog){
 	DWORD dwPos = 0;
 	DWORD dwBytesWritten = 0;
-	SYSTEMTIME localTime;
-	char szOutput[1024];
-	size_t logLength = 0;
-	char buffer[8];
+	SYSTEMTIME lt; // WJF 7/11/16 Win-20 localTime -> lt
+	CHAR szOutput[128]; // WJF 7/11/16 Win-20 1024 -> 128
+	DWORD logLength = 0; // WJF 6/30/16 Win-21 size_t -> DWORD
+	LPSTR dateString = NULL; // WJF 7/11/16 Win-20
+	CHAR dateComp[16]; // WJF 7/11/16 Win-20
 
-	GetLocalTime(&localTime);
+	if (bLogIsOpen) { // WJF 7/8/16 Win-20 Don't bother doing this if the log isn't open
+		GetLocalTime(&lt);
 
-	_itoa_s(localTime.wMonth, buffer, 8, 10);
-	strcpy_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, "/");
-	_itoa_s(localTime.wDay, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, "/");
-	_itoa_s(localTime.wYear, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, " ");
-	_itoa_s(localTime.wHour, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, ":");
-	_itoa_s(localTime.wMinute, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, ":");
-	_itoa_s(localTime.wSecond, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, ":");
-	_itoa_s(localTime.wMilliseconds, buffer, 8, 10);
-	strcat_s(szOutput, 1024, buffer);
-	strcat_s(szOutput, 1024, " - ");
-	strcat_s(szOutput, 1024, szLog);
+		sprintf_s(dateComp, 16, "%04u%02u%02u", lt.wYear, lt.wMonth, lt.wDay);
 
-	logLength = strlen(szOutput);
+		// WJF 7/11/16 Win-20 If the current date doesn't match the date of the open log file, close it and make a new one
+		if (strcmp(dateComp, dateOpened) != 0) {
+			logCloseFile();
+			logOpenFile();
+		}
 
-	if ((hLogFile != INVALID_HANDLE_VALUE) && (bLogIsOpen)) {
-		dwPos = SetFilePointer(hLogFile, 0, NULL, FILE_END);
-		LockFile(hLogFile, dwPos, 0, logLength, 0);
-		WriteFile(hLogFile, szOutput, logLength, &dwBytesWritten, NULL);
-		UnlockFile(hLogFile, dwPos, 0, logLength, 0);
+		if (bLogIsOpen) { // WJF 7/11/16 Win-20 This might change if the day rolled over
+			// MM/DD/YYYY H:M:S:MS - 
+			// WJF 7/11/16 Win-20 Rewrote to be simpler
+			sprintf_s(szOutput, 128, "%02u/%02u/%04u %02u:%02u:%02u:%03u - ", lt.wMonth, lt.wDay, lt.wYear, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
+			strcat_s(szOutput, 128, szLog);
+
+			logLength = (DWORD)strlen(szOutput); // WJF 6/30/16 Win-21 Cast to DWORD
+
+			//if ((hLogFile != INVALID_HANDLE_VALUE) && (bLogIsOpen)) { // WJF 7/8/16 Win-20 Removed unneccessary check
+			dwPos = SetFilePointer(hLogFile, 0, NULL, FILE_END);
+			LockFile(hLogFile, dwPos, 0, logLength, 0);
+			WriteFile(hLogFile, szOutput, logLength, &dwBytesWritten, NULL);
+			UnlockFile(hLogFile, dwPos, 0, logLength, 0);
+			// }
+
+		}
 	}
 }
 
-// Delete log files older than 30 days
-void logMaintenance(const char * szLogDir){
+//  FUNCTION:   logMaintenance(PA_PluginParameters params)
+//
+//  PURPOSE:	Deletes log files older than the specified number of days
+//
+//  COMMENTS:
+//
+//	DATE:		WJF 6/17/16 Win-18
+//  WJF 7/8/16 Win-20 Now returns the number of deleted files
+LONG logMaintenance() {
 	WIN32_FIND_DATA ffd;
-	LARGE_INTEGER fileSize;
 	HANDLE hFind = INVALID_HANDLE_VALUE;
-	DWORD dwError = ERROR_SUCCESS;
 	FILETIME ftCurrent;
-	SYSTEMTIME stCurrent;
 	FILETIME ftFile;
 	ULONGLONG qwCurrent = 0;
 	ULONGLONG qwFile = 0;
 	ULONGLONG qwResult = 0;
 	char searchPath[MAX_PATH];
 	char deletePath[MAX_PATH];
+	LONG lTextLength = 0;
+	LONG lNumDeleted = 0;
 
-	strcpy_s(searchPath, MAX_PATH, szLogDir);
+	strcpy_s(searchPath, MAX_PATH, szLogsPath); // WJF 7/11/16 Win-20 parameter -> global
 	strcat_s(searchPath, MAX_PATH, "*.*");
 
 	GetSystemTimeAsFileTime(&ftCurrent);
@@ -162,7 +115,7 @@ void logMaintenance(const char * szLogDir){
 	hFind = FindFirstFile(searchPath, &ffd);
 
 	if (hFind == INVALID_HANDLE_VALUE) {
-		return;
+		return lNumDeleted;
 	}
 
 	do {
@@ -171,12 +124,69 @@ void logMaintenance(const char * szLogDir){
 			qwFile = (((ULONGLONG)ftFile.dwHighDateTime) << 32) + ftFile.dwLowDateTime;
 			qwResult = qwCurrent - qwFile;
 
-			// Delete files older than 30 days
-			if (qwResult >= (30 * _DAY)){
-				strcpy_s(deletePath, MAX_PATH, szLogDir);
+			// Delete files older than the specified number of days
+			if (qwResult > (lNumDays * _DAY)){ // WJF 7/8/16 Win-20 30 -> lNumDays, >= -> >
+				strcpy_s(deletePath, MAX_PATH, szLogsPath);
 				strcat_s(deletePath, MAX_PATH, ffd.cFileName);
-				DeleteFile(deletePath);
+				if (DeleteFile(deletePath)) {
+					lNumDeleted++; // WJF 7/11/16 Win-20
+				}
 			}
 		}
 	} while (FindNextFile(hFind, &ffd) != 0);
+
+	return lNumDeleted;
+}
+
+// WJF 7/11/16 Win-20 Internal function so that we can switch files when the day rolls over
+LONG logOpenFile() {
+	SYSTEMTIME lt;
+	LONG returnValue = 0;
+
+	if (szLogsPath != NULL) {
+		strcpy_s(logFilePath, MAX_PATH, szLogsPath);
+
+		// strcat_s(logFilePath, MAX_PATH, "Win32API\\"); 
+
+		CreateDirectory(logFilePath, NULL);
+
+		if (lNumDays > 0) {
+			logMaintenance();
+		}
+
+		strcat_s(logFilePath, MAX_PATH, "Win32API_");
+
+		GetLocalTime(&lt);
+
+		sprintf_s(dateOpened, 16, "%04u%02u%02u", lt.wYear, lt.wMonth, lt.wDay);
+		strcat_s(logFilePath, MAX_PATH, dateOpened);
+
+		strcat_s(logFilePath, MAX_PATH, ".log");
+
+		hLogFile = CreateFile(logFilePath, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+		if (hLogFile != INVALID_HANDLE_VALUE) {
+			bLogIsOpen = TRUE;
+			returnValue = 1; // WJF 7/11/16 Win-20
+		}
+	}
+
+	return returnValue;
+}
+
+// WJF 7/11/16 Win-20 Internal function so that we can switch files when the day rolls over
+LONG logCloseFile() {
+	LONG lReturnValue = -1; 
+
+	if (hLogFile != INVALID_HANDLE_VALUE) {
+		if (CloseHandle(hLogFile)) {
+			lReturnValue = 0; 
+			bLogIsOpen = FALSE;
+		}
+	}
+	else { 
+		lReturnValue = -2;
+	}
+
+	return lReturnValue;
 }

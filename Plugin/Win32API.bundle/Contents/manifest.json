@@ -111,7 +111,7 @@
         "syntax": "gui_ToolTipCreate(&L;&L):L"
     }, {
         "theme": "Win32API Commands",
-        "syntax": "gui_ToolTipShowOnObject(&L;&T;&L;&L;&T;&T;&L;&L;&L;&L;&L):L"
+        "syntax": "gui_ToolTipShowOnObject(&L;&T;&L;&L;&T;&T;&L;&L;&L;&L;&L;&L):L"
     }, {
         "theme": "Win32API Commands",
         "syntax": "gui_ToolTipShowOnCoord(&L;&T;&L;&L;&L;&T;&T;&L):L"
@@ -381,7 +381,7 @@
         "syntax": "gui_ToolTipCreateEx(&L;&L):L"
     }, {
         "theme": "Win32API Commands",
-        "syntax": "gui_ToolTipShowOnObjectEx(&L;&T;&L;&L;&T;&T;&L;&L;&L;&L;&L):L"
+        "syntax": "gui_ToolTipShowOnObjectEx(&L;&T;&L;&L;&T;&T;&L;&L;&L;&L;&L;&L):L"
     }, {
         "theme": "Win32API Commands",
         "syntax": "gui_FlashWindowEx(&L;&L;&L;&L):L"
@@ -403,6 +403,12 @@
     }, {
         "theme": "Win32API Commands",
         "syntax": "sys_ProcessStart(&T;&T):L"
+    }, {
+        "theme": "Win32API Commands",
+        "syntax": "sys_LoggingStart(&T;&L):L"
+    }, {
+        "theme": "Win32API Commands",
+        "syntax": "sys_LoggingStop:L"
     }, {
         "theme": "Win32API Commands",
         "syntax": "sys_IsWow64Process(&L):L"

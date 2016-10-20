@@ -4,7 +4,7 @@
 void build_decoding_table(void);
 void base64_cleanup(void);
 unsigned char * base64_decode(const char *input, size_t inputLength, size_t *outputLength);
-char * base64_encode(const unsigned char *input, size_t inputLength, size_t *outputLength);
+char * base64_encode(unsigned char *input, size_t inputLength, size_t *outputLength); // WJF 6/24/16 Win-21 Removed const qualifier
 
 static char encoding_table[] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',

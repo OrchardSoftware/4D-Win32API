@@ -11,7 +11,7 @@
 
 #ifndef __PUBLICTYPES__
 #define __PUBLICTYPES__
-
+#pragma warning(push, 0) // WJF 6/24/16 Win-21
 // all the 4D Application structures use 2 bytes alignment
 #pragma pack(push,2)
 
@@ -884,5 +884,6 @@ typedef enum
 
 // reset struct alignment
 #pragma pack(pop)
+#pragma warning(pop) // WJF 6/24/16 Win-21
 
 #endif

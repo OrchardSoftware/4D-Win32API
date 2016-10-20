@@ -9,20 +9,19 @@
 # --------------------------------------------------------------------------------*/
 
 //
-//	04/16/02 Replaced Plugin API 671 with 672.  Made modifications to 
+//	04/16/02 Replaced Plugin API 671 with 672.  Made modifications to
 //						672 for compatibility with 4D 6.5
 //
-//	08/23/02 Replaced Plugin API 672 with 681.  Made modifications for 
+//	08/23/02 Replaced Plugin API 672 with 681.  Made modifications for
 //						compatibility with 4D 6.5 (Win32API release version 3.5)
-//	09/04/02 Corrected version flag in 4DPluginAPI.c.  Added sys_IsAppLoaded for 
+//	09/04/02 Corrected version flag in 4DPluginAPI.c.  Added sys_IsAppLoaded for
 //						version release 3.5.1
 //
 //	IMPORTANT: The 4DPluginAPI.c code has been modified to be backwards compatible with pre 6.7
 //	IMPORTANT		4D.  Only functions that necaessry for the Win32API plugin have been modified.
 //	IMPORTANT		Other functions may require modification if used in Win32API.
-//	IMPORTANT		If compatibility with pre-6.7 4D is required, DO NOT replace 4DPluginAPI.c 
-//	IMPORTANT		without first comparing and copying code modifications from the modified 672. 
-
+//	IMPORTANT		If compatibility with pre-6.7 4D is required, DO NOT replace 4DPluginAPI.c
+//	IMPORTANT		without first comparing and copying code modifications from the modified 672.
 
 #include "4DPluginAPI.h"
 #include "4DPlugin.h"
@@ -30,7 +29,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <commdlg.h>
-#include <commctrl.h> 
+#include <commctrl.h>
 #include <rpc.h>
 #include <IphlpApi.h> //req'd for sys_GetRoutes
 #include <time.h> // req'd for sys_GetOCTOffset
@@ -39,7 +38,7 @@
 #include "PrivateTypes.h"
 #include "EntryPoints.h"
 // WJF 9/14/15 #43727 No longer needed
-//#include "EZTWAIN.h" // REB 6/23/09 #14151 
+//#include "EZTWAIN.h" // REB 6/23/09 #14151
 //#include "TWAIN.h" // REB 6/23/09 #14151
 #include "utilities.h" // REB 3/28/11 #25290
 #include "process.h" // REB 2/25/13 #35165
@@ -51,8 +50,8 @@ pLL			startOfList = NULL; // unordered linked list for restictWindow
 HANDLE		hSubclassMutex;  // MJG 3/26/04
 BOOL		g_FolderSelected;  // MJG 6/15/05
 char		pathName[512]; // MWD 10/21/05 #9246 holds path to Win32API.4DX
-LPCWSTR		KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
-LPCWSTR		VAL_DisableTaskMgr = "DisableTaskMgr";
+LPCSTR		KEY_DisableTaskMgr = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System"; // WJF 6/24/16 Win-21 LPCWSTR -> LPCSTR
+LPCSTR		VAL_DisableTaskMgr = "DisableTaskMgr"; // WJF 6/24/16 Win-21 LPCWSTR -> LPCSTR
 LONG_PTR	windowStyle = 0; // REB 3/11/10 #23109 To hold the default window style.
 
 struct		HOOKHANDLES
@@ -121,31 +120,26 @@ typedef struct _REG_TZI_FORMAT
 	SYSTEMTIME DaylightDate;
 } REG_TZI_FORMAT;
 
-
-
-
-
 extern struct		TOOLBARRESTRICT
 {
-	LONG_PTR		toolBarOnDeck;
-	LONG_PTR		top;
-	LONG_PTR		left;
-	LONG_PTR		right;
-	LONG_PTR		bottom;
-	INT_PTR			topProcessNbr;
-	INT_PTR			leftProcessNbr;
-	INT_PTR			rightProcessNbr;
-	INT_PTR			bottomProcessNbr;
-	LONG_PTR		trackingRestriction;
+	LONG			toolBarOnDeck; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG			top; // WJF 6/24/16 Win-21 LONG_PTR -> LONG
+	LONG			left; // WJF 6/24/16 Win-21 LONG_PTR -> LONG
+	LONG			right; // WJF 6/24/16 Win-21 LONG_PTR -> LONG
+	LONG			bottom; // WJF 6/24/16 Win-21 LONG_PTR -> LONG
+	LONG			topProcessNbr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG			leftProcessNbr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG			rightProcessNbr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG			bottomProcessNbr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG			trackingRestriction; // WJF 6/24/16 Win-21 LONG_PTR -> LONG
 	LONG_PTR		appBeingMaxed;
 	LONG_PTR		appWindowState;
 	RECT		origWindowRect;
-	LONG_PTR		clientOffsetx;
-	LONG_PTR		clientOffsety;
-	char		minimizedWindows[SMLBUF][SMLBUF]; // REB 8/11/08 #16207 
+	LONG		clientOffsetx; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG		clientOffsety;  // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	char		minimizedWindows[SMLBUF][SMLBUF]; // REB 8/11/08 #16207
 	RECT		previousWindowRect; // REB 3/26/10
 } toolBarRestrictions;
-
 
 // REB 2/26/13 #35165 Structure to communicate with the helper thread
 typedef struct	_TWAIN_CAPTURE
@@ -159,9 +153,148 @@ typedef struct	_TWAIN_CAPTURE
 	BOOL		wiaMode; // WJF 9/21/15 #43940 True to get/acquire WIA
 	BOOL		getMultiple; // WJF 9/21/15 #43940 True to acquire multiple images at once
 	long		numPictures; // WJF 9/21/15 #43940 Number of pictures returned
-	
 } TWAIN_CAPTURE;
 
+// WJF 7/11/16 Win-20 Hold all the command names for logging
+const char * const win32Commands[] = {
+	"gui_GetWindow",
+	"gui_GetWndRect",
+	"gui_SetWndRect",
+	"gui_ShowWindow",
+	"sys_GetUserName",
+	"gui_SetWindowTitle",
+	"sys_IsMultiByte",
+	"gui_DisableCloseBox",
+	"gui_SetWindowLong",
+	"gui_FlashWindow",
+	"gui_WinHelp",
+	"sys_GetDefPrinter",
+	"sys_SetDefPrinter",
+	"sys_EnumPrinters",
+	"gui_DelMenuItem",
+	"gui_GetOpenFileName",
+	"gui_GetSaveFileName",
+	"gui_LoadIcon",
+	"gui_SetIcon",
+	"gui_GetWindowFrom4DWin",
+	"sys_GetRegionSettings",
+	"sys_GetTimeZone",
+	"sys_GetUTCOffset",
+	"gui_GetDisplayFontDPI",
+	"sys_GetOneRegionSetting",
+	"sys_GetPrintJob",
+	"sys_GetGUID",
+	"sys_GetRoutes",
+	"sys_GetNetworkInfo",
+	"sys_GetOSVersion",
+	"sys_PlayWav",
+	"sys_GetWindowMetrics",
+	"gui_LoadBackground",
+	"sys_SetClientTime",
+	"sys_SetClientDate",
+	"gui_ToolTipCreate",
+	"gui_ToolTipShowOnObject",
+	"gui_ToolTipShowOnCoord",
+	"gui_ToolTipHide",
+	"gui_ToolTipDestroyControl",
+	"gui_SetTrayIcon",
+	"sys_FileCheck",
+	"sys_GetCommandLine",
+	"gui_RestrictWindow",
+	"gui_GetWindowStyle",
+	"gui_GetWindowState",
+	"gui_SubClassInit",
+	"sys_ShellExecute",
+	"sys_IsAppLoaded",
+	"gui_SelectColor",
+	"gui_RespectToolbar",
+	"sys_IsConnectedToInternet",
+	"gui_GetSysColor",
+	"gui_SetSysColor",
+	"sys_GetEnv",
+	"sys_SetEnv",
+	"sys_GetRegText",
+	"sys_GetRegLongint",
+	"sys_GetRegArray",
+	"sys_GetRegBlob",
+	"sys_GetRegType",
+	"sys_GetRegEnum",
+	"sys_GetDocumentList",
+	"sys_SetPluginLanguage",
+	"gui_SetWindowStyle",
+	"sys_FileExists",
+	"sys_DirectoryExists",
+	"sys_PrintDirect2Driver",
+	"sys_KillProcessByName",
+	"sys_KillProcessByID",
+	"sys_EnumProcesses",
+	"sys_LogonUser",
+	"sys_GetTimeZoneList",
+	"TWAIN_GetSources",
+	"TWAIN_SetSource",
+	"TWAIN_AcquireImage",
+	"sys_IsAppFrontmost",
+	"gui_MessageBox",
+	"gui_SetMDIOpaque",
+	"gui_SetMDITransparent",
+	"gui_HideTaskBar",
+	"gui_ShowTaskBar",
+	"gui_HideTitleBar",
+	"gui_ShowTitleBar",
+	"gui_MaximizeMDI",
+	"gui_RestoreMDI",
+	"gui_MinimizeMDI",
+	"sys_DisableTaskManager",
+	"sys_EnableTaskManager",
+	"sys_SetRegText",
+	"sys_SetRegLongint",
+	"sys_SetRegArray",
+	"sys_SetRegBLOB",
+	"sys_IsAppRunningAsService",
+	"sys_CompareBLOBs",
+	"sys_GetFileVersionInfo",
+	"sys_DeleteRegKey",
+	"sys_DeleteRegValue",
+	"sys_SendRawPrinterData",
+	"sys_EncryptAES",
+	"sys_DecryptAES",
+	"gui_TakeScreenshot",
+	"gui_ServerUnloadBackground",
+	"sys_SetRegQWORD",
+	"gui_FreeHandle",
+	"gui_FreeAllHandles",
+	"gui_GetWindowEx",
+	"gui_GetWindowFrom4DWinEx",
+	"gui_SetForegroundWindow",
+	"gui_GetWndRectEx",
+	"gui_SetWndRectEx",
+	"gui_ShowWindowEx",
+	"gui_SetWindowTitleEx",
+	"gui_DisableCloseBoxEx",
+	"gui_SetWindowLongEx",
+	"gui_DelMenuItemEx",
+	"gui_LoadIconEx",
+	"gui_SetIconEx",
+	"gui_MessageBoxEx",
+	"gui_TakeScreenshotEx",
+	"gui_SetForegroundWindowEx",
+	"gui_GetWIndowStyleEx",
+	"gui_RestrictWindowEx",
+	"gui_GetWindowStateEx",
+	"gui_SetWindowStyleEx",
+	"gui_ToolTipCreateEx",
+	"gui_ToolTipShowOnObjectEx",
+	"gui_FlashWindowEx",
+	"gui_SetFocusEx",
+	"sys_EncryptFile",
+	"sys_DecryptFile",
+	"sys_HashText",
+	"sys_GetDiskFreeSpace",
+	"sys_ProcessStart",
+	"sys_LoggingStart",
+	"sys_LoggingStop",
+	"sys_IsWow64Process"
+};
 
 // MWD 10/21/05 #9246
 // Use the DllMain function to get the path to the calling DLL and store it in a global for further use.
@@ -182,38 +315,37 @@ extern "C" __declspec(dllexport) {
 #endif
 #endif
 
-
-void PluginMain(LONG_PTR selector, PA_PluginParameters params)
+// WJF 6/24/16 Win-21 LONG_PTR -> PA_LONG32
+void PluginMain(PA_long32 selector, PA_PluginParameters params)
 {
-
 	HWND				hWnd, NexthWnd;
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
-	char			WindowName[255];
-	char			szClassName[255];
+	char				WindowName[255];
+	char				szClassName[255];
 	char				szCommandID[128];
-	const char *		szCommandConst = "Command ID: ";
-	char				szSelector[128];
 
 	// WJF 6/17/16 Win-18
-	//if ((selector > 0) && (selector <= 200)) {
-	//	strcpy_s(szCommandID, 128, szCommandConst);
-	//	_itoa_s(selector, szSelector, 128, 10);
-	//	strcat_s(szCommandID, 128, szSelector);
-	//	strcat_s(szCommandID, 128, "\r\n");
-	//	writeLogFile(szCommandID);
-	//}
+	if ((selector > 0) && (selector < NUM_COMMANDS)) { // WJF 7/11/16 Win-20 200 -> NUM_COMMANDS, <= -> <
+		strcpy_s(szCommandID, 128, win32Commands[selector-1]); // WJF 7/11/16 Win-20 szCommandConst -> win32Commands[selector-1]
+		
+		// WJF 7/11/16 Win-20 Removed
+		//_itoa_s(selector, szSelector, 128, 10);
+		//strcat_s(szCommandID, 128, szSelector);
+		
+		strcat_s(szCommandID, 128, "\r\n");
+		writeLogFile(szCommandID);
+	}
 
 	switch (selector)
 	{
 		// --- Win32API Commands
-
-
 	case kInitPlugin:
 	case kServerInitPlugin:
-#ifdef _WIN64 // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
-	case k64Init: 
-#endif
+		// WJF 6/24/16 Win-21 No longer needed
+		//#ifdef _WIN64 // WJF 9/1/15 #43731/#43732 64-bit was returning a value not defined in the API
+		//	case k64Init:
+		//#endif
 		// get MDI & parent window on init 4/15/02
 		// REB 2/20/09 #19122 Use new method to get handles.  PA_GetHWND(0) does not work in v11 like it did in previous version.
 		// REB 3/24/10 It appears that PA_GetHWND(0) works again, at least in Win7, but I'm leaving this change in place.
@@ -236,7 +368,6 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		}
 
 		w = GetWindow(w, GW_HWNDNEXT);
-
 		} while (w);
 
 		windowHandles.MDIs_4DhWnd = w;
@@ -258,16 +389,13 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 				GetWindowText(NexthWnd, WindowName, 255);
 				GetClassName(NexthWnd, szClassName, 255);
 				if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
-					//windowHandles.MDIs_4DhWnd =  NexthWnd; // AMS 8/12/14 #39693 This was not the correct handle to use for the MDI Client. It was causing toolbars to work incorrectly.  
+					//windowHandles.MDIs_4DhWnd =  NexthWnd; // AMS 8/12/14 #39693 This was not the correct handle to use for the MDI Client. It was causing toolbars to work incorrectly.
 					windowHandles.MDIhWnd = NexthWnd; // AMS 8/12/14 #39693 This is the correct handle for the MDI Client.
 					break;
 				}
 				NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
 			}
 		} while (IsWindow(NexthWnd));
-
-
-
 
 		//windowHandles.fourDhWnd = GetMainWindow();
 		//windowHandles.MDIhWnd = GetMDIClientWindow();
@@ -278,10 +406,10 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		hSubclassMutex = CreateMutex(NULL, FALSE, "Win32APIMutexToProtect4DProc");  // MJG 3/26/04
 
 		handleArray_init(); // WJF 9/1/15 #43731
-	
+
 		twainSource = NULL; // WJF 9/11/15 #43727
 
-		//openLogFile(); // WJF 6/17/16 Win-18
+		// openLogFile(); // WJF 6/17/16 Win-18 // WJF 7/8/16 Win-20 This is now controlled programmatically
 
 		break;
 
@@ -303,7 +431,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		//gui_ShowTitleBar( params );
 		//gui_SetMDIOpaque( params );
 
-		//closeLogFile(); // WJF 6/17/16 Win-18
+		// closeLogFile(); // WJF 6/17/16 Win-18 // WJF 7/8/16 Win-20 This is now controlled programmatically
 
 		break;
 
@@ -311,7 +439,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		//Blk4D.fHandle = NULL;  OBSOLETE
 		//Call4D (EX_GET_HWND, &Blk4D);
 		//hWnd = (HWND)Blk4D.fHandle;
-		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
 		if (!(IsWindow(hWnd))){
 			// Always get the frontmost window in this way.
 			//Unistring = PA_GetApplicationFullPath();
@@ -340,7 +468,6 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 						NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
 					}
 				} while (IsWindow(NexthWnd));
-
 			}
 			hWnd = windowHandles.MDIs_4DhWnd;
 		}//else{
@@ -596,7 +723,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 65:
-		gui_SetWindowStyle(params);
+		gui_SetWindowStyle(params, FALSE);
 		break;
 
 	case 66:
@@ -761,9 +888,8 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 107: // WJF 9/15/15 #43731
-		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
 		if (!(IsWindow(hWnd))){
-
 			if (!(IsWindow(windowHandles.MDIs_4DhWnd))){
 				Unistring = PA_GetApplicationFullPath();
 				pathName = UnistringToCString(&Unistring);
@@ -771,7 +897,7 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 				*charPos = 0;
 				windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 
-				free(pathName); 
+				free(pathName);
 
 				NexthWnd = GetWindow(windowHandles.fourDhWnd, GW_CHILD);
 				do {
@@ -785,7 +911,6 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 						NexthWnd = GetNextWindow(NexthWnd, GW_HWNDNEXT);
 					}
 				} while (IsWindow(NexthWnd));
-
 			}
 			hWnd = windowHandles.MDIs_4DhWnd;
 		}
@@ -905,45 +1030,49 @@ void PluginMain(LONG_PTR selector, PA_PluginParameters params)
 		break;
 
 	case 135:
-		sys_IsWow64Process(params); // WJF 7/22/16 Win-26
+		sys_LoggingStart(params); // WJF 7/8/16 Win-20
 		break;
 
-	}
+	case 136:
+		sys_LoggingStop(params); // WJF 7/8/16 Win-20
+		break;
 
+	case 137:
+		sys_IsWow64Process(params); // WJF 7/22/16 Win-26
+		break;
+	}
 }
 
 // ------------------------------- Win32API Commands ------------------------------
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_EnumPrinters( PA_PluginParameters params )
 //
 //  PURPOSE:	Find all printers that a workstation has available
 //
 //  COMMENTS:	Code modified from a method written by Tomas Restrepo.
 //						 http://www.mvps.org/windev/ptk/enumprint.html
-//						This module is also called by GetPrintJob.       
+//						This module is also called by GetPrintJob.
 //						Gets local and remote printers
 //						Returns info in a format suitable for using to set default printer
 //
-//	MODIFICATIONS: 04/20/02 added optional second param from 4D to 
-//									select what is returned, i.e., 
-//									0 = complete string based upon OpenPrinter and GetPrinter functions 
-//									1 = printer names only (not suitable for using with sys_SetDefPrinter. 
-//									2 = printer string built from registry entries for NT/2000/XP and 
+//	MODIFICATIONS: 04/20/02 added optional second param from 4D to
+//									select what is returned, i.e.,
+//									0 = complete string based upon OpenPrinter and GetPrinter functions
+//									1 = printer names only (not suitable for using with sys_SetDefPrinter.
+//									2 = printer string built from registry entries for NT/2000/XP and
 //											from Win.ini file for 95/98/Me
 //					08/11/09	Removed logic that checks for versions of Windows before 2000.
 //
-//	DATE:			dcc 07/03/01 
-// 
+//	DATE:			dcc 07/03/01
+//
 void sys_EnumPrinters(PA_PluginParameters params)
 {
 	PA_Variable				printerArray;
-	LONG_PTR					returnValue = 0, action = 0, defPrinterPosition, lSize = 0;
+	LONG					returnValue = 0, action = 0, lSize = 0, defPrinterPosition = 0; // WJF 6/29/16 Win-21 LONG_PTR -> LONG
 	DWORD					dwSizeNeeded, cByteNeeded, cByteUsed;
-	DWORD					dwNumItems, dwTotalNumPrinters, dwRemoteNumItems = 0;
+	DWORD					dwNumItems, dwTotalNumPrinters;
 	DWORD					dwItem;
 	LPPRINTER_INFO_1		lpInfo1 = NULL;
 	LPPRINTER_INFO_2		lpInfo2 = NULL;
@@ -1051,11 +1180,11 @@ void sys_EnumPrinters(PA_PluginParameters params)
 	dwTotalNumPrinters += dwRemoteNumItems;
 	}
 	*/
-	//PA_ResizeArray (&printerArray, dwTotalNumPrinters); 
+	//PA_ResizeArray (&printerArray, dwTotalNumPrinters);
 	//sprintf(debugStr,"Number of elements: %d",PA_GetArrayNbElements (printerArray));
 	//MessageBox(NULL,debugStr,"Debugging",MB_OK);
 
-	// get complete info on each printer	
+	// get complete info on each printer
 
 	ptrDef.pDatatype = NULL;
 	ptrDef.pDevMode = NULL;
@@ -1081,7 +1210,7 @@ void sys_EnumPrinters(PA_PluginParameters params)
 
 		if (bPrinterSuccess){
 			if (!bNamesOnly) {
-				// Get the buffer size needed 
+				// Get the buffer size needed
 				if (!GetPrinter(hPrinter, 2, NULL, 0, &cByteNeeded))
 				{
 					if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
@@ -1091,18 +1220,18 @@ void sys_EnumPrinters(PA_PluginParameters params)
 					}
 				}
 
-				lpInfo2 = (PRINTER_INFO_2 *)malloc(cByteNeeded);
+				lpInfo2 = malloc(cByteNeeded); // WJF 7/13/16 Win-21 Removed typecasting per C best practices
 				if (!(lpInfo2)) {
-					// failure to allocate memory 
+					// failure to allocate memory
 					returnValue = 0;
 					bPrinterSuccess = ClosePrinter(hPrinter);
 					return;
 				}
 
-				// get the printer info 
-				if (!GetPrinter(hPrinter, 2, (LPSTR)lpInfo2, cByteNeeded, &cByteUsed))
+				// get the printer info
+				if (!GetPrinter(hPrinter, 2, (LPBYTE)lpInfo2, cByteNeeded, &cByteUsed)) // WJF 6/24/16 Win-21 Casting to LPBYTE
 				{
-					// failure to access the printer 
+					// failure to access the printer
 					free(lpInfo2);
 					lpInfo2 = NULL;
 					returnValue = 0;
@@ -1121,7 +1250,6 @@ void sys_EnumPrinters(PA_PluginParameters params)
 			}
 
 			bPrinterSuccess = ClosePrinter(hPrinter); // REB 10/29/09 #21643 This was not getting closed.
-
 		}
 		else {
 			strcpy(printer_driver_port, printerName); // chg made to populate array with name if add'l info can't be retrieved
@@ -1156,38 +1284,37 @@ void sys_EnumPrinters(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetPrintJob( PA_PluginParameters params)
 //
 //  PURPOSE:	Primarily to get what printer was selected for printing
 //
-//  COMMENTS:	
+//  COMMENTS:
 //	IMPORTANT	NOTE: This an gui_SetTrayIcon use the same subclassed window procedure.
 //									You cannot arbitrarily delete the function newProc
 //									without breaking tray icons.
-//        
-//	DATE:			dcc 10/23/01 
+//
+//	DATE:			dcc 10/23/01
 //
 //	MODIFICATIONS: Rewritten 10/23/01 to improve reliability.  Previous use
-//						of spooler had several inadequacies depending on 
+//						of spooler had several inadequacies depending on
 //						local, network printers, or print servers.
-//						04/15/02 fixed problem when called from dialog box code rather than a form window 
+//						04/15/02 fixed problem when called from dialog box code rather than a form window
 //						11/25/02 fixed problem when Print dialog cancelled and then function called a second time (3.5.3)
+// WJF 6/30/16 Win-21 Initialized variables
 void sys_GetPrintJob(PA_PluginParameters params)
 {
-
-	LONG_PTR							ret, length;
-	LONG_PTR							returnValue = 0, count = 0;
-	HANDLE								prntHndle;
+	DWORD								ret = 0;
+	LONG								returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	HANDLE								prntHndle = 0;
 	PA_Variable				        	printer;
-	char								windowTitle[] = "", printerName[255], executeCommand[255];
-	char								*pComma;
+	char								printerName[255], executeCommand[255];
+	char								*pComma = NULL;
 	char								returnString[20];
-	LONG_PTR							printerName_len = 255, execCommand_len = 255;
+	DWORD								printerName_len = 255, execCommand_len = 255; // WJF 6/30/16 Win-21 LONG_PTR -> DWORD
 	PA_Unistring						Unistring;
-	DWORD								bytesRequired;
+	DWORD								bytesRequired = 0;
 	LPDEVMODE							pDevMode;
 
 	activeCalls.bPrinterCapture = TRUE;
@@ -1197,15 +1324,15 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	processHandles.wpPrintDlgOrigProc = NULL; // 08/08/02
 	processHandles.wpPrintSettingsDlgOrigProc = NULL; // 08/08/02
 
-	execCommand_len = PA_GetTextParameter(params, 2, executeCommand);
+	execCommand_len = (DWORD)PA_GetTextParameter(params, 2, executeCommand); // WJF 6/30/16 Win-19 Cast to DWORD
 	executeCommand[execCommand_len] = '\0';
 	if (execCommand_len == 0) { // the default is Print Settings
 		strcpy(executeCommand, "Print Settings");
-		execCommand_len = strlen(executeCommand);
+		execCommand_len = (DWORD)strlen(executeCommand); // WJF 6/30/16 Win-19 Cast to DWORD
 	}
 
 	//if ((activeCalls.bTrayIcons == FALSE) && (processHandles.wpFourDOrigProc == NULL)) { // same subclassed procedure used for trayIcons
-	//	processHandles.wpFourDOrigProc = (WNDPROC) SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) newProc);	
+	//	processHandles.wpFourDOrigProc = (WNDPROC) SetWindowLong(windowHandles.fourDhWnd, GWL_WNDPROC, (LONG) newProc);
 	//}
 
 	subclass4DWindowProcess(); // MJG 3/26/04 Replaced code above with function call.
@@ -1213,7 +1340,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_SEARCH;
 
 	// REB 4/20/11 #27322 Conver the C string to a Unistring
-	Unistring = CStringToUnistring(&executeCommand);
+	Unistring = CStringToUnistring(executeCommand); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 	PA_ExecuteMethod(&Unistring);
 
 	PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
@@ -1232,48 +1359,48 @@ void sys_GetPrintJob(PA_PluginParameters params)
 			strlen(printerSettings.printerSelection));
 		returnValue = 1;
 
-        // WJF 8/11/15 #43416 Reverted changes as crashes were occurring for certain users
+		// WJF 8/11/15 #43416 Reverted changes as crashes were occurring for certain users
 		/*	// WJF 4/7/15 # 41184 Fill other members with info from the DevMode and PRINTER_INFO_2 structs
 		if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
-			bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
-			pDevMode = (LPDEVMODE)malloc(bytesRequired);
-			DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
-			PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
-			// Store the orientation
-			if (pDevMode->dmOrientation = DMORIENT_PORTRAIT){
-				PA_SetTextInArray(printer, 5, "Portrait", strlen("Portrait"));
-			}
-			else {
-				PA_SetTextInArray(printer, 5, "Landscape", strlen("Landscape"));
-			}
-
-			GetPrinter(prntHndle, 2, 0, 0, &size); // Determine size required for printerInfo 
-			pPrinterInfo = (PRINTER_INFO_2*)malloc(size);
-			GetPrinter(prntHndle, 2, (LPBYTE)pPrinterInfo, size, &size); // Get printerInfo (printerport)
-			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINNAMES, bins, NULL); // Get all tray names
-			size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINS, binNums, NULL); // Get all tray numbers
-			for (int i = 0; i<size; i++) {
-				if (binNums[i] == pDevMode->dmDefaultSource){
-					index = i; // Find the index of the default tray since there is no way to determine selected tray
-					i = size + 1;
-				}
-			}
-
-			PA_SetTextInArray(printer, 3, bins[index],
-				strlen(bins[index])); // Set to default bin
-
-			// Cleanup
-			free(pDevMode);
-			free(pPrinterInfo);
-			ClosePrinter(prntHndle);
+		bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
+		pDevMode = (LPDEVMODE)malloc(bytesRequired);
+		DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
+		PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
+		// Store the orientation
+		if (pDevMode->dmOrientation = DMORIENT_PORTRAIT){
+		PA_SetTextInArray(printer, 5, "Portrait", strlen("Portrait"));
 		}
 		else {
-			PA_SetTextInArray(printer, 2, emptyString,
-				strlen(emptyString));
-			PA_SetTextInArray(printer, 3, emptyString,
-				strlen(emptyString));
-			PA_SetTextInArray(printer, 5, emptyString,
-				strlen(emptyString));
+		PA_SetTextInArray(printer, 5, "Landscape", strlen("Landscape"));
+		}
+
+		GetPrinter(prntHndle, 2, 0, 0, &size); // Determine size required for printerInfo
+		pPrinterInfo = (PRINTER_INFO_2*)malloc(size);
+		GetPrinter(prntHndle, 2, (LPBYTE)pPrinterInfo, size, &size); // Get printerInfo (printerport)
+		size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINNAMES, bins, NULL); // Get all tray names
+		size = DeviceCapabilities(&printerSettings.printerSelection, pPrinterInfo->pPortName, DC_BINS, binNums, NULL); // Get all tray numbers
+		for (int i = 0; i<size; i++) {
+		if (binNums[i] == pDevMode->dmDefaultSource){
+		index = i; // Find the index of the default tray since there is no way to determine selected tray
+		i = size + 1;
+		}
+		}
+
+		PA_SetTextInArray(printer, 3, bins[index],
+		strlen(bins[index])); // Set to default bin
+
+		// Cleanup
+		free(pDevMode);
+		free(pPrinterInfo);
+		ClosePrinter(prntHndle);
+		}
+		else {
+		PA_SetTextInArray(printer, 2, emptyString,
+		strlen(emptyString));
+		PA_SetTextInArray(printer, 3, emptyString,
+		strlen(emptyString));
+		PA_SetTextInArray(printer, 5, emptyString,
+		strlen(emptyString));
 		}
 		PA_SetTextInArray(printer, 4, "1", strlen("1"));  // Assume 1 copy
 		PA_SetTextInArray(printer, 6, emptyString, strlen(emptyString));
@@ -1281,18 +1408,17 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		returnValue = 1; */
 	}
 	else {
-
 		PA_ResizeArray(&printer, 10);
 
 		PA_SetTextInArray(printer, 1, printerSettings.printerSelection,
 			strlen(printerSettings.printerSelection));
 		// WJF 4/6/15 #40697 If printerSettings.size is empty, we need to find the information another way (Happens when passed "PRINT SETTINGS(2)"
 		if (strcmp(printerSettings.size, "") == 0) {
-			if (OpenPrinter(&printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle
-				bytesRequired = DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct
-				pDevMode = (LPDEVMODE)malloc(bytesRequired);
-				DocumentProperties(NULL, prntHndle, &printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct
-				PA_SetTextInArray(printer, 2, pDevMode->dmFormName, strlen(pDevMode->dmFormName)); // Store paper size (Letter, A4, etc)
+			if (OpenPrinter(printerSettings.printerSelection, &prntHndle, NULL) == TRUE) { // Get the printer handle // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
+				bytesRequired = DocumentProperties(NULL, prntHndle, printerSettings.printerSelection, NULL, NULL, 0); // Get size required for DevMode struct // WJF 6/24/16 Win-21 Removed unneccessary addressof operator
+				pDevMode = malloc(bytesRequired); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
+				DocumentProperties(NULL, prntHndle, printerSettings.printerSelection, pDevMode, NULL, DM_OUT_BUFFER); // Get DevMode struct // WJF 6/24/16 Win-21 Removed unneccessary addressof operator
+				PA_SetTextInArray(printer, 2, (char *)pDevMode->dmFormName, strlen((char *)pDevMode->dmFormName)); // Store paper size (Letter, A4, etc) // WJF 6/24/16 Win-21 Casting to char *
 
 				// Cleanup
 				free(pDevMode);
@@ -1334,7 +1460,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		}
 		PA_SetTextInArray(printer, 7, returnString, strlen(returnString));
 
-		returnValue = strlen(printerSettings.printerSelection);
+		returnValue = (LONG)strlen(printerSettings.printerSelection); // WJF 6/30/16 Win-21 Cast to LONG
 	}
 
 	// restoreOrig4DWindowProcess(); // 01//21/03  // MJG 3/26/04 The 4D window will remain subclassed until the plug-in is unloaded.
@@ -1361,36 +1487,33 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	strcpy(printerSettings.printerSelection, "");
 	PA_SetVariableParameter(params, 1, printer, 0);
 	PA_ReturnLong(params, returnValue);
-
 }
 
-
-// 
+//
 //  FUNCTION: sys_GetNetworkInfo( PA_PluginParameters params )
 //
-//  PURPOSE:	Returns network info 
+//  PURPOSE:	Returns network info
 //
 //  COMMENTS:	Only availabel in Windows 98 and Win2K and later
 //						NOT NT 3.51 or NT 4
 //
-//	DATE:			dcc 08/09/01 
+//	DATE:			dcc 08/09/01
 //
 //  MODIFICATIONS:  04/10/02 made function call into pointer to
 //						avoid problems with Win95/NT that may not have IphlpAPI.dll installed.
 //						4D cannot resolve this when a direct reference and dll is missing
-// 
+//
 void	sys_GetNetworkInfo(PA_PluginParameters params)
 {
 	DWORD					dwFuncReturn;
-	LONG_PTR					returnValue = 0;
+	LONG					returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char					infoString[255];
-	LONG_PTR					infoString_len = strlen(infoString);
-	FIXED_INFO		*fixedInfo;
-	IP_ADDR_STRING	*pIPAddr;
+	LONG_PTR				infoString_len = strlen(infoString);
+	FIXED_INFO				*fixedInfo;
+	IP_ADDR_STRING			*pIPAddr;
 	ULONG					ulOutBufLen;
-	LPFNDLLFUNC2	lpfnDllFunc2;
-	HINSTANCE			hDLL;
-
+	LPFNDLLFUNC2			lpfnDllFunc2;
+	HINSTANCE				hDLL;
 
 	hDLL = LoadLibrary("IphlpAPI.dll");
 
@@ -1481,18 +1604,17 @@ void	sys_GetNetworkInfo(PA_PluginParameters params)
 		FreeLibrary(hDLL);
 	} //(hDLL != NULL)
 	PA_ReturnLong(params, returnValue);
-
 }
 
-// 
+//
 //  FUNCTION: sys_GetRoutes( PA_PluginParameters params )
 //
-//  PURPOSE:	Return IP Route Info 
+//  PURPOSE:	Return IP Route Info
 //
-//  COMMENTS:	
-//						
-//	DATE:			dcc 08/08/01 
-// 
+//  COMMENTS:
+//
+//	DATE:			dcc 08/08/01
+//
 //  MODIFICATIONS:  04/10/02 made function call into pointer to
 //						avoid problems with Win95/NT that may not have IphlpAPI.dll installed.
 //						4D cannot resolve this when a direct reference and dll is missing
@@ -1501,20 +1623,16 @@ void	sys_GetNetworkInfo(PA_PluginParameters params)
 void	sys_GetRoutes(PA_PluginParameters params)
 {
 	DWORD					dwFuncReturn;
-	LONG_PTR					returnValue = 0, i, tableEntries;
+	LONG					returnValue = 0, i, tableEntries; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	PA_Variable		table;
 	char					routeString[255], numToString[25];
-	LONG_PTR					routeString_Len = strlen(routeString);
 	ULONG					buffer_len = 0;
 	MIB_IPFORWARDTABLE		rtTable;
 	PMIB_IPFORWARDTABLE		pTable = &rtTable;
-	MIB_IPFORWARDROW			ipRow;
-	PMIB_IPFORWARDROW			pRow = &ipRow;
 	BOOL					bOrder = FALSE;
 	PULONG				pSize = &buffer_len;
 	LPFNDLLFUNC3	lpfnDllFunc3;
 	HINSTANCE			hDLL;
-
 
 	hDLL = LoadLibrary("IphlpAPI.dll");
 
@@ -1527,7 +1645,7 @@ void	sys_GetRoutes(PA_PluginParameters params)
 			dwFuncReturn = lpfnDllFunc3(pTable, pSize, bOrder);
 
 			// allocate memory
-			pTable = (PMIB_IPFORWARDTABLE)malloc(*pSize);
+			pTable = malloc(*pSize); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 			if (pTable == NULL)
 			{
 				returnValue = 0;
@@ -1589,11 +1707,9 @@ void	sys_GetRoutes(PA_PluginParameters params)
 		FreeLibrary(hDLL);
 	} //(hDLL != NULL)
 	PA_ReturnLong(params, returnValue);
-
 }
 
-
-// 
+//
 //  FUNCTION: sys_GetGUID( PA_PluginParameters params )
 //
 //  PURPOSE:	Gets a UUID in string format
@@ -1601,15 +1717,16 @@ void	sys_GetRoutes(PA_PluginParameters params)
 //  COMMENTS:	Second string parameter contains text on UUID qualifier.
 //						 May be OK, Local Only, Error
 //
-//	DATE:			dcc 07/30/01 
-// 
+//	DATE:			dcc 07/30/01
+//
 void sys_GetGUID(PA_PluginParameters params)
 {
 	UUID				uGuid;
 	RPC_STATUS			rpc_status;
 	PUCHAR				cGuid;
 	char				guidString[MAXBUF];
-	LONG_PTR				guidString_len, guidStatus_len, returnValue;
+	LONG_PTR				guidString_len, guidStatus_len;
+	LONG				returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char				guidStatus[MAXBUF];
 
 	guidString_len = PA_GetTextParameter(params, 1, guidString);
@@ -1640,7 +1757,7 @@ void sys_GetGUID(PA_PluginParameters params)
 	}
 
 	rpc_status = UuidToString(&uGuid, &cGuid);
-	strncpy(guidString, cGuid, MAXBUF);
+	strncpy(guidString, (LPSTR)cGuid, MAXBUF); // WJF 6/24/16 Win-21 Casting to LPSTR
 	RpcStringFree(&cGuid);
 
 	guidString_len = strlen(guidString);
@@ -1649,13 +1766,11 @@ void sys_GetGUID(PA_PluginParameters params)
 	PA_SetTextParameter(params, 1, guidString, guidString_len);
 	PA_SetTextParameter(params, 2, guidStatus, guidStatus_len);
 
-
 	PA_ReturnLong(params, returnValue);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetWindow( PA_PluginParameters params, HWND hWnd )
 //
 //  PURPOSE:	Obtain Windows window handle for window with specific title
@@ -1686,7 +1801,6 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		windowHandle = (LONG_PTR)hWnd;
-
 	}
 	else {
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
@@ -1713,18 +1827,21 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetWndRect( PA_PluginParameters params )
 //
 
 void gui_GetWndRect(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
-	LONG_PTR x;
-	LONG_PTR y;
-	LONG_PTR w;
-	LONG_PTR h;
-	LONG_PTR returnValue;
+
+	// WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG x;
+	LONG y;
+	LONG w;
+	LONG h;
+	LONG returnValue;
+
 	LONG_PTR mode;                            // MWD 1/12/07 #12852
 	HWND WindowhWnd;
 	HMONITOR hMon4D;
@@ -1739,14 +1856,13 @@ void gui_GetWndRect(PA_PluginParameters params, BOOL isEx)
 	mode = PA_GetLongParameter(params, 6);
 
 	if (isEx){ // WJF 9/16/15 #43731
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
 	}
 
 	if (IsWindow(WindowhWnd)) {
-
 		// Allowing a return to the original functionality
 		// As the new functionality broke at least one developer's code
 		if (mode == 1) {
@@ -1799,18 +1915,21 @@ void gui_GetWndRect(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_SetWndRect( PA_PluginParameters params )
 //
 
 void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
-	LONG_PTR x;
-	LONG_PTR y;
-	LONG_PTR w;
-	LONG_PTR h;
-	LONG_PTR returnValue, tbHeight, tbWidth, respectTB = 0;
+
+	// WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG x;
+	LONG y;
+	LONG w;
+	LONG h;
+	LONG returnValue, tbHeight, tbWidth, respectTB = 0;
+
 	HWND WindowhWnd, hWndTaskBar;
 	RECT taskBarCoords;
 
@@ -1822,7 +1941,7 @@ void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 	respectTB = PA_GetLongParameter(params, 6);
 
 	// REB 11/10/11 #28503 Prevent them from making the window so large that it
-	// hides the task bar.  I'm hesitant to change this because people may rely on 
+	// hides the task bar.  I'm hesitant to change this because people may rely on
 	// this command to work as is.
 	if (respectTB > 0){
 		hWndTaskBar = FindWindow("Shell_TrayWnd", NULL); // Get a handle to the taskbar.
@@ -1845,7 +1964,6 @@ void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 			else if (taskBarCoords.top == 0){ // Right
 				if ((x + w) > taskBarCoords.left)
 					w = taskBarCoords.left - x;
-
 			}
 			else { // Bottom
 				if ((y + h) > taskBarCoords.top)
@@ -1855,7 +1973,7 @@ void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 	}
 
 	if (isEx){ // WJF 9/16/15 #43731
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
@@ -1878,22 +1996,22 @@ void gui_SetWndRect(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_ShowWindow( PA_PluginParameters params )
 //
 
 void gui_ShowWindow(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
-	LONG_PTR showState;
-	LONG_PTR returnValue;
+	LONG showState; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND WindowhWnd;
 
 	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array
 	showState = PA_GetLongParameter(params, 2);
 
-	if (isEx){ // WJF 9/16/15 #43731 
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
@@ -1912,7 +2030,7 @@ void gui_ShowWindow(PA_PluginParameters params, BOOL isEx)
 				SendMessage(WindowhWnd, WM_SYSCOMMAND, SC_RESTORE, 0L);
 				break;
 			case SW_MINIMIZE:
-				SendMessage(WindowhWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0L); // REB 3/29/10 #22878 
+				SendMessage(WindowhWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0L); // REB 3/29/10 #22878
 				break;
 			default:
 				ShowWindowAsync(WindowhWnd, showState);
@@ -1932,17 +2050,17 @@ void gui_ShowWindow(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetUserName( PA_PluginParameters params )
 //
 
 void sys_GetUserName(PA_PluginParameters params)
 {
-	LONG_PTR userName_len;
+	DWORD userName_len; // WJF 6/24/16 Win-21 LONG_PTR -> DWORD
 	char userName[255];
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
-	userName_len = PA_GetTextParameter(params, 1, userName);
+	userName_len = (DWORD)PA_GetTextParameter(params, 1, userName); // WJF 6/30/16 Win-21 Cast to DWORD
 	userName[userName_len] = '\0';  // Explicitly set the length
 
 	userName_len = 255;  // This holds the maximum size of userName variable
@@ -1957,14 +2075,14 @@ void sys_GetUserName(PA_PluginParameters params)
 
 	// At this point, the user name field is either empty or filled
 	// with a valid value.  Return this value to the user in either case.
-	userName_len = strlen(userName);
+	userName_len = (DWORD)strlen(userName); // WJF 6/30/16 Win-21 Cast to DWORD
 	PA_SetTextParameter(params, 1, userName, userName_len);
 
 	PA_ReturnLong(params, returnValue);
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_SetWindowTitle( PA_PluginParameters params )
 //
 
@@ -1973,15 +2091,15 @@ void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx)
 	LONG_PTR hWndIndex;
 	LONG_PTR windowTitle_len;
 	char windowTitle[255];
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND WindowhWnd;
 
 	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	windowTitle_len = PA_GetTextParameter(params, 2, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
 
-	if (isEx){ // WJF 9/16/15 #43731 
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+	if (isEx){ // WJF 9/16/15 #43731
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
@@ -1999,7 +2117,7 @@ void gui_SetWindowTitle(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_IsMultiByte( PA_PluginParameters params )
 //
 
@@ -2007,7 +2125,7 @@ void sys_IsMultiByte(PA_PluginParameters params)
 {
 	LONG_PTR byte_len;
 	char byte[255];
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	byte_len = PA_GetTextParameter(params, 1, byte);
 
@@ -2017,7 +2135,7 @@ void sys_IsMultiByte(PA_PluginParameters params)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_DisableCloseBox( PA_PluginParameters params )
 //
 //
@@ -2027,7 +2145,7 @@ void sys_IsMultiByte(PA_PluginParameters params)
 void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR			hWndIndex;
-	LONG_PTR			returnValue;
+	LONG				returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND				WindowhWnd;
 	HMENU				hSysMenu;
 	BOOL				bUndo = FALSE;
@@ -2039,7 +2157,7 @@ void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx)
 	}
 
 	if (isEx){ // WJF 9/16/15 #43731 Added Ex version to use internal handle Array
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
@@ -2063,7 +2181,7 @@ void gui_DisableCloseBox(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_SetWindowLong( PA_PluginParameters params )
 //
 //  PURPOSE:  Multipurpose function to set window styles etc
@@ -2075,7 +2193,7 @@ void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx)
 	LONG_PTR s;
 	LONG_PTR mode;
 	LONG_PTR level;
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND WindowhWnd;
 	LONG style;
 
@@ -2085,14 +2203,13 @@ void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx)
 	level = PA_GetLongParameter(params, 4);
 
 	if (isEx){ // WJF 9/16/15 #43731
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
 	}
 
 	if (IsWindow(WindowhWnd)) {
-
 		if (level == 0)
 			style = GetWindowLong(WindowhWnd, GWL_STYLE);
 		else
@@ -2121,7 +2238,7 @@ void gui_SetWindowLong(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_WinHelp( PA_PluginParameters params )
 //
 void gui_WinHelp(PA_PluginParameters params)
@@ -2129,11 +2246,11 @@ void gui_WinHelp(PA_PluginParameters params)
 	LONG_PTR hWnd;
 	LONG_PTR fileName_len;
 	char fileName[255];
-	LONG_PTR helpCommand;
-	LONG_PTR helpData;
-	LONG_PTR returnValue;
+	UINT helpCommand; // WJF 6/30/16 Win-21 LONG_PTR -> UINT
+	ULONG_PTR helpData; // WJF 6/30/16 Win-21 LONG_PTR -> ULONG_PTR
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND WindowhWnd;
-	INT_PTR ret;
+	BOOL ret; // WJF 6/30/16 Win-21 INT_PTR -> BOOL
 
 	hWnd = PA_GetLongParameter(params, 1);
 	fileName_len = PA_GetTextParameter(params, 2, fileName);
@@ -2141,11 +2258,10 @@ void gui_WinHelp(PA_PluginParameters params)
 	helpCommand = PA_GetLongParameter(params, 3);
 	helpData = PA_GetLongParameter(params, 4);
 
-
 	WindowhWnd = (HWND)hWnd;
 	if (IsWindow(WindowhWnd)) {
 		ret = WinHelp(WindowhWnd, fileName, helpCommand, helpData);
-		returnValue = (LONG_PTR)ret;
+		returnValue = ret; // WJF 6/30/16 Win-21 Removed casting
 	}
 	else {
 		returnValue = 0;
@@ -2154,19 +2270,17 @@ void gui_WinHelp(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_DelMenuItem( PA_PluginParameters params )
 //
 
 void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR hWndIndex;
-	LONG_PTR menuNum;
-	LONG_PTR menuItem;
-	LONG_PTR returnValue;
+	LONG menuNum; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	UINT menuItem; // WJF 6/30/16 Win-21 LONG_PTR -> UINT
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HWND WindowhWnd;
 	HMENU hSubMenu, hMenu;
 
@@ -2175,9 +2289,9 @@ void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 	menuItem = PA_GetLongParameter(params, 3);
 
 	returnValue = 0;
-	
+
 	if (isEx){ // WJF 9/16/15 #43731 Added ex version to use internal handle array
-		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		WindowhWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		WindowhWnd = (HWND)hWndIndex;
@@ -2199,7 +2313,7 @@ void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetOpenFileName( PA_PluginParameters params )
 //
 //  PURPOSE:  display open file common dialog for selecting a file
@@ -2207,7 +2321,7 @@ void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 //  COMMENTS: several optins are allowed which hide various
 //						buttons or disable entry controls.
 //						Uses a hook procedure and a template for folder
-//						selection.       
+//						selection.
 //						Does not open file - only retieves name and path
 //	DATE:			07/27/01
 //
@@ -2227,9 +2341,9 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	LONG_PTR		fileNameSuggested_len;
 	LONG_PTR		fileNameFull_len;
 	char		fileNameFull[255];
-	LONG_PTR		returnValue;
+	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	OPENFILENAME ofn;
-	unsigned char fileOpenPattern[80];
+	char fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
 	LONG_PTR		mustExistOption = 0;
 	BOOL		bUnhookSuccess;
 	HWND		hWnd;
@@ -2251,7 +2365,7 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 		free(pathName); // WJF 6/9/15 #42792
 	}
 	else{
-		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
 	}
 	//hWnd = (HWND)PA_GetHWND(0);
 
@@ -2298,7 +2412,6 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	strcpy(fileNameShort, "");
 	strcpy(fileNameFull, "");
 
-
 	if ((FD_Flags & FD_HIDE_UP_BUTTON) | (FD_Flags & FD_DISABLE_EDIT_FIELD)
 		| (FD_Flags & FD_DISABLE_LOOKIN_FIELD) | (FD_Flags & FD_FILES_ONLY)
 		| (FD_Flags & FD_HIDE_TOOLBAR_BUTTONS) | (FD_Flags & FD_HIDE_NEWDIRECTORY_BUTTON)
@@ -2315,7 +2428,7 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	}
 
 	if (FD_Flags == FD_SELECT_DIRECTORY) {
-		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename 
+		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename
 		ofn.Flags = ofn.Flags | OFN_ENABLETEMPLATE;
 	}
 
@@ -2356,10 +2469,10 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetSaveFileName( PA_PluginParameters params )
 //
-//  PURPOSE: Save File Common Dialog -- for saving a file 
+//  PURPOSE: Save File Common Dialog -- for saving a file
 //
 //  COMMENTS:  see comments for OpenFileName
 //
@@ -2381,9 +2494,9 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	LONG_PTR		fileNameSuggested_len;
 	LONG_PTR		fileNameFull_len;
 	char		fileNameFull[255];
-	LONG_PTR		returnValue;
+	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	OPENFILENAME ofn;
-	unsigned char fileOpenPattern[80];
+	char fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
 	LONG_PTR		mustExistOption = 0;
 	BOOL		bUnhookSuccess;
 	HWND		hWnd;
@@ -2403,7 +2516,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 		free(pathName); // WJF 6/25/15 #42792
 	}
 	else{
-		hWnd = PA_GetHWND(NULL); // the current frontmost window
+		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
 	}
 	//hWnd = (HWND)	PA_GetHWND(0);
 
@@ -2466,7 +2579,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	}
 
 	if (FD_Flags == FD_SELECT_DIRECTORY) {
-		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename 
+		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename
 		ofn.Flags = ofn.Flags | OFN_ENABLETEMPLATE;
 	}
 
@@ -2505,7 +2618,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_LoadIcon( PA_PluginParameters params )
 //
 
@@ -2514,7 +2627,7 @@ void gui_LoadIcon(PA_PluginParameters params, BOOL isEx)
 	LONG_PTR iconName_len;
 	char iconName[255];  //complete path of icon file
 	LONG_PTR hIcon;
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HICON tmpIcon;
 	DWORD iconIndex = 0;
 
@@ -2541,31 +2654,31 @@ void gui_LoadIcon(PA_PluginParameters params, BOOL isEx)
 		PA_SetLongParameter(params, 2, iconIndex); 
 	}
 	else {
-		PA_SetLongParameter(params, 2, hIcon);
+		PA_SetLongParameter(params, 2, (LONG)hIcon); // WJF 6/30/16 Win-21 Cast to LONG
 	}
 
 	PA_ReturnLong(params, returnValue);
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_SetIcon( PA_PluginParameters params )
 //
 
 void gui_SetIcon(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR hWndIndex;
-	LONG_PTR hIconIndex;
-	LONG_PTR returnValue;
+	LONG hWndIndex; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG hIconIndex; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	LONG_PTR hIcon;
 	HWND WindowhWnd;
 
 	// WJF 9/1/15 #43731 We are now getting indexes to an internal array
-	hWndIndex = PA_GetLongParameter(params, 1); 
+	hWndIndex = PA_GetLongParameter(params, 1);
 	hIconIndex = PA_GetLongParameter(params, 2);
 
 	if (isEx){ // WJF 9/16/15 #43731
-		WindowhWnd = handleArray_retrieve(hWndIndex); 
+		WindowhWnd = handleArray_retrieve(hWndIndex);
 		hIcon = (LONG_PTR)handleArray_retrieve(hIconIndex);
 	}
 	else {
@@ -2574,11 +2687,9 @@ void gui_SetIcon(PA_PluginParameters params, BOOL isEx)
 	}
 
 	if ((IsWindow(WindowhWnd)) && (hIcon != 0)) {
-
 		// Tell the window to use this icon
 		SendMessage(WindowhWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)(HICON)hIcon);
 		returnValue = 1;
-
 	}
 	else {
 		returnValue = 0;
@@ -2588,14 +2699,14 @@ void gui_SetIcon(PA_PluginParameters params, BOOL isEx)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetWindowFrom4DWin( PA_PluginParameters params )
 //
 
 void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 {
 	LONG_PTR h4DWnd = 0;
-	LONG_PTR windowHandle = 0; 
+	LONG_PTR windowHandle = 0;
 	LONG_PTR serverValue = 0;
 	long returnValue = 0;
 
@@ -2608,7 +2719,7 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 	}
 	else
 	{
-		windowHandle = PA_GetHWND(h4DWnd);
+		windowHandle = PA_GetHWND((PA_WindowRef)h4DWnd); // WJF 6/21/16 Win-21 Casting to PA_WindowRef
 	}
 
 	returnValue = (long)windowHandle;
@@ -2616,9 +2727,8 @@ void gui_GetWindowFrom4DWin(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetRegionSettings( PA_PluginParameters params, BOOL arraySupplied )
 //
 //  PURPOSE:	Gets region-specifiuc settings such as decimal char, currency symbol etc
@@ -2642,11 +2752,11 @@ void sys_GetRegionSettings(PA_PluginParameters params, BOOL arraySupplied)
 		"Currency Decimal Symbol", "Currency Digits after Decimal",
 		"Currency Grouping Symbol", "List Separator"
 	};
-	LONG_PTR		returnValue, i, loopStop, gliReturnValue;  //gli = GetLocaleInfo
-	LONG_PTR		requestedSetting;
+	LONG		returnValue, i, loopStop, gliReturnValue;  //gli = GetLocaleInfo // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG		requestedSetting; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char		resultString[255];
 	char		sz[255];
-	INT_PTR			bufSize = 255, resultSize = 255;
+	INT			bufSize = 255; // WJF 6/30/16 Win-21 INT_PTR -> INT and removed resultSize
 
 	infoType[0] = LOCALE_SSHORTDATE;
 	infoType[1] = LOCALE_SLONGDATE;
@@ -2679,16 +2789,18 @@ void sys_GetRegionSettings(PA_PluginParameters params, BOOL arraySupplied)
 		requestedSetting = 0; // start at zero in loop below to get all into the array
 	}
 	else {
+		values = PA_CreateVariable(eVK_ArrayUnicode);
+		valueDescr = PA_CreateVariable(eVK_ArrayUnicode);
+
 		textParam_len = PA_GetTextParameter(params, 1, textParam);
 		loopStop = PA_GetLongParameter(params, 2);
 		requestedSetting = loopStop - 1;
 	}
 
-
 	for (i = requestedSetting; i < loopStop; i++)
 	{
 		strcpy(sz, resultString);
-		resultSize = strlen(sz);
+		// resultSize = strlen(sz); // WJF 6/30/16 Win-21 This wasn't used anywhere
 		gliReturnValue = GetLocaleInfo(LOCALE_USER_DEFAULT, infoType[i], sz, bufSize);
 		if (gliReturnValue = 0) {
 			strcpy(sz, "n/a"); // some keyNames may be there & some may not
@@ -2704,35 +2816,35 @@ void sys_GetRegionSettings(PA_PluginParameters params, BOOL arraySupplied)
 		} //(infoType[i] == LOCALE_IMEASURE)
 
 		if (arraySupplied) {
+#pragma warning(push, 0) // WJF 6/24/16 Win-21
 			PA_SetTextInArray(values, i + 1, sz, strlen(sz));
 			PA_SetTextInArray(valueDescr, i + 1, description[i], strlen(description[i]));
+#pragma warning(pop) // WJF 6/24/16 Win-21
 			returnValue = i + 1;
 		}
 		else {
 			PA_SetTextParameter(params, 1, sz, strlen(sz));
-			PA_ReturnLong(params, strlen(sz));  // return value string length
+			PA_ReturnLong(params, (LONG)strlen(sz));  // return value string length // WJF 6/30/16 Win-21 Cast to LONG
 			return;
 		} //(arraySupplied)
-
 	} //(i = requestedSetting; i < loopStop; i++)
 
 	PA_SetVariableParameter(params, 1, values, 0);
 	PA_SetVariableParameter(params, 2, valueDescr, 0);
 	PA_ReturnLong(params, returnValue);
-
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetTimeZone( PA_PluginParameters params )
 //
-//  PURPOSE:	Gets time zone setting of cmptr	
+//  PURPOSE:	Gets time zone setting of cmptr
 //
 //  COMMENTS: Requires two text strings and a LONG_PTR
 //						Returns name of standard time, name of daylight time, and
 //						flag if cmptr set to auto adjust for daylight savings changes.
 //
-//						IMPORTANT:  It is imperative that different name & size variables be 
+//						IMPORTANT:  It is imperative that different name & size variables be
 //												used for query on standard time and daylight time.
 //												The problem is in release configuration mode where the size
 //												returned from first use does not get reset properly (even
@@ -2749,8 +2861,8 @@ void sys_GetTimeZone(PA_PluginParameters params)
 	char		standardName[255];
 	LONG_PTR		daylightName_len;
 	char		daylightName[255];
-	LONG_PTR		autoDaylight = 0;
-	LONG_PTR		returnValue;
+	BOOL		autoDaylight = 0; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
+	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	TIME_ZONE_INFORMATION TimeZoneInformation; // REB 1/21/09 #19035
 
 	returnValue = 1;
@@ -2775,19 +2887,18 @@ void sys_GetTimeZone(PA_PluginParameters params)
 	PA_SetLongParameter(params, 3, autoDaylight);
 
 	PA_ReturnLong(params, returnValue);
-
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetUTCOffset ( PA_PluginParameters params )
 //
 //  REB 1/21/09 #19035 Updated to use GetTimeZoneInformation
 
 void sys_GetUTCOffset(PA_PluginParameters params)
 {
-	LONG_PTR					returnValue = 0;
-	LONG_PTR					bias = 0, weekNum = 0;
+	LONG						returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG						bias = 0, weekNum = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	//struct _timeb tstruct;
 	TIME_ZONE_INFORMATION TimeZoneInformation; // REB 1/21/09 #19035
@@ -2803,7 +2914,6 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 
 	// Calculate which occurance of the current day we are on.  Basically which week in the month we are on.
 	weekNum = ((SystemTime.wDay - 1) / 7) + 1; // Between 1 and 5
-
 
 	if (SystemTime.wMonth == TimeZoneInformation.StandardDate.wMonth){
 		// We are in the month when we change back to standard
@@ -2836,7 +2946,6 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 		else{
 			bias += TimeZoneInformation.DaylightBias;
 		};
-
 	}
 	else if (SystemTime.wMonth == TimeZoneInformation.DaylightDate.wMonth){
 		// We are in the month when we change back to standard
@@ -2869,7 +2978,6 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 		else{
 			bias += TimeZoneInformation.StandardBias;
 		};
-
 	}
 	else if (TimeZoneInformation.StandardDate.wMonth > TimeZoneInformation.DaylightDate.wMonth){
 		// The period of daylight savings time uccurs within a single year.
@@ -2879,10 +2987,9 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 		else{
 			bias += TimeZoneInformation.StandardBias;
 		};
-
 	}
 	else{
-		// The period of daylight savings time is split between 2 years (say, November to April). 
+		// The period of daylight savings time is split between 2 years (say, November to April).
 		if ((SystemTime.wMonth > TimeZoneInformation.DaylightDate.wMonth) || (SystemTime.wMonth < TimeZoneInformation.StandardDate.wMonth)){
 			bias += TimeZoneInformation.DaylightBias;
 		}
@@ -2890,7 +2997,6 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 			bias += TimeZoneInformation.StandardBias;
 		};
 	};
-
 
 	PA_SetLongParameter(params, 1, bias);
 
@@ -2909,20 +3015,19 @@ void sys_GetUTCOffset(PA_PluginParameters params)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: gui_GetDisplayFontDPI( PA_PluginParameters params)
 //
 //	DATE:			dcc 07/??/01  <-- Was the calendar broken that day?
 //
 void gui_GetDisplayFontDPI(PA_PluginParameters params)
 {
-	LONG_PTR		dpi = 0;
+	LONG		dpi = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char		subKey[100];
-	LONG_PTR		returnValue, errorCode;
+	LONG		returnValue, errorCode; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HKEY		hKey;
 	DWORD		dwWordType = REG_DWORD;
 	DWORD		dwWordSize = sizeof(DWORD);
-	DWORD		dwSZSize = 255;
 	DWORD		dwDPI;
 
 	returnValue = 0;
@@ -2935,7 +3040,7 @@ void gui_GetDisplayFontDPI(PA_PluginParameters params)
 		PA_ReturnLong(params, returnValue);
 		return;
 	}
-	errorCode = RegQueryValueEx(hKey, "LogPixels", NULL, &dwWordType, (PCHAR)&dwDPI, &dwWordSize);
+	errorCode = RegQueryValueEx(hKey, "LogPixels", NULL, &dwWordType, (LPBYTE)&dwDPI, &dwWordSize); // WJF 6/24/16 Win-21 Casting to LPBYTE
 	if (errorCode != ERROR_SUCCESS) {
 		returnValue = 0;
 		PA_ReturnLong(params, returnValue);
@@ -2949,12 +3054,10 @@ void gui_GetDisplayFontDPI(PA_PluginParameters params)
 	PA_SetLongParameter(params, 1, dpi);
 	returnValue = dpi;
 	PA_ReturnLong(params, returnValue);
-
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetDefPrinter( PA_PluginParameters params )
 //
 //  PURPOSE:  Determines which printer is marked as default
@@ -2965,20 +3068,20 @@ void sys_GetDefPrinter(PA_PluginParameters params)
 {
 	LONG_PTR printerName_len;
 	char printerName[255];
-	char *pDefaultPrinter;				// REB 3/6/09 #17333 
-	LONG_PTR returnValue;
-	ULONG_PTR ulBytesNeeded;		// REB 3/6/09 #17333 
+	char *pDefaultPrinter;				// REB 3/6/09 #17333
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	DWORD dwBytesNeeded;		// REB 3/6/09 #17333 // WJF 6/24/16 Win-21 ULONG_PTR -> DWORD
 
 	printerName_len = PA_GetTextParameter(params, 1, printerName);
 	printerName[printerName_len] = '\0';  // Explicitly set the length
 
 	printerName_len = 255;  // This holds the maximum size of printerName variable
-	ulBytesNeeded = MAXBUF;
+	dwBytesNeeded = MAXBUF;
 
-	pDefaultPrinter = (char *)malloc(ulBytesNeeded);
-	memset(pDefaultPrinter, 0, ulBytesNeeded);
+	pDefaultPrinter = malloc(dwBytesNeeded); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
+	memset(pDefaultPrinter, 0, dwBytesNeeded);
 
-	returnValue = GetDefaultPrinter(pDefaultPrinter, &ulBytesNeeded);
+	returnValue = GetDefaultPrinter(pDefaultPrinter, &dwBytesNeeded);
 	strcpy(printerName, pDefaultPrinter);
 
 	free(pDefaultPrinter); // WJF 6/4/15 #42921
@@ -2991,9 +3094,8 @@ void sys_GetDefPrinter(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_SetDefPrinter( PA_PluginParameters params )
 //
 //  PURPOSE:  Sets the default printer
@@ -3004,11 +3106,10 @@ void sys_SetDefPrinter(PA_PluginParameters params)
 	char printerName[255];
 	char tempName[255];					// REB 3/6/09 #17333 Printer name after spooler info is removed
 	char separator[] = ",";				// REB 3/6/09 #17333 Separates printer name from spooler info
-	BOOL returnValue;
+	BOOL returnValue = FALSE; // WJF 6/24/16 Win-21 Initialize to FALSE
 
 	printerName_len = PA_GetTextParameter(params, 1, printerName);
 	printerName[printerName_len] = '\0';  // Explicitly set the length
-
 
 	// REB 3/6/09 #17333 Remove spooler info from printer name.
 	printerName_len = strcspn(printerName, separator);
@@ -3021,10 +3122,8 @@ void sys_SetDefPrinter(PA_PluginParameters params)
 	PA_ReturnLong(params, (LONG_PTR)returnValue);
 }
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 //
 //  PURPOSE:  Get version of operating system
@@ -3037,16 +3136,15 @@ void sys_SetDefPrinter(PA_PluginParameters params)
 //	DATE:	  dcc 07/10/01
 //
 //	MODIFICATIONS: 12/1/03 Added check for Windows Server 2003.
-//				   7/15/09 Added check for Windows 7 
+//				   7/15/09 Added check for Windows 7
 //				   10/31/12 Added support for Windows 8 and Server 2012
 //			       AMS2 9/26/14 #37816 Windows 8.1 and Server 2012 R2 and newer versions of Windows should use sys_GetOSVersionEX as GetVersionEX is deprecated
-//            
+//
 //
 LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 {
-
 	OSVERSIONINFOEX		osvinfo;
-	LONG_PTR			returnValue = 0;
+	LONG				returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char				servicePackInfo[255] = "";
 	char				filePath[MAX_PATH] = "";
 	FILE				*fp = NULL;
@@ -3056,10 +3154,14 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	SHELLEXECUTEINFO	utilities;
 	BOOL				bSuccess = FALSE;
 	DWORD				dwExitCode = 0;
-	LPCSTR				lpParameters = "-ws";
+	// WJF 10/12/16 Win-37 -ws -> -os, This was probably missed in review and testing because 
+	// it wasn't tagged and we never delete the OS files. I only discovered this bug because I cleared my temp files.
+	LPCSTR				lpParameters = "-os";
 
 	osvinfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	GetVersionEx(&osvinfo);
+#pragma warning(push, 0) // WJF 6/24/16 Win-21
+	GetVersionEx((LPOSVERSIONINFOA)&osvinfo); // WJF 6/24/16 Win-21 Casting to LPOSVERSIONINFOA
+#pragma warning(pop) // WJF 6/24/16 Win-21
 
 	if ((osvinfo.dwMajorVersion == 4) & (osvinfo.dwMinorVersion == 0) & (osvinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS)) {
 		returnValue = OS_WIN95;
@@ -3104,17 +3206,16 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		// Version numbers for current and new versions of windows are located at http://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx.
 		/*if (IsWindows8OrGreater())
 		{
-			returnValue = OS_WIN8;
+		returnValue = OS_WIN8;
 		}
 
 		if (IsWindows8Point1OrGreater())
 		{
-			returnValue = OS_WIN81;
+		returnValue = OS_WIN81;
 		}*/
 
 		// WJF 9/21/15 #43601 Calling Orchard Utilities because it supports Windows 10 detection
 		GetTempPath(MAX_PATH, filePath);
-
 
 		// WJF 3/29/16 Win-11 Begin Changes
 		strcat_s(filePath, MAX_PATH, "osVersion.txt");
@@ -3152,7 +3253,14 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 				fgets(osVer, 16, fp);
 
 				returnValue = atoi(osVer);
+
+				// WJF 10/12/16 Win-37 Delete the file, also close our lock on it. That was probably causing some weirdness.
+				fclose(fp);
+				fp = NULL;
+				DeleteFile(filePath);
 			}
+
+
 		}
 		// WJF 3/29/16 Win-11 End changes
 
@@ -3176,23 +3284,22 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		ShellExecute(windowHandles.fourDhWnd, "", utilitiesPath, "-os", NULL, SW_HIDE);
 
 		if (GetLastError() == ERROR_SUCCESS){
-			if (utilitiesYield(lockPath, TRUE, FALSE) == ERROR_SUCCESS) { // WJF 12/17/15 Win-7 Added TRUE, FALSE and return value // WJF 2/16/16 Win-8 filePath -> lockPath
+		if (utilitiesYield(lockPath, TRUE, FALSE) == ERROR_SUCCESS) { // WJF 12/17/15 Win-7 Added TRUE, FALSE and return value // WJF 2/16/16 Win-8 filePath -> lockPath
+		fp = fopen(filePath, "r");
 
-				fp = fopen(filePath, "r");
+		if (fp){
+		fgets(osVer, 16, fp);
 
-				if (fp){
-					fgets(osVer, 16, fp);
-
-					returnValue = atoi(osVer);
-				}
-			}
+		returnValue = atoi(osVer);
+		}
+		}
 		}
 		*/
 
 		// WJF 9/22/15 #43601 Removed
 		/*if (IsWindowsServer())
 		{
-			++returnValue; // Server version numbers are the same as the OS version number but are incremented by one
+		++returnValue; // Server version numbers are the same as the OS version number but are incremented by one
 		}*/
 	}
 
@@ -3205,16 +3312,12 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 	return returnValue;
 }
 
-
 // *******   end of plugin call modules **********
-
 
 // supporting modules ---------------------------------------------
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION:  ComDlg32DlgProc
 //
 //  PURPOSE:	Callback function for Open/Save FileName Dialog modifications
@@ -3224,9 +3327,9 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 //
 //	DATE:  07/21/01
 //
-BOOL CALLBACK ComDlg32DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+// WJF 6/24/16 BOOL -> UINT_PTR
+UINT_PTR CALLBACK ComDlg32DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
 	WORD		wNotifyCode = HIWORD(wParam);
 	WORD		wID = LOWORD(wParam);
 	TCHAR		szPathName[255];
@@ -3263,20 +3366,20 @@ BOOL CALLBACK ComDlg32DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: postHook( INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 //
 //  PURPOSE:	Exit dialog using a different control
 //
-//  COMMENTS: OpenFile dialog has trouble closing without using		
+//  COMMENTS: OpenFile dialog has trouble closing without using
 //							IDOK, IDCANCEL or IDCLOSE.  IDOK requires
 //							a file be selected.  A directory won't do.
-//   
+//
 //	DATE:			dcc 07/30/01
 //
-LRESULT CALLBACK postHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
+// WJF 6/30/16 Win-21 INT_PTR -> INT
+LRESULT CALLBACK postHook(INT hCode, WPARAM wParam, LPARAM lParam)
 {
-
 	/*
 	CWPRETSTRUCT	*cwprs		= (CWPRETSTRUCT*)lParam;
 
@@ -3291,9 +3394,8 @@ LRESULT CALLBACK postHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hookHandles.postProcHookHndl, hCode, wParam, lParam);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: theHook( INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 //
 //  PURPOSE:	Process disable and hide controls
@@ -3303,22 +3405,24 @@ LRESULT CALLBACK postHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 //	MODIFICATIONS:  08/13/02 Corrected problem where FD_HIDE_UP_BUTTON
 //					and FD_HIDE_NEWDIRECTORY_BUTTON could not be used
 //					together.
-//					04/14/04 Improved efficiency when working with 
-//                  FD_SELECT_DIRECTORY. 
+//					04/14/04 Improved efficiency when working with
+//                  FD_SELECT_DIRECTORY.
+//
+// WJF 6/30/16 Win-21 INT_PTR -> INT
 
-LRESULT CALLBACK theHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 {
-
 	TCHAR					szClassName[255];
 	TCHAR					szItemName[255];
 	TCHAR					szPathName[255];
-	LVITEM				item;
-	HANDLE				buttonToDisable;
-	CWPSTRUCT			*cwps = (CWPSTRUCT*)lParam;
-	TBBUTTONINFO	tbInfo;
+	LVITEM					item;
+	HANDLE					buttonToDisable;
+	CWPSTRUCT				*cwps = (CWPSTRUCT*)lParam;
+	TBBUTTONINFO			tbInfo;
 	BOOL					bChangeHiddenState = TRUE, bSelectedItem = FALSE;
-	static INT_PTR		tbOnetime = 0;
-	INT_PTR						count, i;
+	static INT_PTR			tbOnetime = 0;
+	INT_PTR					count;
+	INT						i;
 
 	if (windowHandles.openSaveTBhwnd == NULL) {
 		tbOnetime = 0;
@@ -3373,13 +3477,11 @@ LRESULT CALLBACK theHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 			}
 			//break;
 
-
 		case WM_NOTIFY:
 			bSelectedItem = FALSE;
 			strcpy(szPathName, "");
 
 			if (FD_Flags & FD_SELECT_DIRECTORY) {  // 4/14/04 Only perform search if FD_SELECT_DIRECTORY is selected
-
 				// 4/14/04 Modified the code to directly get the selected item instead of looping
 				// through each item in the list.
 				i = ListView_GetNextItem(cwps->hwnd, -1, LVNI_ALL | LVNI_SELECTED);
@@ -3410,7 +3512,6 @@ LRESULT CALLBACK theHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 						}
 						//}
 					}
-
 				}  //end if
 
 				if (!bSelectedItem) {
@@ -3420,16 +3521,14 @@ LRESULT CALLBACK theHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 					}
 				}
 			}
-
 		}  // end switch
 	} // if (strcmp(_strlwr(szClassName), "syslistview32") == 0)
 
 	return CallNextHookEx(hookHandles.openSaveHookHndl, hCode, wParam, lParam);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: CALLBACK EnumChildProc(HWND hWnd, LPARAM lParam)
 //
 //  PURPOSE:	Disables Lookin and/or Edit controls in open/save dialogs
@@ -3461,20 +3560,18 @@ BOOL CALLBACK EnumChildProc(HWND hWnd, LPARAM lParam)
 	return TRUE;
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: TestNotify(HWND hDlg, LPOFNOTIFY pofn)
 //
 //  PURPOSE:  Used when Directory Selection is in play
 //
 //  COMMENTS:
-//   
+//
 //	DATE:			dcc 07/23/01
 //
 BOOL NEAR PASCAL TestNotify(HWND hDlg, LPOFNOTIFY pofn)
 {
-
 	switch (pofn->hdr.code)
 	{
 	case CDN_SELCHANGE:
@@ -3499,17 +3596,15 @@ BOOL NEAR PASCAL TestNotify(HWND hDlg, LPOFNOTIFY pofn)
 	return TRUE;
 }
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: GetPlugInFullName( char *PlugInFullName)
 //
 //  PURPOSE:  Gets full path for WIN32API.4dx file.
 //
 //  COMMENTS: Needed to determine where to look for extra resources
-//						Open file dialog etc  
-//						     
+//						Open file dialog etc
+//
 //	DATE: dcc 07/27/01
 //
 void GetPlugInFullName(char *PlugInFullName)
@@ -3536,7 +3631,7 @@ void GetPlugInFullName(char *PlugInFullName)
 }
 
 //  RETAIN FOR DEBUGGING
-//  FUNCTION: ProcessCDError(DWORD) 
+//  FUNCTION: ProcessCDError(DWORD)
 //
 //  PURPOSE: Processes errors from the common dialog functions.
 //
@@ -3545,7 +3640,7 @@ void GetPlugInFullName(char *PlugInFullName)
 //        This function is called whenever a common dialog function
 //        fails.  The CommonDialogExtendedError() value is passed to
 //        the function which maps the error value to a string table.
-//        The string is loaded and displayed for the user. 
+//        The string is loaded and displayed for the user.
 
 void ProcessCDError(DWORD dwErrorCode, HWND hWnd)
 {
@@ -3603,7 +3698,6 @@ void	FormatIP(char *rStr, LPARAM dwIP)
 	char			addrSegment[4];
 	BYTE			firstAddr, secondAddr, thirdAddr, fourthAddr;
 
-
 	strcpy(rStr, "");
 	firstAddr = FIRST_IPADDRESS(dwIP);
 	secondAddr = SECOND_IPADDRESS(dwIP);
@@ -3623,7 +3717,6 @@ void	FormatIP(char *rStr, LPARAM dwIP)
 
 	return;
 }
-
 
 HWND getWindowHandle(char* windowTitle, HWND hWnd)
 {
@@ -3651,7 +3744,6 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 			NexthWnd = GetParent(MDIhWnd);
 			GetClassName(NexthWnd, szClassName, 255);
 		} while (NexthWnd != NULL);
-
 	}
 	else {
 		returnValue = 0;
@@ -3682,7 +3774,7 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 			}
 		}
 		else {
-			// Search all the child windows for the window 
+			// Search all the child windows for the window
 			// with a Title matching windowTitle
 			NexthWnd = GetWindow(MDIhWnd, GW_CHILD);
 			do {
@@ -3710,7 +3802,6 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 	return returnValue;
 }
 
-
 //  FUNCTION: newProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 //
 //  PURPOSE:	Intercept procedure for 4D window
@@ -3729,10 +3820,8 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg)
 	{
-
 	case (WM_USER + 0x0021) :
 		if ((lParam == WM_LBUTTONDOWN) || (lParam == WM_RBUTTONDOWN) || (lParam == WM_LBUTTONDBLCLK) || (lParam == WM_RBUTTONDBLCLK)) {
-
 			processWindowMessage(TRAY_ICON_FUNCTION, (LONG_PTR)hwnd, wParam, lParam);
 		}
 		break;
@@ -3766,7 +3855,6 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 						}
 						//PostMessage(childhWnd, WM_SYSCOMMAND, SC_RESTORE, 0L);
 						break;
-
 					}
 					//command = (LONG_PTR)childhWnd;
 					//command *= -1;
@@ -3804,7 +3892,7 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				do {
 					childhWnd = nexthWnd;
 					GetWindowText(childhWnd, windowName, 256);
-					if (strcmp("Print", windowName) == 0){  // AMS2 11/19/14 #40697 Fixed detection of Print Job window, previously the method assumed that it would always see Print Setup before Print Job. 
+					if (strcmp("Print", windowName) == 0){  // AMS2 11/19/14 #40697 Fixed detection of Print Job window, previously the method assumed that it would always see Print Setup before Print Job.
 						strcpy(dlgCaption, "Print");
 						g_intrProcMsg = 1;
 					}
@@ -3843,43 +3931,40 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					} // end switch
 				} //(printWndHndl > 0)
 			} //((g_intrProcMsg == 1) && (strcmp(dlgCaption, "Print") == 0))
-		} //((count % 10 == 0) && (g_intrProcMsg < 2)) 
+		} //((count % 10 == 0) && (g_intrProcMsg < 2))
 
 		count += 1;
 	} // end switch
 
 	return CallWindowProc(processHandles.wpFourDOrigProc, hwnd, uMsg, wParam, lParam);
-
 }
-
 
 //  FUNCTION: newDlgPrtSettingsProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 //
-//  PURPOSE:	Intercept print setup dialog 
+//  PURPOSE:	Intercept print setup dialog
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:			dcc 11/17/01
 
 LRESULT APIENTRY newPrtSettingsDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
 	if (hookHandles.printSettingsHookHndl == NULL) {
 		hookHandles.printSettingsHookHndl = SetWindowsHookEx(WH_CALLWNDPROCRET, (HOOKPROC)printSettingsDlgHook, (HINSTANCE)NULL, (DWORD)GetCurrentThreadId());
 	}
 	return CallWindowProc(processHandles.wpPrintSettingsDlgOrigProc, hwnd, uMsg, wParam, lParam);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: printSettingsDlgHook( INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 //
 //  PURPOSE:	Get change of printer if combo box accessed
 //
 //	DATE:			dcc 11/17/01
 //
-LRESULT CALLBACK printSettingsDlgHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
+// WJF 6/30/16 Win-21 INT_PTR_INT
+LRESULT CALLBACK printSettingsDlgHook(INT hCode, WPARAM wParam, LPARAM lParam)
 {
 	CWPRETSTRUCT	*cwrps = (CWPRETSTRUCT*)lParam;
 
@@ -3889,18 +3974,16 @@ LRESULT CALLBACK printSettingsDlgHook(INT_PTR hCode, WPARAM wParam, LPARAM lPara
 	return CallNextHookEx(hookHandles.printSettingsHookHndl, hCode, wParam, lParam);
 }
 
-
 //  FUNCTION: newPrtDlgProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 //
-//  PURPOSE:	Intercept print dialog 
+//  PURPOSE:	Intercept print dialog
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:			dcc 11/17/01
 
 LRESULT APIENTRY newPrtDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
 	if (hookHandles.printHookHndl == NULL) {
 		UnhookWindowsHookEx(hookHandles.printSettingsHookHndl);
 		hookHandles.printSettingsHookHndl = NULL;
@@ -3909,18 +3992,17 @@ LRESULT APIENTRY newPrtDlgProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	return CallWindowProc(processHandles.wpPrintDlgOrigProc, hwnd, uMsg, wParam, lParam);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: printDlgHook( INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 //
 //  PURPOSE:	Get change of printer if combo box accessed
 //
 //	DATE:			dcc 11/17/01
 //
-LRESULT CALLBACK printDlgHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
+// WJF 6/30/16 Win-21 INT_PTR_INT
+LRESULT CALLBACK printDlgHook(INT hCode, WPARAM wParam, LPARAM lParam)
 {
-
 	CWPRETSTRUCT	*cwrps = (CWPRETSTRUCT*)lParam;
 
 	if (cwrps->message == WM_COMMAND) {
@@ -3931,35 +4013,22 @@ LRESULT CALLBACK printDlgHook(INT_PTR hCode, WPARAM wParam, LPARAM lParam)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 //
 //  PURPOSE:	Find combo box ID with printer names
 //
 //  COMMENTS: Possible chg this later to constant control ID of 1136
-//						
+//
 //	DATE:			dcc 10/23/01
 //
-//  MODIFICATIONS: 11/05/02 Added ID var to better debug.  Also added control ID 1136 for 
+//  MODIFICATIONS: 11/05/02 Added ID var to better debug.  Also added control ID 1136 for
 //									comboBox on PrintSettings dialog. (3.5.2)
 BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 {
 	char						szClassName[255];
-	char						comboText[80];
-	char						printerName[255];
-	LPCTSTR						capabilities[255];
-	LONG_PTR						comboText_len = strlen(comboText), ID;
+	LONG_PTR					ID;
 	LRESULT						ndx;
-	BOOL						bTrans = FALSE, bSigned = FALSE;
-	DEVMODE						*printerInfo;
-	DEVMODE						*printInput;
-	LPCTSTR						deviceName, pPort;
-	LPBYTE						printerBuffer;
-	PRINTER_INFO_2				*pInfo;
-	HANDLE						hPrintHandle = NULL;
-	DWORD						dwPrinterSize;
-	DWORD						dwLevel = 2;
-	DWORD						dwBuffer = sizeof(PRINTER_INFO_2);
 
 	GetClassName(hWnd, szClassName, 255);
 
@@ -4014,7 +4083,6 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 				printerSettings.printPreview = FALSE;
 			}
 			break;
-
 		}
 	}
 	if (strcmp(_strlwr(szClassName), "edit") == 0) {
@@ -4026,16 +4094,14 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 			ndx = SendMessage(hWnd, WM_GETTEXT, (WPARAM)4, (LPARAM)printerSettings.copies);
 			printerSettings.copies[ndx] = '\0';
 			break;
-
 		}
 	}
 
 	// AMS2 11/26/14 #40697 Below is an attempt to get the printer information that is not visible on the print job dialog with the scanner above.
 	// The part that is causing problems is the call to DocumentProperties. I'm not sure if that is the correct window handle to pass in, but the printer handle/device name and other parameters seem to be correct.
-	// The issue is that the printerInfo that is returned does not match the settings that are input. I attempted to move this to sys_getPrintSettings but the PA parameter for the return array seemed to be replaced with a null address instead of the array's address. 
+	// The issue is that the printerInfo that is returned does not match the settings that are input. I attempted to move this to sys_getPrintSettings but the PA parameter for the return array seemed to be replaced with a null address instead of the array's address.
 	/*
 	if (strlen(printerSettings.printerSelection) != 0){
-
 	strcpy(printerName, printerSettings.printerSelection);
 	OpenPrinter(printerName, &hPrintHandle, NULL); // get the handle
 	//printerBuffer = &pInfo;
@@ -4049,27 +4115,26 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 	//DeviceCapabilities(deviceName, pPort, DC_SIZE, capabilities, NULL);
 	//DocumentProperties(hWnd, hPrintHandle, deviceName, printerInfo, printInput, DM_OUT_BUFFER); //windowHandles.prthWnd
 	ClosePrinter(hPrintHandle);
-
 	}
 	*/
 	return TRUE;
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: enumPrintersUsingRegistry( PA_Variable *printerArray )
 //
 //  PURPOSE:	Alternative function for enum printers
 //
-//  COMMENTS: Uses registry for NT/2000/XP 
+//  COMMENTS: Uses registry for NT/2000/XP
 //						Returns positon of default printer in array
-//						
+//
 //	DATE:			dcc 04/20/02
 //
-
-LONG_PTR enumPrintersUsingRegistry(PA_Variable *printerArray)
+// WJF 6/29/16 Win-21 LONG_PTR -> LONG
+LONG enumPrintersUsingRegistry(PA_Variable *printerArray)
 {
-	LONG_PTR					returnValue = 0, errorCode;
+	LONG					returnValue = 0, errorCode = 0; // WJF 6/29/16 Win-21 LONG_PTR -> LONG and initialized errorCode
 	HKEY					hKeyWindows, hKeyDevices, rootKey;
 	char					subKey[100];
 	DWORD					dwIndex = 0;
@@ -4088,12 +4153,12 @@ LONG_PTR enumPrintersUsingRegistry(PA_Variable *printerArray)
 		return returnValue;;
 	}
 
-	errorCode = RegQueryValueEx(hKeyWindows, "Device", NULL, &dwType, szData, &resultSize);
+	errorCode = RegQueryValueEx(hKeyWindows, "Device", NULL, &dwType, (LPBYTE)szData, &resultSize); // WJF 6/24/16 Win-21 Casting to LPBYTE
 	if (errorCode != ERROR_SUCCESS) {
 	}
 	else {
 		strcpy(defPrinter, szData);
-	} //(errorCode != ERROR_SUCCESS) 
+	} //(errorCode != ERROR_SUCCESS)
 	errorCode = RegCloseKey(hKeyWindows);
 
 	strcpy(subKey, "Software\\Microsoft\\Windows NT\\CurrentVersion\\Devices");
@@ -4102,11 +4167,11 @@ LONG_PTR enumPrintersUsingRegistry(PA_Variable *printerArray)
 		return returnValue;;
 	}
 	resultSize = 150;
-	errorCode = RegEnumValue(hKeyDevices, dwIndex, sz, &resultSize, NULL, &dwType, szData, &dataSize);
+	errorCode = RegEnumValue(hKeyDevices, dwIndex, sz, &resultSize, NULL, &dwType, (LPBYTE)szData, &dataSize); // WJF 6/24/16 Win-21 Casting to LPBYTE
 	while (errorCode != ERROR_NO_MORE_ITEMS)
 	{
 		if (errorCode == ERROR_SUCCESS) {
-			// get data for device (printer)	
+			// get data for device (printer)
 			PA_ResizeArray(printerArray, (LONG_PTR)dwIndex + 1);
 			strcat(sz, ",");
 			strcat(sz, szData);
@@ -4118,7 +4183,7 @@ LONG_PTR enumPrintersUsingRegistry(PA_Variable *printerArray)
 		dwIndex++;
 		resultSize = 150;
 		dataSize = 150;
-		errorCode = RegEnumValue(hKeyDevices, dwIndex, sz, &resultSize, NULL, &dwType, szData, &dataSize);
+		errorCode = RegEnumValue(hKeyDevices, dwIndex, sz, &resultSize, NULL, &dwType, (LPBYTE)szData, &dataSize); // WJF 6/24/16 Win-21 Casting to LPBYTE
 	}
 
 	errorCode = RegCloseKey(hKeyDevices);
@@ -4126,25 +4191,24 @@ LONG_PTR enumPrintersUsingRegistry(PA_Variable *printerArray)
 }
 
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: enumPrintersUsingINI( PA_Variable *printerArray )
 //
 //  PURPOSE:	Alternative function for enum printers
 //
 //  COMMENTS: Uses Win.ini file for 95/98/Me
 //						Returns positon of default printer in array
-//						
+//
 //	DATE:			dcc 04/20/02
 //
 
 LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray)
 {
-	LONG_PTR					returnValue = 0, count = 0, pSectionBuf_len = 0;
+	LONG					returnValue = 0, count = 0, pSectionBuf_len = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char					szSectionName[80], szKeyName[80], szDefault[80];
 	char					defPrinter[80], szSectionBuf[1000], szDevice[80], sep[3]; // increased sep from 2 to 3
 	char					*pToken = NULL, *pSectionBuf = NULL;
 	DWORD					dwSize = 80, dwReturn;
-
 
 	// get default printer
 	strcpy(szSectionName, "Windows");
@@ -4180,7 +4244,7 @@ LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray)
 			}
 			PA_ResizeArray(printerArray, count);
 			PA_SetTextInArray(*printerArray, count, szDevice, strlen(szDevice));
-			pSectionBuf_len = strlen(pSectionBuf);
+			pSectionBuf_len = (LONG)strlen(pSectionBuf); // WJF 6/30/16 Win-21 Cast to LONG
 			pSectionBuf = pSectionBuf + (pSectionBuf_len + 1);
 			if (*pSectionBuf != '\0') {
 				strcpy(szDevice, "");
@@ -4194,22 +4258,17 @@ LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray)
 	return returnValue;
 }
 
-
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetTimeZoneList( PA_PluginParameters params )
 //
 //  PURPOSE:  Returns an array containing time zone information for all time zones
 //				defined on the system.  Each element is in the form:
 //				TimeZoneName;Current Time;Current Date
-//  
 //
-//  REB 4/6/09 #19472  
 //
-
-
+//  REB 4/6/09 #19472
+//
 
 void sys_GetTimeZoneList(PA_PluginParameters params)
 {
@@ -4218,7 +4277,7 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 	char			daylightName[255];
 	char			displayName[255];
 	LONG_PTR			displayName_len;
-	LONG_PTR			returnValue, errorCode;
+	LONG			returnValue, errorCode; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HKEY			hkTimeZone, hkRootKey;
 	char			TimeStr[255];
 	char			hours[2];
@@ -4342,21 +4401,17 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 			}
 		}
 		RegCloseKey(hkRootKey);
-
 	}
 
 	PA_SetVariableParameter(params, 1, atTZ, 0);
 
 	PA_ReturnLong(params, returnValue);
-
 }
-
 
 // Note, this does not need to use the semaphore since it is already waiting on a file
 void TWAIN_GetSources(PA_PluginParameters params)
 {
-
-	LONG_PTR			returnValue, OK, state, debug;
+	LONG				returnValue, debug; // WJF 6/30/21 Win-21 LONG_PTR -> LONG
 	DWORD				index = 1;
 	PA_Variable			atSources;
 	// TW_IDENTITY			NewSourceId; // WJF 9/14/15 #43727 Removed
@@ -4416,7 +4471,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	utilities.lpVerb = NULL;
 
 	if (ShellExecuteEx(&utilities)) {
-
 		PA_YieldAbsolute();
 		PA_YieldAbsolute();
 		PA_YieldAbsolute();
@@ -4447,7 +4501,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 					PA_SetTextInArray(atSources, index, source, strlen(source));
 					++index;
 				}
-
 			}
 
 			fclose(fp);
@@ -4455,7 +4508,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 			fp = NULL;
 
 			DeleteFile(filePath);
-
 		}
 	}
 	else {
@@ -4472,7 +4524,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	utilities.lpParameters = lpParameters;
 
 	if (ShellExecuteEx(&utilities)) {
-
 		PA_YieldAbsolute();
 		PA_YieldAbsolute();
 		PA_YieldAbsolute();
@@ -4494,7 +4545,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 					PA_SetTextInArray(atSources, index, source, strlen(source));
 					++index;
 				}
-
 			}
 
 			fclose(fp);
@@ -4503,7 +4553,6 @@ void TWAIN_GetSources(PA_PluginParameters params)
 		}
 
 		DeleteFile(filePath);
-
 	}
 	else {
 		returnValue = -2;
@@ -4515,96 +4564,91 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
 	if (GetLastError() == ERROR_SUCCESS){
-		PA_YieldAbsolute();
-		PA_YieldAbsolute();
-		PA_YieldAbsolute();
+	PA_YieldAbsolute();
+	PA_YieldAbsolute();
+	PA_YieldAbsolute();
 
-		if (utilitiesYield(NULL, TRUE, FALSE) == ERROR_SUCCESS){ // WJF 9/21/15 #43940 Moved to common method // WJF 12/17/15 Win-7 Added TRUE, FALSE
-			fp = fopen(filePath, "r");
+	if (utilitiesYield(NULL, TRUE, FALSE) == ERROR_SUCCESS){ // WJF 9/21/15 #43940 Moved to common method // WJF 12/17/15 Win-7 Added TRUE, FALSE
+	fp = fopen(filePath, "r");
 
-			if (fp){
-				while (fgets(source, 256, fp) != NULL){
-					if (strcmp(source, "-1\n") == 0){ // Failed to load Twain library // WJF 3/7/16 Win-7 Added \n
-						returnValue = -1;
-					}
-					else if (strcmp(source, "-2\n") == 0){ // Failed to open Data Source Manager // WJF 3/7/16 Win-7 Added \n
-						returnValue = -2;
-					}
-					else if (strcmp(source, "") == 0){ // Empty line
-						// do nothing
-					}
-					else { // Valid Product Name
-						pos = strrchr(source, '\n');
-						strcpy_s(pos, 256, "\0");
-						strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
-						PA_ResizeArray(&atSources, index);
-						PA_SetTextInArray(atSources, index, source, strlen(source));
-						++index;
-					}
+	if (fp){
+	while (fgets(source, 256, fp) != NULL){
+	if (strcmp(source, "-1\n") == 0){ // Failed to load Twain library // WJF 3/7/16 Win-7 Added \n
+	returnValue = -1;
+	}
+	else if (strcmp(source, "-2\n") == 0){ // Failed to open Data Source Manager // WJF 3/7/16 Win-7 Added \n
+	returnValue = -2;
+	}
+	else if (strcmp(source, "") == 0){ // Empty line
+	// do nothing
+	}
+	else { // Valid Product Name
+	pos = strrchr(source, '\n');
+	strcpy_s(pos, 256, "\0");
+	strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+	PA_ResizeArray(&atSources, index);
+	PA_SetTextInArray(atSources, index, source, strlen(source));
+	++index;
+	}
+	}
 
-				}
+	fclose(fp);
 
-				fclose(fp);
+	fp = NULL;
 
-				fp = NULL;
+	DeleteFile(filePath);
+	}
+	}
+	else { // WJF 12/17/15 Win-7
+	returnValue = -2;
+	}
 
-				DeleteFile(filePath);
+	// WJF 9/21/15 #43940 Begin Changes
+	GetTempPath(MAX_PATH, filePath);
 
-			}
-		}
-		else { // WJF 12/17/15 Win-7
-			returnValue = -2;
-		}
+	strcat_s(filePath, MAX_PATH, "wiaSources.txt");
 
-		// WJF 9/21/15 #43940 Begin Changes
-		GetTempPath(MAX_PATH, filePath);
+	strcpy_s(lpParameters, 16, "-ws");
 
-		strcat_s(filePath, MAX_PATH, "wiaSources.txt");
+	utilitiesLock();
 
-		strcpy_s(lpParameters, 16, "-ws");
+	ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
 
-		utilitiesLock();
+	if (GetLastError() == ERROR_SUCCESS){
+	PA_YieldAbsolute();
+	PA_YieldAbsolute();
+	PA_YieldAbsolute();
 
-		ShellExecute(windowHandles.fourDhWnd, "", pluginPath, lpParameters, NULL, SW_HIDE);
+	if (utilitiesYield(NULL, TRUE, FALSE) == ERROR_SUCCESS){ // WJF 9/21/15 #43601 Moved to common method // WJF 12/17/15 Win-7
+	fp = fopen(filePath, "r");
 
-		if (GetLastError() == ERROR_SUCCESS){
-			PA_YieldAbsolute();
-			PA_YieldAbsolute();
-			PA_YieldAbsolute();
+	if (fp){
+	while (fgets(source, 256, fp) != NULL){
+	if (strcmp(source, "") != 0){
+	pos = strrchr(source, '\n');
+	strcpy_s(pos, 256, "\0");
+	strcat_s(source, 256, "-WIA");
+	PA_ResizeArray(&atSources, index);
+	PA_SetTextInArray(atSources, index, source, strlen(source));
+	++index;
+	}
+	}
 
-			if (utilitiesYield(NULL, TRUE, FALSE) == ERROR_SUCCESS){ // WJF 9/21/15 #43601 Moved to common method // WJF 12/17/15 Win-7
+	fclose(fp);
 
-				fp = fopen(filePath, "r");
+	fp = NULL;
+	}
 
-				if (fp){
-					while (fgets(source, 256, fp) != NULL){
-						if (strcmp(source, "") != 0){
-							pos = strrchr(source, '\n');
-							strcpy_s(pos, 256, "\0");
-							strcat_s(source, 256, "-WIA");
-							PA_ResizeArray(&atSources, index);
-							PA_SetTextInArray(atSources, index, source, strlen(source));
-							++index;
-						}
-
-					}
-
-					fclose(fp);
-
-					fp = NULL;
-				}
-
-				DeleteFile(filePath); // WJF 9/21/15 #43940
-			}
-			else { // WJF 12/17/15 Win-7
-				returnValue = -3;
-			}
-		}
-		else {
-			returnValue = (returnValue == -2 ? -2 : -1); // WJF 12/17/15 Win-7 We don't want to overwrite a -2 from TWAIN
-		}
-		// WJF 9/21/15 #43940 End changes
-
+	DeleteFile(filePath); // WJF 9/21/15 #43940
+	}
+	else { // WJF 12/17/15 Win-7
+	returnValue = -3;
+	}
+	}
+	else {
+	returnValue = (returnValue == -2 ? -2 : -1); // WJF 12/17/15 Win-7 We don't want to overwrite a -2 from TWAIN
+	}
+	// WJF 9/21/15 #43940 End changes
 	}
 	// Removed
 	/*if (debug) returnValue = TWAIN_SelectImageSource(windowHandles.fourDhWnd);
@@ -4614,16 +4658,16 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	state = TWAIN_State();
 
 	if (state >= TWAIN_SM_OPEN || TWAIN_OpenSourceManager(windowHandles.fourDhWnd)) {
-		OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, &NewSourceId);
-		if (!(debug)){
-			returnValue = OK;
-		}
-		while (OK){
-			PA_ResizeArray(&atSources, index);
-			PA_SetTextInArray(atSources, index, NewSourceId.ProductName, strlen(NewSourceId.ProductName));
-			++index;
-			OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
-		}
+	OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, &NewSourceId);
+	if (!(debug)){
+	returnValue = OK;
+	}
+	while (OK){
+	PA_ResizeArray(&atSources, index);
+	PA_SetTextInArray(atSources, index, NewSourceId.ProductName, strlen(NewSourceId.ProductName));
+	++index;
+	OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
+	}
 	}
 	*/
 	// WJF 9/11/15 #43727 End changes
@@ -4632,10 +4676,9 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 void TWAIN_SetSource(PA_PluginParameters params)
 {
-	LONG_PTR			returnValue, OK;
+	LONG			returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	LONG_PTR			source_len;
 	char			sourceName[255];
 
@@ -4651,39 +4694,39 @@ void TWAIN_SetSource(PA_PluginParameters params)
 		twainSource = NULL;
 	}
 
-	twainSource = (char *)malloc(source_len + 1);
+	twainSource = malloc(source_len + 1); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 
 	// WJF 9/29/15 Added a check to see if it was actually allocated and a new error code
 	if (twainSource){
 		strcpy_s(twainSource, source_len + 1, sourceName);
 	}
-	else { 
+	else {
 		returnValue = 0;
 	}
 
 	// Removed
-	/* 
+	/*
 	memset(&NewSourceId, 0, sizeof NewSourceId);
 
 	// If the source is already open, close it to reset the connection.
 	state = TWAIN_State();
 	if (state >= TWAIN_SOURCE_ENABLED){
-		OK = TWAIN_EndXfer();
-		OK = TWAIN_AbortAllPendingXfers();
-		OK = TWAIN_CloseSource();
+	OK = TWAIN_EndXfer();
+	OK = TWAIN_AbortAllPendingXfers();
+	OK = TWAIN_CloseSource();
 	}
 
 	if (state >= TWAIN_SM_OPEN || TWAIN_OpenSourceManager(windowHandles.fourDhWnd)) {
-		OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, &NewSourceId);
-		while (OK){
-			if (strcmp(sourceName, NewSourceId.ProductName) == 0){
-				OK = 0;
-				returnValue = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &NewSourceId);
-			}
-			else{
-				OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
-			}
-		}
+	OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETFIRST, &NewSourceId);
+	while (OK){
+	if (strcmp(sourceName, NewSourceId.ProductName) == 0){
+	OK = 0;
+	returnValue = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &NewSourceId);
+	}
+	else{
+	OK = TWAIN_Mgr(DG_CONTROL, DAT_IDENTITY, MSG_GETNEXT, &NewSourceId);
+	}
+	}
 	} */
 	// WJF 9/1/15 #43727 End changes
 
@@ -4694,23 +4737,19 @@ void TWAIN_SetSource(PA_PluginParameters params)
 //
 //  PURPOSE:	Launches the external OrchTwain DLL and waits for the operation to finish
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/10/15 #43727
 long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOOL IsWIA, BOOL GetMultiple){
 	char lpParameters[MAX_PATH_PLUS] = "";
-	char filePathLock[MAX_PATH_PLUS] = "";
 	char pluginPath[MAX_PATH] = "";
-	char *path = NULL;
 	char *pos = NULL;
-	FILE *fp = NULL;
 	long returnValue = 1;
 	char sourceName[256] = "";
 	SHELLEXECUTEINFO utilities;
-	HRESULT hr;
 	DWORD dwExitCode = 0;
 	BOOL bSuccess = FALSE;
-	
+
 	strcpy_s(pluginPath, MAX_PATH, pathName);
 
 	pos = strrchr(pluginPath, '\\');
@@ -4727,7 +4766,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	else {
 		strcpy_s(pos, MAX_PATH, "\\Windows\\Orchard_Utilities.exe");
 	}
-	
+
 	// WJF 9/21/15 #43940
 	if (twainSource){
 		pos = NULL;
@@ -4741,8 +4780,8 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 			}
 		}
 
-		// WJF 9/24/15 #43940 
-		strcpy_s(sourceName, 256, twainSource); 
+		// WJF 9/24/15 #43940
+		strcpy_s(sourceName, 256, twainSource);
 		pos = NULL;
 		pos = strrchr(sourceName, '-');
 
@@ -4750,7 +4789,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 			strcpy_s(pos, MAX_PATH, "\0");
 		}
 	}
-	
+
 	if (IsWIA){ // WJF 9/21/15 #43940
 		strcpy_s(lpParameters, MAX_PATH_PLUS, "-wa ");
 	}
@@ -4766,7 +4805,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	else {
 		strcat_s(lpParameters, MAX_PATH_PLUS, " 0");
 	}
-	
+
 	if (ShowUI){
 		strcat_s(lpParameters, MAX_PATH_PLUS, " 1 ");
 	}
@@ -4822,27 +4861,26 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 //
 //  PURPOSE:	Creates the semaphore for the orchard_utilties application
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/21/15 #43601
 void utilitiesLock(){
-	char lockPath[MAX_PATH] = "";
-	FILE *fp = NULL;
+char lockPath[MAX_PATH] = "";
+FILE *fp = NULL;
 
-	GetTempPath(MAX_PATH, lockPath);
+GetTempPath(MAX_PATH, lockPath);
 
-	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
 
-	fp = fopen(lockPath, "w");
+fp = fopen(lockPath, "w");
 
-	if (fp){
-		fprintf(fp, "Locked\n");
+if (fp){
+fprintf(fp, "Locked\n");
 
-		fclose(fp);
+fclose(fp);
 
-		fp = NULL;
-	}
-
+fp = NULL;
+}
 }
 */
 
@@ -4856,24 +4894,24 @@ void utilitiesLock(){
 //
 //	DATE:		WJF 9/21/15 #43601
 void utilitiesSleep(const char * filePath){
-	char lockPath[MAX_PATH] = "";
-	
-	GetTempPath(MAX_PATH, lockPath);
+char lockPath[MAX_PATH] = "";
 
-	strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+GetTempPath(MAX_PATH, lockPath);
 
-	SetLastError(ERROR_SUCCESS);
+strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
 
-	if (filePath){
-		while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
-			Sleep(100);
-		}
-	}
-	else {
-		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
-			Sleep(100);
-		}
-	}
+SetLastError(ERROR_SUCCESS);
+
+if (filePath){
+while ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){ // When this file exists, the operation is completed
+Sleep(100);
+}
+}
+else {
+while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+Sleep(100);
+}
+}
 }*/
 
 // WJF 3/29/16 Win-11 Removed
@@ -4886,55 +4924,54 @@ void utilitiesSleep(const char * filePath){
 //
 //	DATE:		WJF 9/21/15 #43601
 DWORD utilitiesYield(const char * filePath, BOOL bTimer, BOOL bSleep){
-	char		lockPath[MAX_PATH] = "";
-	time_t		tTime = 0;
-	time_t		tEndTime = 0;
-	DWORD		dwReturn = 0;
-	LONG		lProcessCode = 0;
+char		lockPath[MAX_PATH] = "";
+time_t		tTime = 0;
+time_t		tEndTime = 0;
+DWORD		dwReturn = 0;
+LONG		lProcessCode = 0;
 
-	if (filePath == NULL){
-		GetTempPath(MAX_PATH, lockPath);
+if (filePath == NULL){
+GetTempPath(MAX_PATH, lockPath);
 
-		strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
-	}
-	else { // WJF 12/17/15 Win-7
-		strcpy_s(lockPath, MAX_PATH, filePath);
-	}
+strcat_s(lockPath, MAX_PATH, "utilitiesLock.txt");
+}
+else { // WJF 12/17/15 Win-7
+strcpy_s(lockPath, MAX_PATH, filePath);
+}
 
+SetLastError(ERROR_SUCCESS);
 
-	SetLastError(ERROR_SUCCESS);
+if (bTimer){ // WJF 12/17/15 Win-7
+tTime = time(NULL);
+tEndTime = tTime + 30; // Only wait 30 seconds if we're not interacting with the user
+while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+if (bSleep){ // WJF 12/17/15 Win-7
+Sleep(100);
+}
+else {
+PA_YieldAbsolute();
+}
+tTime = time(NULL);
+if (tTime >= tEndTime){
+DeleteFile(lockPath);
+lProcessCode = killProcessByName("Orchard_Utilities.exe", 0, FALSE);
+dwReturn = -1;
+break;
+}
+}
+}
+else {
+while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
+if (bSleep){ // WJF 12/17/15 Win-7
+Sleep(100);
+}
+else {
+PA_YieldAbsolute();
+}
+}
+}
 
-	if (bTimer){ // WJF 12/17/15 Win-7
-		tTime = time(NULL);
-		tEndTime = tTime + 30; // Only wait 30 seconds if we're not interacting with the user
-		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
-			if (bSleep){ // WJF 12/17/15 Win-7
-				Sleep(100);
-			}
-			else {
-				PA_YieldAbsolute();
-			}
-			tTime = time(NULL);
-			if (tTime >= tEndTime){
-				DeleteFile(lockPath);
-				lProcessCode = killProcessByName("Orchard_Utilities.exe", 0, FALSE);
-				dwReturn = -1;
-				break;
-			}
-		}
-	}
-	else {
-		while ((GetFileAttributes(lockPath) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){ // When this file no longer exists, the operation is completed
-			if (bSleep){ // WJF 12/17/15 Win-7
-				Sleep(100);
-			}
-			else {
-				PA_YieldAbsolute();
-			}
-		}
-	}
-	
-	return dwReturn;
+return dwReturn;
 }
 */
 
@@ -4948,13 +4985,13 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 	char			filePath[MAX_PATH] = "";
 	long			i = 0;
 
-	TWAINCapture = (TWAIN_CAPTURE*)arg; 
+	TWAINCapture = (TWAIN_CAPTURE*)arg;
 	// WJF 9/10/15 #43727 Removed
 	//TWAIN_UnloadSourceManager();  // REB 2/26/13 #35165 We have to reset our source before trying to acquire an image.
 	//TWAINCapture->DIBHandle = TWAIN_AcquireNative(NULL, TWAIN_ANYTYPE, &returnValue);
 
 	TWAINCapture->returnValue = OrchTwain_Get(TWAINCapture->filePath, TWAINCapture->get64, TWAINCapture->showUI, TWAINCapture->wiaMode, TWAINCapture->getMultiple); // WJF 9/10/15 #43727 // WJF 9/21/15 #43940
-	
+
 	if (TWAINCapture->getMultiple){
 		while (bContinue){
 			SetLastError(ERROR_SUCCESS);
@@ -4975,27 +5012,25 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 				bContinue = FALSE;
 				i--;
 			}
-
 		}
 
 		TWAINCapture->numPictures = i;
 	}
 
 	TWAINCapture->done = TRUE;
-	
+
 	return 0;
 }
 
 void TWAIN_AcquireImage(PA_PluginParameters params)
 {
-
-	LONG_PTR		returnValue = 0, showDialog, threadID;
-	char*			charPos;
+	LONG			returnValue = 0, showDialog = 0; // WJF 6/24/16 Win-21 Initialize to 0 // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	UINT			threadID = 0; // WJF 6/24/16 Win-21 LONG_PTR -> UINT and initialize to 0
+	char*			charPos = NULL; // WJF 6/24/16 Win-21 Initialize to NULL
 	char			fileName[255] = "";
 	char			fileName2[255] = "";
 	char			 *pch = NULL;
 	char			command[255] = "";
-	char			pathChar[1] = "\\";
 	// HANDLE			DIBHandle = NULL; // WJF 9/10/15 #43727 No longer needed
 	HANDLE			CaptureThread;
 	PA_Unistring	Unistring;
@@ -5020,7 +5055,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	len = PA_GetTextParameter(params, 2, NULL);
 
 	if (len > 0) { // WJF 6/29/15 #42792 Don't allocate unless a variable was passed
-		BLOB = malloc(len+1); // WJF 6/29/15 #42792 Added +1
+		BLOB = malloc(len + 1); // WJF 6/29/15 #42792 Added +1
 		len = PA_GetTextParameter(params, 2, BLOB);
 	}
 
@@ -5032,7 +5067,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 	//Unistring = PA_GetApplicationFullPath(); // REB 4/20/11 #27322
 	//pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322 #27490 Fixed method call.
-//	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
+	//	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
 	GetTempPath(MAX_PATH, pathName);
 	charPos = strrchr(pathName, '\\');
 	strncpy(fileName, pathName, (charPos - pathName + 1));
@@ -5059,8 +5094,8 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	TWAINCapture.wiaMode = wiaMode; // WJF 9/21/15 #43940
 
 	TWAINCapture.numPictures = 1; // WJF 9/21/15 #43940 Default
-	
-	TWAINCapture.filePath = (char *)malloc(MAX_PATH_PLUS); // WJF 9/15/15 #43727
+
+	TWAINCapture.filePath = malloc(MAX_PATH_PLUS); // WJF 9/15/15 #43727 // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 
 	strcpy_s(TWAINCapture.filePath, MAX_PATH_PLUS, ""); // WJF 9/15/15 #43727
 
@@ -5086,7 +5121,6 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	//DIBHandle = TWAINCapture.DIBHandle; // WJF 9/10/15 #43727
 	returnValue = TWAINCapture.returnValue;
 
-
 	// Updated so that return code is 1 for success, 0 for cancel and negative for error codes.
 	// Suppress eztwain error dialogs
 	// WJF 9/10/15 #43727 We are now checking to see if the file exists rather than for a valid DIB handle
@@ -5095,26 +5129,23 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	strcpy_s(charPos, 255, "1");
 	strcat_s(fileName3, 255, ".bmp");
 	if ((GetFileAttributes(fileName3) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){
-		
 		// returnValue = TWAIN_WriteNativeToFilename(DIBHandle, fileName2); // WJF 9/10/15 #43727 Removed
 
 		// TWAIN_WriteNativetoFilename returns 0 on success
 		if (returnValue == 0) {
-
 			returnValue = 1;
 
 			strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
 
 			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
+				// AMS 7/10/14 #39391 Rewrote this portion of the method to use PA_GetCommandName. This allows users to not have to pass in an extra blob parameter.
 
-				// AMS 7/10/14 #39391 Rewrote this portion of the method to use PA_GetCommandName. This allows users to not have to pass in an extra blob parameter. 
-
-				PA_GetCommandName(525, cmdName);
+				PA_GetCommandName(525, (PA_Unichar *)cmdName); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 
 				int j = 0;
 
-				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..).
 				// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
 				for (int i = 0; i < sizeof(cmdName); i++) // WJF 6/29/15 #43134 Changed <= to <
 				{
@@ -5127,17 +5158,17 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				for (int i = 0; i < TWAINCapture.numPictures; i++){// WJF 9/21/15 #43940 
+				for (int i = 0; i < TWAINCapture.numPictures; i++){// WJF 9/21/15 #43940
 					pch = fileName;
 
 					// WJF 9/21/15 #43940
 					strcpy_s(fileName, 255, fileName3);
 					charPos = strrchr(fileName, '.');
-					_itoa(i+1, iterator, 10);
+					_itoa(i + 1, iterator, 10);
 					strcpy_s(charPos, 255, iterator);
 					strcat_s(fileName, 255, ".bmp");
 					strcpy_s(fileName2, 255, "");
-					
+
 					charPos = strchr(fileName, '\\');
 					while (charPos != NULL){
 						strncat(fileName2, pch, (charPos - pch));
@@ -5158,17 +5189,17 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						strncpy(command, cName, sizeof(command));
 						strcat(command, "(\"");
 						strcat(command, fileName2);
-						strcat(command, "\";xTempTWAINBlob)"); 
+						strcat(command, "\";xTempTWAINBlob)");
 
-						Unistring = CStringToUnistring(&command);
+						Unistring = CStringToUnistring(command);
 						PA_ExecuteMethod(&Unistring);
-						PA_DisposeUnistring(&Unistring); 
+						PA_DisposeUnistring(&Unistring);
 
-						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
+						PA_GetCommandName(532, (PA_Unichar *)cmdName); // VARIABLE TO BLOB // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 
 						j = 0;
 
-						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..).
 						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
 						for (int k = 0; k < sizeof(cmdName); k++)
 						{
@@ -5182,10 +5213,9 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						strcpy_s(command2, 255, cName2);
 						strcat_s(command2, 255, "(xTempTWAINBlob;xTWAINBlob;*)");
 
-						Unistring = CStringToUnistring(&command2);
+						Unistring = CStringToUnistring(command2); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring);
-
 					}
 					else {
 						//strcpy(command, "DOCUMENT TO BLOB(\"");
@@ -5195,7 +5225,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						strcat(command, "\";xTWAINBLOB)");
 
 						// REB 4/20/11 #27322 Conver the C string to a Unistring
-						Unistring = CStringToUnistring(&command);
+						Unistring = CStringToUnistring(command); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 						//PA_ExecuteMethod(command, strlen(command));
@@ -5206,14 +5236,13 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 			}
 			else // Leaving this in place just in case a user does not want to use our xTWAINBlob variable
 			{ // WJF 6/29/15 #42792 Changed this to be like the above section because of a memory leak with varArray[0]. Now users will have to pass the name of the blob as text.
-
-				PA_GetCommandName(525, cmdName);
+				PA_GetCommandName(525, (PA_Unichar *)cmdName); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 
 				int j = 0;
 
-				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+				// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..).
 				// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
-				for (int i = 0; i < sizeof(cmdName); i++) 
+				for (int i = 0; i < sizeof(cmdName); i++)
 				{
 					if (cmdName[i] != '\0')
 					{
@@ -5224,7 +5253,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 
 				cName[(strlen(cName))] = '\0';
 
-				// WJF 9/21/15 #43940 
+				// WJF 9/21/15 #43940
 				for (int i = 0; i < TWAINCapture.numPictures; i++){
 					pch = fileName;
 
@@ -5250,21 +5279,21 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						}
 					}
 
-					if (getMultiple){ 
+					if (getMultiple){
 						strncpy(command, cName, sizeof(command));
 						strcat(command, "(\"");
 						strcat(command, fileName2);
 						strcat(command, "\";xTempTWAINBlob)");
 
-						Unistring = CStringToUnistring(&command);
+						Unistring = CStringToUnistring(command); // WJF 6/24/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring);
 
-						PA_GetCommandName(532, cmdName); // VARIABLE TO BLOB
+						PA_GetCommandName(532, (PA_Unichar *)cmdName); // VARIABLE TO BLOB // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 
 						j = 0;
 
-						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..). 
+						// Get the full command name. A for loop is needed because PA_GetCommandName returns the command name with a null character between each character. (Ex. - "D,\0,O,\0,C,\0..).
 						// The for loop extracts the null character. Without the for loop, you will be unable to use the string returned by PA_GetCommand, as only the first character will be returned since the next character is null.
 						for (int k = 0; k < sizeof(cmdName); k++)
 						{
@@ -5280,10 +5309,9 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						strcat_s(command2, 255, BLOB);
 						strcat_s(command2, 255, ";*)");
 
-						Unistring = CStringToUnistring(&command2);
+						Unistring = CStringToUnistring(command2); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring);
-
 					}
 					else {
 						strcpy_s(command, 255, cName);
@@ -5293,7 +5321,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						strcat_s(command, 255, BLOB);
 						strcat_s(command, 255, ")");
 
-						Unistring = CStringToUnistring(&command);
+						Unistring = CStringToUnistring(command); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring);
 					}
@@ -5336,15 +5364,14 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				PA_DisposeUnistring(&Unistring); // WJF 6/25/15 #42792
 				free(twainBlob); */
 			}
-			
 		}
 	}
 
-	if (len>0) // WJF 6/29/15 #42792 Only free if allocated
+	if (len > 0) // WJF 6/29/15 #42792 Only free if allocated
 	{
 		free(BLOB); // AMS 7/10/14 #39391
 	}
-	
+
 	//free(pathName); // WJF 6/25/15 #42792
 
 	if (TWAINCapture.filePath){
@@ -5355,9 +5382,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 
 	// TWAIN_FreeNative(DIBHandle); // WJF 9/10/15 #43727 No longer needed
-
 }
-
 
 /***************************************************************
 Determine if the frontmost window belongs to our instance
@@ -5368,8 +5393,8 @@ REB 4/6/09 #19472
 void sys_IsAppFrontmost(PA_PluginParameters params)
 {
 	HWND			hwndFront;
-	HWND			MDIhWnd, ChildhWnd, NexthWnd, returnValue = 0;
-	LONG_PTR			lFound = 0;
+	HWND			MDIhWnd, ChildhWnd, NexthWnd;
+	BOOL			lFound = 0; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 
 	// First get the frontmost window.
 	hwndFront = GetForegroundWindow();
@@ -5403,11 +5428,8 @@ void sys_IsAppFrontmost(PA_PluginParameters params)
 		} while (NexthWnd != NULL);
 	};
 
-
 	PA_ReturnLong(params, lFound);
-
 }
-
 
 //----------------------------------------------------------------------
 //
@@ -5419,14 +5441,14 @@ void sys_IsAppFrontmost(PA_PluginParameters params)
 //
 void gui_MessageBox(PA_PluginParameters params, BOOL isEx)
 {
-	LONG_PTR ownerHandleIndex;
+	DWORD ownerHandleIndex; // WJF 6/30/16 Win-21 LONG_PTR -> DWORD
 	HWND ownerHandle;
 	LONG_PTR messageText_len;
 	char messageText[32000];
 	LONG_PTR dialogTitle_len;
 	char dialogTitle[32000];
 	LONG_PTR dialogType;
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	ownerHandleIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal handle array
 	messageText_len = PA_GetTextParameter(params, 2, messageText);
@@ -5441,15 +5463,11 @@ void gui_MessageBox(PA_PluginParameters params, BOOL isEx)
 	else {
 		ownerHandle = (HWND)ownerHandleIndex;
 	}
-	
+
 	returnValue = MessageBoxEx(ownerHandle, (LPCSTR)messageText, (LPCSTR)dialogTitle, (UINT)dialogType, 0); // WJF 9/1/15 #43731 Removed typecasting on the handle
 
 	PA_ReturnLong(params, returnValue);
 }
-
-
-
-
 
 //----------------------------------------------------------------------
 //
@@ -5461,7 +5479,6 @@ void gui_MessageBox(PA_PluginParameters params, BOOL isEx)
 //
 void gui_SetMDIOpaque(PA_PluginParameters params)
 {
-
 	LONG_PTR returnValue;
 
 	returnValue = SetLayeredWindowAttributes(windowHandles.fourDhWnd, GetSysColor(COLOR_APPWORKSPACE), 255, LWA_ALPHA);
@@ -5473,9 +5490,8 @@ void gui_SetMDIOpaque(PA_PluginParameters params)
 	InvalidateRect(windowHandles.fourDhWnd, NULL, TRUE);
 	UpdateWindow(GetDesktopWindow());
 
-	PA_ReturnLong(params, returnValue);
+	PA_ReturnLong(params, (LONG)returnValue); // WJF 6/30/16 Win-21 Cast to LONG
 }
-
 
 //----------------------------------------------------------------------
 //
@@ -5487,7 +5503,6 @@ void gui_SetMDIOpaque(PA_PluginParameters params)
 //
 void gui_SetMDITransparent(PA_PluginParameters params)
 {
-
 	LONG_PTR returnValue;
 	// REB 3/11/10 #23109 Get the original window style before we mess around with it.
 	windowStyle = GetWindowLongPtr(windowHandles.fourDhWnd, GWL_EXSTYLE);
@@ -5498,9 +5513,8 @@ void gui_SetMDITransparent(PA_PluginParameters params)
 	InvalidateRect(windowHandles.fourDhWnd, NULL, TRUE);
 	UpdateWindow(GetDesktopWindow());
 
-	PA_ReturnLong(params, returnValue);
+	PA_ReturnLong(params, (LONG)returnValue); // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 }
-
 
 //----------------------------------------------------------------------
 //
@@ -5513,7 +5527,7 @@ void gui_SetMDITransparent(PA_PluginParameters params)
 void gui_HideTaskBar(PA_PluginParameters params)
 {
 	HWND HWND_tray;
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	HWND_tray = FindWindow("Shell_TrayWnd", NULL);
 	returnValue = ShowWindow(HWND_tray, SW_HIDE);
@@ -5523,8 +5537,6 @@ void gui_HideTaskBar(PA_PluginParameters params)
 
 	PA_ReturnLong(params, returnValue);
 }
-
-
 
 //----------------------------------------------------------------------
 //
@@ -5537,7 +5549,7 @@ void gui_HideTaskBar(PA_PluginParameters params)
 void gui_ShowTaskBar(PA_PluginParameters params)
 {
 	HWND HWND_tray;
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	HWND_tray = FindWindow("Shell_TrayWnd", NULL);
 	returnValue = ShowWindow(HWND_tray, SW_SHOW);
@@ -5557,7 +5569,6 @@ void gui_ShowTaskBar(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 //----------------------------------------------------------------------
 //
 // FUNCTION:	gui_HideTitleBar
@@ -5568,8 +5579,7 @@ void gui_ShowTaskBar(PA_PluginParameters params)
 //
 void gui_HideTitleBar(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 
 	SetWindowLong(windowHandles.fourDhWnd, GWL_STYLE, GetWindowLong(windowHandles.fourDhWnd, GWL_STYLE) | WS_POPUP);
 	SetWindowLong(windowHandles.fourDhWnd, GWL_STYLE, GetWindowLong(windowHandles.fourDhWnd, GWL_STYLE) &~WS_CAPTION);
@@ -5582,7 +5592,6 @@ void gui_HideTitleBar(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 //----------------------------------------------------------------------
 //
 // FUNCTION:	gui_ShowTitleBar
@@ -5593,8 +5602,7 @@ void gui_HideTitleBar(PA_PluginParameters params)
 //
 void gui_ShowTitleBar(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	BOOL returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 
 	SetWindowLong(windowHandles.fourDhWnd, GWL_STYLE, GetWindowLong(windowHandles.fourDhWnd, GWL_STYLE) &~WS_POPUP);
 	SetWindowLong(windowHandles.fourDhWnd, GWL_STYLE, GetWindowLong(windowHandles.fourDhWnd, GWL_STYLE) | WS_CAPTION);
@@ -5617,8 +5625,7 @@ void gui_ShowTitleBar(PA_PluginParameters params)
 //
 void gui_MaximizeMDI(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	BOOL returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 	WINDOWPLACEMENT wndpl;
 
 	wndpl.length = sizeof(WINDOWPLACEMENT);
@@ -5642,8 +5649,7 @@ void gui_MaximizeMDI(PA_PluginParameters params)
 //
 void gui_MinimizeMDI(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	BOOL returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 	WINDOWPLACEMENT wndpl;
 
 	wndpl.length = sizeof(WINDOWPLACEMENT);
@@ -5667,8 +5673,7 @@ void gui_MinimizeMDI(PA_PluginParameters params)
 //
 void gui_RestoreMDI(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	BOOL returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 	WINDOWPLACEMENT wndpl;
 
 	wndpl.length = sizeof(WINDOWPLACEMENT);
@@ -5682,7 +5687,6 @@ void gui_RestoreMDI(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 //----------------------------------------------------------------------
 //
 // FUNCTION:	sys_DisableTaskManager
@@ -5693,8 +5697,7 @@ void gui_RestoreMDI(PA_PluginParameters params)
 //
 void sys_DisableTaskManager(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HKEY hk;
 	DWORD val = 1;
 
@@ -5716,8 +5719,6 @@ void sys_DisableTaskManager(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
-
 //----------------------------------------------------------------------
 //
 // FUNCTION:	sys_EnableTaskManager
@@ -5728,8 +5729,7 @@ void sys_DisableTaskManager(PA_PluginParameters params)
 //
 void sys_EnableTaskManager(PA_PluginParameters params)
 {
-
-	LONG_PTR returnValue;
+	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HKEY hk;
 
 	if (hookHandles.keyboardLLHook)
@@ -5753,24 +5753,28 @@ void sys_EnableTaskManager(PA_PluginParameters params)
 	PA_ReturnLong(params, returnValue);
 }
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_SetRegKey( PA_PluginParameters params, LONG_PTR selector )
 //
 //  PURPOSE:  Set a registry key value.
-//        
+//
 //	DATE:	  REB 11/17/10 #25402
 //
 void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 {
-	LONG_PTR returnValue, regKey, retErr, dataSize, arraySize, value, expandDataSize, keyState;
+	LONG returnValue, regKey, retErr, arraySize, value, expandDataSize; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	DWORD dataSize = 0; // WJF 6/24/16 Win-21 LONG_PTR -> DWORD
+	DWORD keyState = 0; // WJF 6/24/16 Win-21 LONG_PTR -> DWORD and initialized to 0;
 	DWORD dwVal = 0;
 	__int64 val64 = 0;
-	LONG_PTR i, len;
+	LONG i; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	DWORD len; // WJF 6/30/16 Win-21 LONG_PTR -> DWORD
 	char regSub[MAXBUF];
 	char regName[MAXBUF];
-	char *newDataBuffer = NULL, *element = NULL, *pos = NULL;
+	PBYTE newDataBuffer = NULL; // WJF 6/24/16 Win-21 char -> PBYTE
+	LPSTR element = NULL;
+	unsigned char * pos = NULL; // WJF 6/24/16 Win-21 char -> unsigned char
 	HKEY hRootKey;
 	HKEY hOpenKey;
 	DWORD dwDataType;
@@ -5803,7 +5807,6 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 	}
 
 	if (retErr == ERROR_SUCCESS){
-
 		returnValue = -97;
 
 		// Get the value type from the registry.
@@ -5811,9 +5814,7 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 
 		// If the value was not found we'll need to determine the type based on the value passed in.
 		if (retErr == ERROR_FILE_NOT_FOUND){
-
 			switch (selector){
-
 			case 90:
 				dwDataType = REG_SZ;
 				retErr = ERROR_SUCCESS;
@@ -5842,14 +5843,13 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 		}
 
 		if (retErr == ERROR_SUCCESS){
-
 			switch (dwDataType){
 			case REG_BINARY:
 				len = PA_GetBlobParameter(params, 4, NULL);
 				newDataBuffer = malloc(len);
 				len = PA_GetBlobParameter(params, 4, newDataBuffer);
 
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, newDataBuffer, len);
+				retErr = RegSetValueEx(hOpenKey, regName, (DWORD)NULL, dwDataType, newDataBuffer, len); // WJF 6/21/16 Win-21 Casting NULL to DWORD
 
 				free(newDataBuffer);
 
@@ -5860,14 +5860,13 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 					returnValue = retErr * -1;
 				}
 
-
 				break;
 
 			case REG_DWORD:
 			case REG_DWORD_BIG_ENDIAN:
 				value = PA_GetLongParameter(params, 4);
 				dwVal = value; // WJF 8/31/15 #43731 Truncate to 32-bit DWORD
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &dwVal, sizeof(dwVal));
+				retErr = RegSetValueEx(hOpenKey, regName, (DWORD)NULL, dwDataType, (PBYTE)&dwVal, sizeof(dwVal)); // WJF 6/21/16 Win-21 Casting NULL to DWORD and dwVal to PBYTE
 
 				if (retErr == ERROR_SUCCESS){
 					returnValue = 1;
@@ -5877,7 +5876,6 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				}
 
 				break;
-
 
 			case REG_MULTI_SZ:
 
@@ -5904,10 +5902,9 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 						pos += len + 1;
 
 						free(element);
-
 					}
 
-					retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, newDataBuffer, arraySize + 1);
+					retErr = RegSetValueEx(hOpenKey, regName, (DWORD)NULL, dwDataType, newDataBuffer, arraySize + 1); // WJF 6/21/16 Win-21 Casting NULL to DWORD
 					free(newDataBuffer);
 				}
 
@@ -5923,13 +5920,13 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 			case REG_EXPAND_SZ:
 			case REG_SZ:
 
-				len = PA_GetTextParameter(params, 4, NULL) + 1;
+				len = (DWORD)PA_GetTextParameter(params, 4, NULL) + 1; // WJF 6/30/16 Win-21 Cast to DWORD
 				newDataBuffer = malloc(len * sizeof(char));
 				memset(newDataBuffer, 0, (len * sizeof(char)));
-				len = PA_GetTextParameter(params, 4, newDataBuffer);
+				len = (DWORD)PA_GetTextParameter(params, 4, (LPSTR)newDataBuffer); // WJF 6/24/16 Win-21 Cast to LPSTR // WJF 6/30/16 Win-21 Cast to DWORD
 				newDataBuffer[len] = '\0';
 
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, newDataBuffer, len);
+				retErr = RegSetValueEx(hOpenKey, regName, (DWORD)NULL, dwDataType, newDataBuffer, len); // WJF 6/24/16 Win-21 Casting NULL to DWORD
 
 				if (retErr == ERROR_SUCCESS){
 					returnValue = 1;
@@ -5944,8 +5941,8 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 
 			case REG_QWORD: // WJF 8/31/15 #43731 Added Support for 64-bit QWORD
 				value = PA_GetLongParameter(params, 4);
-			    val64 = value; // Force to 64-bit
-				retErr = RegSetValueEx(hOpenKey, regName, NULL, dwDataType, &val64, sizeof(val64));
+				val64 = value; // Force to 64-bit
+				retErr = RegSetValueEx(hOpenKey, regName, (DWORD)NULL, dwDataType, (PBYTE)&val64, sizeof(val64)); // WJF 6/24/16 Win-21 Casting NULL to DWORD and casting to PBYTE
 
 				if (retErr == ERROR_SUCCESS){
 					returnValue = 1;
@@ -5955,7 +5952,6 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 				}
 
 				break;
-
 			}
 		}
 	}
@@ -5964,17 +5960,12 @@ void sys_SetRegKey(PA_PluginParameters params, LONG_PTR selector)
 	PA_ReturnLong(params, returnValue);
 }
 
-
-
-
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_IsAppRunningAsService( PA_PluginParameters params, LONG_PTR selector )
 //
 //  PURPOSE:  Determine if the application is running as a service.
-//        
+//
 //	DATE:	  REB 1/12/11 #25587, contributed by Justin Carr
 //
 void sys_IsAppRunningAsService(PA_PluginParameters params)
@@ -6008,23 +5999,20 @@ void sys_IsAppRunningAsService(PA_PluginParameters params)
 		FreeSid(pServiceSid);
 
 	PA_ReturnShort(params, serviceInd);
-
 }
 
-
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_CompareBLOBs( PA_PluginParameters params )
 //
 //  PURPOSE:  Compare two BLOBs and return 1 if they are equal and 0 if they are not.
-//        
+//
 //	DATE:	  // REB 11/9/12 TESTING
 //
 void sys_CompareBLOBs(PA_PluginParameters params)
 {
-	LONG_PTR returnValue = 0;
-	LONG_PTR len1, len2;
+	LONG returnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG len1, len2; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char *BLOB1 = NULL;
 	char *BLOB2 = NULL;
 
@@ -6047,9 +6035,7 @@ void sys_CompareBLOBs(PA_PluginParameters params)
 	free(BLOB2);
 
 	PA_ReturnLong(params, returnValue);
-
 }
-
 
 //----------------------------------------------------------------------
 //
@@ -6059,9 +6045,9 @@ void sys_CompareBLOBs(PA_PluginParameters params)
 //
 // REB 1/8/10 #22389 Code contributed by miyako
 //
-LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
+// WJF 6/30/21 Win-21 INT_PTR -> INT
+LRESULT CALLBACK keyboardLLHook(INT code, WPARAM wParam, LPARAM lParam)
 {
-
 	KBDLLHOOKSTRUCT *pkh = (KBDLLHOOKSTRUCT *)lParam;
 	BOOL bCtrlKeyDown = FALSE;
 	BOOL bAltKeyDown = FALSE;
@@ -6075,8 +6061,8 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 		if ((pkh->vkCode == VK_ESCAPE && bCtrlKeyDown) ||					// Ctrl+Esc
 			(pkh->vkCode == VK_TAB && bAltKeyDown) ||						// Alt+Tab
 			(pkh->vkCode == VK_ESCAPE && bAltKeyDown) ||					// Alt+Esc
-			(pkh->vkCode == VK_ESCAPE && bCtrlKeyDown && bShiftKeyDown) || // Ctrl+Shift+Esc			
-			(pkh->vkCode == VK_F4 && bAltKeyDown) ||						// Alt+F4			
+			(pkh->vkCode == VK_ESCAPE && bCtrlKeyDown && bShiftKeyDown) || // Ctrl+Shift+Esc
+			(pkh->vkCode == VK_F4 && bAltKeyDown) ||						// Alt+F4
 			(pkh->vkCode == VK_LWIN || pkh->vkCode == VK_RWIN))				// Start Menu
 		{
 			return 1;
@@ -6085,12 +6071,11 @@ LRESULT CALLBACK keyboardLLHook(INT_PTR code, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(hookHandles.keyboardLLHook, code, wParam, lParam);
 }
 
-
 //----------------------------------------------------------------------
 //
 // FUNCTION:	sys_GetFileVersionInfo
 //
-// PURPOSE:		Return file version information 
+// PURPOSE:		Return file version information
 //
 // AMS 2/14/14 #36899
 //
@@ -6098,8 +6083,8 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 {
 	char *verData = NULL;
 	char *file = NULL;
-	DWORD verHandle = NULL;
-	DWORD verSize = NULL;
+	DWORD verHandle = 0; // WJF 6/24/16 Win-21 NULL -> 0
+	DWORD verSize = 0; // WJF 6/24/16 Win-21 NULL -> 0
 
 	LONG_PTR ret = 0;
 	LONG_PTR major = 0;
@@ -6132,11 +6117,8 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 						build = HIWORD(verInfo->dwFileVersionLS);
 						rev = LOWORD(verInfo->dwFileVersionLS);
 					}
-
 				}
-
 			}
-
 		}
 
 		else
@@ -6145,7 +6127,6 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 		}
 
 		free(verData);
-
 	}
 
 	free(file);
@@ -6156,7 +6137,6 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 	PA_SetLongParameter(params, 5, (LONG)rev);
 
 	PA_ReturnLong(params, (LONG)ret);
-
 }
 
 //----------------------------------------------------------------------
@@ -6170,14 +6150,12 @@ void sys_GetFileVersionInfo(PA_PluginParameters params)
 //
 
 void sys_SendRawPrinterData(PA_PluginParameters params){
-	PRINTDLG pd;                      // Structure to hold information about printer
-	DOCINFO di;                       // Structure to hold "document" information
 	char *printerName = NULL;   // String to hold the printerName param ($1) // WJF 5/5/16 Win-16 Changed to a pointer
 	char *data = NULL;      // String to hold the data param ($2) REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF which is twice as big. // WJF 5/5/16 Win-16 Changed to a pointer
 	char *origDefault;                // String to hold the original default printer
-	INT_PTR ret;                          // Int to hold return value of functions                 
-	INT_PTR iErrCode = 1;                 // Int to hold the error code.
-	ULONG_PTR ulBytesNeeded;      // Holds size information
+	BOOL ret;                          // Int to hold return value of functions // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
+	LONG iErrCode = 1;                 // Int to hold the error code. // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	DWORD dwBytesNeeded;      // Holds size information // WJF 6/24/16 Win-21 ULONG_PTR -> DWORD
 
 	BOOL     bStatus = FALSE;
 	HANDLE     hPrinter = NULL;
@@ -6186,20 +6164,19 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 	DWORD      dwBytesWritten = 0L;
 	DWORD		dwSize = 0;
 
-
 	// Set needed bytes to default value
-	ulBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
+	dwBytesNeeded = MAXLABELBUF; // REB 6/5/08 #17022 Changed MAXBUF to MAXLABELBUF
 
 	// WJF 5/13/16 Win-16 Removed because it wasn't used
 	// Set this to 255.
 	//printerName_len = 255;
 
 	// Get the function parameters.
-	// WJF 5/5/16 Win-16 
+	// WJF 5/5/16 Win-16
 	dwSize = PA_GetTextParameter(params, 1, NULL);
-	if (printerName = (char *)malloc(dwSize + 1)) {
+	if (printerName = malloc(dwSize + 1)) {// WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 		dwSize = PA_GetTextParameter(params, 1, printerName);
-	} 
+	}
 	else {
 		PA_ReturnLong(params, -1);
 		return;
@@ -6207,7 +6184,7 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 
 	// WJF 5/5/16 Win-16
 	dwSize = PA_GetTextParameter(params, 2, NULL);
-	if (data = (char *)malloc(dwSize + 1)) {
+	if (data = malloc(dwSize + 1)) { // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 		dwSize = PA_GetTextParameter(params, 2, data);
 	}
 	else {
@@ -6216,11 +6193,11 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 	}
 
 	// Allocate memory for Storing string for Original Default Printer & pBuf
-	origDefault = (char *)malloc(ulBytesNeeded);
-	memset(origDefault, 0, ulBytesNeeded);
+	origDefault = malloc(dwBytesNeeded); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
+	memset(origDefault, 0, dwBytesNeeded);
 
 	// Get name of current Default Printer
-	GetDefaultPrinter(origDefault, &ulBytesNeeded);
+	GetDefaultPrinter(origDefault, &dwBytesNeeded);
 
 	// Set the new Default Printer to our label printer, with the name obtained from the registry
 	ret = SetDefaultPrinter((char *)printerName);
@@ -6228,32 +6205,32 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 	// We set the default printer just fine, now let's do the printing.
 	if (ret != 0)
 	{
-		// Open a handle to the printer. 
+		// Open a handle to the printer.
 		bStatus = OpenPrinter(printerName, &hPrinter, NULL);
 		if (bStatus)
 		{
-			// Fill in the structure with info about this "document." 
+			// Fill in the structure with info about this "document."
 			DocInfo.pDocName = (LPTSTR)("My Document");
 			DocInfo.pOutputFile = NULL;
 			DocInfo.pDatatype = (LPTSTR)("RAW");
 
-			// Inform the spooler the document is beginning. 
+			// Inform the spooler the document is beginning.
 			dwJob = StartDocPrinter(hPrinter, 1, (LPBYTE)&DocInfo);
 			if (dwJob > 0) {
-				// Start a page. 
+				// Start a page.
 				bStatus = StartPagePrinter(hPrinter);
 				if (bStatus) {
-					// Send the data to the printer. 
+					// Send the data to the printer.
 					bStatus = WritePrinter(hPrinter, data, dwSize, &dwBytesWritten);
 					EndPagePrinter(hPrinter);
 				}
-				// Inform the spooler that the document is ending. 
+				// Inform the spooler that the document is ending.
 				EndDocPrinter(hPrinter);
 			}
-			// Close the printer handle. 
+			// Close the printer handle.
 			ClosePrinter(hPrinter);
 		}
-		// Check to see if correct number of bytes were written. 
+		// Check to see if correct number of bytes were written.
 		if (!bStatus || (dwBytesWritten != dwSize))
 		{
 			bStatus = FALSE;
@@ -6264,7 +6241,6 @@ void sys_SendRawPrinterData(PA_PluginParameters params){
 			bStatus = TRUE;
 			iErrCode = 0;
 		}
-
 	}
 
 	// WJF 5/5/16 Win-16
@@ -6366,12 +6342,11 @@ PA_ReturnLong(params, lpReturn);
 //
 //  PURPOSE:	Sets the cursor based on the passed value
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 4/10/15 #23512
 /*
 void sys_SetCursor(PA_PluginParameters params){
-
 long lCursor = 0;
 
 lCursor = PA_GetLongParameter(params, 1);
@@ -6403,7 +6378,6 @@ break;
 SetClassLong(windowHandles.MDIhWnd, GCL_HCURSOR, NULL);
 SetCursor(cursorHandle);
 
-
 PA_ReturnLong(params, 0);
 }*/
 
@@ -6411,13 +6385,13 @@ PA_ReturnLong(params, 0);
 //
 //  PURPOSE:	Deletes a registry key
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 4/14/15 #27474
 void sys_DeleteRegKey(PA_PluginParameters params)
 {
 	HKEY hKey = 0;
-	short baseKey = 0;
+	long baseKey = 0; // WJF 6/24/16 Win-21 short -> long
 	char subKey[255];
 	long errorCode = 0;
 
@@ -6449,52 +6423,52 @@ void sys_DeleteRegKey(PA_PluginParameters params)
 /* WJF 6/12/15 #42964 Removed for now since RegDeleteKeyEx merely existing in the code causes Win32API to crash on 32bit XP
 void sys_DeleteRegKey64(PA_PluginParameters params)
 {
-	HKEY hKey = 0;
-	short baseKey = 0;
-	char subKey[255];
-	long errorCode = 0;
-	REGSAM regView;
-	long view = 0;
+HKEY hKey = 0;
+short baseKey = 0;
+char subKey[255];
+long errorCode = 0;
+REGSAM regView;
+long view = 0;
 
-	baseKey = PA_GetLongParameter(params, 1);
-	PA_GetTextParameter(params, 2, subKey);
-	view = PA_GetLongParameter(params, 3);
+baseKey = PA_GetLongParameter(params, 1);
+PA_GetTextParameter(params, 2, subKey);
+view = PA_GetLongParameter(params, 3);
 
-	switch (view)
-	{
-	case 1:
-		regView = KEY_WOW64_64KEY;
-		break;
-	default:
-		regView = KEY_WOW64_32KEY;
-	}
+switch (view)
+{
+case 1:
+regView = KEY_WOW64_64KEY;
+break;
+default:
+regView = KEY_WOW64_32KEY;
+}
 
-	hKey = getRootKey(baseKey);
+hKey = getRootKey(baseKey);
 
-	if (errorCode != -1)
-	{
-		errorCode = RegOpenKeyEx(hKey, NULL, 0, KEY_ALL_ACCESS, &hKey); // Open Key
-		if (errorCode == ERROR_SUCCESS)
-		{
-			RegDeleteKeyEx(hKey, TEXT(subKey), regView, 0);
-		}
-		RegCloseKey(hKey); // Keys aren't deleted until they are closed
-	}
+if (errorCode != -1)
+{
+errorCode = RegOpenKeyEx(hKey, NULL, 0, KEY_ALL_ACCESS, &hKey); // Open Key
+if (errorCode == ERROR_SUCCESS)
+{
+RegDeleteKeyEx(hKey, TEXT(subKey), regView, 0);
+}
+RegCloseKey(hKey); // Keys aren't deleted until they are closed
+}
 
-	PA_ReturnLong(params, errorCode);
+PA_ReturnLong(params, errorCode);
 }*/
 
 //  FUNCTION: sys_DeleteRegValue(PA_PluginParameters params)
 //
 //  PURPOSE:	Deletes a registry value
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 4/14/15 #27474
 void sys_DeleteRegValue(PA_PluginParameters params)
 {
 	HKEY hKey = 0;
-	short baseKey = 0;
+	long baseKey = 0; // WJF 6/24/16 Win-21 short -> long
 	char subKey[255];
 	long errorCode = 0;
 	char keyValue[255];
@@ -6522,12 +6496,11 @@ void sys_DeleteRegValue(PA_PluginParameters params)
 //
 //  PURPOSE:	Takes a screenshot of the desktop
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 7/7/15 #43138
 
 void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
-
 	LONG_PTR				hWndIndex;
 	RECT					rcClient;
 	int						lError = 0;
@@ -6551,11 +6524,11 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 	hWndIndex = PA_GetLongParameter(params, 1); // WJF 9/1/15 #43731 We are now getting an index to an internal array;
 
 	dwFilePathLength = PA_GetTextParameter(params, 2, NULL);
-	filePath = (char *)malloc(dwFilePathLength);
+	filePath = malloc(dwFilePathLength); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 	dwFilePathLength = PA_GetTextParameter(params, 2, filePath);
 
 	if (isEx){ // WJF 9/16/15 #43731
-		hWnd = handleArray_retrieve((DWORD)hWndIndex); 
+		hWnd = handleArray_retrieve((DWORD)hWndIndex);
 	}
 	else {
 		hWnd = (HWND)hWndIndex;
@@ -6570,7 +6543,6 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 		hdcMemDC = CreateCompatibleDC(hdcWindow);
 
 		if (hdcMemDC) {
-
 			// Get the client area for size calculation
 			GetClientRect(hWnd, &rcClient);
 			// Adjust for caption bar and borders
@@ -6583,13 +6555,11 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 			hbmScreen = CreateCompatibleBitmap(hdcWindow, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
 
 			if (hbmScreen){
-
 				// Select the compatible bitmap into the compatible memory DC.
 				SelectObject(hdcMemDC, hbmScreen);
 
 				// Bit block transfer into our compatible memory DC.
 				if (BitBlt(hdcMemDC, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hdcWindow, rcClient.left, rcClient.top, SRCCOPY)) {
-
 					// Get the BITMAP from the HBITMAP
 					GetObject(hbmScreen, sizeof(BITMAP), &bmpScreen);
 
@@ -6607,13 +6577,13 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 
 					dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
 
-					// Starting with 32-bit Windows, GlobalAlloc and LocalAlloc are implemented as wrapper functions that 
-					// call HeapAlloc using a handle to the process's default heap. Therefore, GlobalAlloc and LocalAlloc 
+					// Starting with 32-bit Windows, GlobalAlloc and LocalAlloc are implemented as wrapper functions that
+					// call HeapAlloc using a handle to the process's default heap. Therefore, GlobalAlloc and LocalAlloc
 					// have greater overhead than HeapAlloc.
 					hDIB = GlobalAlloc(GHND, dwBmpSize);
 					lpbitmap = (char *)GlobalLock(hDIB);
 
-					// Gets the "bits" from the bitmap and copies them into a buffer 
+					// Gets the "bits" from the bitmap and copies them into a buffer
 					// which is pointed to by lpbitmap.
 					GetDIBits(hdcWindow, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO *)&bi, DIB_RGB_COLORS);
 
@@ -6630,7 +6600,7 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 					bmfHeader.bfSize = dwSizeofDIB;
 
 					// bfType must always be BM for Bitmaps
-					bmfHeader.bfType = 0x4D42; //BM   
+					bmfHeader.bfType = 0x4D42; //BM
 
 					dwBytesWritten = 0;
 					WriteFile(hFile, (LPSTR)&bmfHeader, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
@@ -6643,14 +6613,12 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 
 					// Close the handle for the file that was created
 					CloseHandle(hFile);
-
 				}
 				else {
 					lError = 3;
 				}
 
 				DeleteObject(hbmScreen);
-
 			}
 			else {
 				lError = 2;
@@ -6672,18 +6640,17 @@ void gui_TakeScreenshot(PA_PluginParameters params, BOOL isEx){
 	free(filePath);
 
 	PA_ReturnLong(params, lError);
-
 }
-
 
 //  FUNCTION:	handleArray_add (LONG_PTR hWND)
 //
 //  PURPOSE:	Adds a handle to the internal handle array
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/1/15 #43731
-DWORD handleArray_add(LONG_PTR hWND){
+//  WJF 6/24/16 Win-21 DWORD -> INT
+INT handleArray_add(LONG_PTR hWND){
 	int i = 0;
 	BOOL hasEmptySlot = FALSE;
 	DWORD dwResult = 0;
@@ -6728,14 +6695,13 @@ DWORD handleArray_add(LONG_PTR hWND){
 //
 //  PURPOSE:	Initializes the internal handle array and its mutex object
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_init(){
-
 	for (int i = 0; i < HANDLEARRAY_CAPACITY; i++)
 		handleArray[i] = 0;
-		
+
 	hArrayMutex = CreateMutex(NULL, FALSE, NULL);
 
 	if (hArrayMutex == NULL){
@@ -6744,8 +6710,6 @@ DWORD handleArray_init(){
 	else {
 		return ERROR_SUCCESS;
 	}
-
-
 }
 
 //  FUNCTION:	handleArray_remove (PA_PluginParameters params)
@@ -6757,12 +6721,11 @@ DWORD handleArray_init(){
 //	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_remove(PA_PluginParameters params){
 	LONG index = 0;
-	DWORD errorCode = -1;
+	PA_long32 errorCode = -1; // WJF 6/24/16 Win-21 DWORD - PA_long32
 
 	index = PA_GetLongParameter(params, 1);
 
 	if ((index >= 0) && (index < HANDLEARRAY_CAPACITY)){
-
 		errorCode = WaitForSingleObject(hArrayMutex, 2000);
 		if (errorCode == WAIT_OBJECT_0){
 			__try{
@@ -6772,7 +6735,6 @@ DWORD handleArray_remove(PA_PluginParameters params){
 				ReleaseMutex(hArrayMutex);
 			}
 		}
-
 	}
 
 	PA_ReturnLong(params, errorCode);
@@ -6784,7 +6746,7 @@ DWORD handleArray_remove(PA_PluginParameters params){
 //
 //  PURPOSE:	"Frees" all handle in the internal handle array, setting their values to 0.
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/1/15 #43731
 DWORD handleArray_free(PA_PluginParameters params){
@@ -6811,12 +6773,12 @@ DWORD handleArray_free(PA_PluginParameters params){
 //
 //  PURPOSE:	Common method to return a handle from the handleArray
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/16/15 #43731
 HWND handleArray_retrieve(DWORD handleIndex){
 	LONG_PTR handle = 0;
-	
+
 	if ((handleIndex >= 0) && (handleIndex < HANDLEARRAY_CAPACITY)){
 		handle = handleArray[handleIndex];
 	}
@@ -6828,7 +6790,7 @@ HWND handleArray_retrieve(DWORD handleIndex){
 //
 //  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/15/15 #43731
 void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
@@ -6846,7 +6808,6 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
 
 	if (strcmp(windowTitle, "*") == 0) { // return the frontmost window
 		windowHandle = (LONG_PTR)hWnd;
-
 	}
 	else {
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
@@ -6876,22 +6837,21 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
 //
 //  PURPOSE:	Finds a handle, adds it to the internal handle array, and returns the index
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 9/15/15 #43731
 void gui_GetWindowFrom4DWinEx(PA_PluginParameters params)
 {
 	LONG_PTR h4DWnd = 0;
 	LONG_PTR windowHandle = 0;
-	LONG_PTR serverValue = 0;
 	long returnValue = 0;
 
 	h4DWnd = PA_GetLongParameter(params, 1);
 
-	windowHandle = PA_GetHWND(h4DWnd);
+	windowHandle = PA_GetHWND((PA_WindowRef)h4DWnd); // WJF 6/21/16 Win-19 Casting to PA_WindowRef
 
 	returnValue = handleArray_add(windowHandle);
-	
+
 	PA_ReturnLong(params, returnValue);
 }
 
@@ -6911,13 +6871,13 @@ void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
 
 	index = PA_GetLongParameter(params, 1);
 
-	if (isEx){ 
+	if (isEx){
 		hWnd = handleArray_retrieve((DWORD)index);
 	}
 	else {
 		hWnd = (HWND)index;
 	}
-	
+
 	if (IsWindow(hWnd)){
 		bResult = SetForegroundWindow(hWnd);
 	}
@@ -6933,7 +6893,7 @@ void gui_SetForegroundWindow(PA_PluginParameters params, BOOL isEx)
 //
 //  PURPOSE:	Sets the focus to the specified window
 //
-//  COMMENTS:   
+//  COMMENTS:
 //
 //	DATE:		WJF 10/19/15 Win-3
 void gui_SetFocusEx(PA_PluginParameters params){
@@ -6950,7 +6910,7 @@ void gui_SetFocusEx(PA_PluginParameters params){
 	if (IsWindow(hWnd)){
 		thisThread = GetCurrentThreadId();
 		targetThread = GetWindowThreadProcessId(hWnd, 0);
-		
+
 		if (thisThread == targetThread){
 			SetFocus(hWnd);
 			error = 0;
@@ -6969,7 +6929,7 @@ void gui_SetFocusEx(PA_PluginParameters params){
 //
 //  PURPOSE:	Encrypts/Decrypts a file
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 10/28/15 Win-4
 void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
@@ -6982,12 +6942,11 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 	CHAR		fileSource[MAX_PATH]; // WJF 4/18/16 Win-13 Pointer -> Array
 	CHAR		fileDest[MAX_PATH]; // WJF 4/18/16 Win-13 Pointer -> Array
 	DWORD		dwSize = 0;
-	BYTE		pbPass[33] = "0";
+	CHAR		pbPass[33] = "0"; // WJF 6/21/16 Win-21 BYTE TO CHAR
 	DWORD		dwPassLength = 0;
-	DWORD		BUFFER_SIZE = 0;
-	BYTE		IV[17] = "0";
+	CHAR		IV[17] = "0"; // WJF 6/21/16 Win-21 BYTE TO CHAR
 	DWORD		dwIVLength = 0;
-	BYTE		tempIV[17] = "0";
+	CHAR		tempIV[17] = "0"; // WJF 6/21/16 Win-21 BYTE TO CHAR
 	DWORD		error = 0;
 	LPCSTR		myContainer = "MyContainer";
 	PBYTE		pbBuffer = NULL;
@@ -6998,8 +6957,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 	LONG		returnCode = 1;
 
 	__try {
-
-		// WJF 4/18/16 Win-13 Removed 
+		// WJF 4/18/16 Win-13 Removed
 		//dwSize = PA_GetTextParameter(params, 1, NULL);
 		//
 		//if (!(fileSource = (CHAR *)malloc(dwSize))){
@@ -7026,7 +6984,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		dwIVLength = PA_GetTextParameter(params, 4, tempIV);
 
 		// Clean up the IV input
-		for (int i = 0; i < 16; i++){
+		for (DWORD i = 0; i < 16; i++){ // WJF 6/24/16 Win-21 int -> DWORD
 			if (i <= dwIVLength){
 				if (tempIV[i] == '\0'){
 					IV[i] = '0';
@@ -7073,7 +7031,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		}
 
 		// Hash the password
-		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+		if (!(CryptHashData(hHash, (PBYTE)pbPass, dwPassLength, 0))){ // WJF 6/24/16 Win-21 Casting to PBYTE
 			__leave;
 		}
 
@@ -7091,7 +7049,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		}
 
 		// Set IV
-		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+		if (!(CryptSetKeyParam(hKey, KP_IV, (PBYTE)IV, 0))){ // WJF 6/24/16 Win-21 Removed unneccessary addressof operator and casting to PBYTE
 			__leave;
 		}
 
@@ -7104,8 +7062,8 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		else {
 			dwBufferLen = dwBlockLen + AES_BLOCK_SIZE;
 		}
-		
-		if (!(pbBuffer = (BYTE *)malloc(dwBufferLen))){
+
+		if (!(pbBuffer = malloc(dwBufferLen))){ // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 			__leave;
 		}
 
@@ -7124,7 +7082,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 				}
 			}
 			else {
-				if (!CryptEncrypt(hKey, NULL, fEOF, 0, pbBuffer, &dwCount, dwBufferLen)){
+				if (!CryptEncrypt(hKey, (HCRYPTHASH)NULL, fEOF, 0, pbBuffer, &dwCount, dwBufferLen)){ // WJF 6/21/16 Win-21 Casting NULL to HCRYPTHASH
 					__leave;
 				}
 			}
@@ -7132,14 +7090,11 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			if (!WriteFile(hDestFile, pbBuffer, dwCount, &dwCount, NULL)){
 				__leave;
 			}
-
 		} while (!fEOF);
 
 		returnCode = ERROR_SUCCESS;
-
 	}
 	__finally{
-
 		if (hSourceFile){
 			CloseHandle(hSourceFile);
 		}
@@ -7187,7 +7142,7 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 //
 //  PURPOSE:	Hashes text and returns it
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 10/28/15 Win-4
 void sys_HashText(PA_PluginParameters params){
@@ -7212,7 +7167,7 @@ void sys_HashText(PA_PluginParameters params){
 	__try{
 		dwSize = PA_GetTextParameter(params, 1, NULL);
 
-		if (!(lpInput = (CHAR *)malloc(dwSize+1))){
+		if (!(lpInput = malloc(dwSize + 1))){ // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 			__leave;
 		}
 
@@ -7252,7 +7207,6 @@ void sys_HashText(PA_PluginParameters params){
 
 		default:
 			__leave;
-
 		}
 
 		// Get security provider
@@ -7274,7 +7228,7 @@ void sys_HashText(PA_PluginParameters params){
 		}
 
 		// Hash the password
-		if (!(CryptHashData(hHash, lpInput, dwSize, 0))){
+		if (!(CryptHashData(hHash, (PBYTE)lpInput, dwSize, 0))){ // WJF 6/24/16 Win-21 Casting to PBYTE
 			__leave;
 		}
 
@@ -7285,7 +7239,7 @@ void sys_HashText(PA_PluginParameters params){
 		}
 
 		// Allocate the buffer
-		if (!(pbData = (BYTE *)malloc(dwDataSize))){
+		if (!(pbData = malloc(dwDataSize))){ // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 			__leave;
 		}
 
@@ -7295,9 +7249,9 @@ void sys_HashText(PA_PluginParameters params){
 		}
 
 		dwOutSize = 2 * dwDataSize + 1;
-		lpOutput = (LPSTR)malloc(dwOutSize);
+		lpOutput = malloc(dwOutSize); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 		pOutput = lpOutput;
-		for (int i = 0; i < dwDataSize; i++){
+		for (DWORD i = 0; i < dwDataSize; i++){ // WJF 6/24/16 Win-21 int -> DWORD
 			pOutput += sprintf(pOutput, "%02X", pbData[i]);
 		}
 
@@ -7331,7 +7285,6 @@ void sys_HashText(PA_PluginParameters params){
 		}
 
 		PA_ReturnLong(params, returnCode);
-
 	}
 }
 
@@ -7341,29 +7294,28 @@ void sys_HashText(PA_PluginParameters params){
 //
 //  COMMENTS:	Rewrote with updated practices and merged decrypt/encrypt into one method
 //
-//	DATE:		WJF 10/29/15 Win-4 
+//	DATE:		WJF 10/29/15 Win-4
 void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 {
 	HCRYPTPROV	hProv = 0;
 	HCRYPTHASH	hHash = 0;
 	HCRYPTKEY	hKey = 0;
-	PBYTE		pbBuffer = NULL; // WJF 6/13/16 Win-17 Initializing this to NULL now
+	LPSTR		pbBuffer = NULL; // WJF 6/13/16 Win-17 Initializing this to NULL now // WJF 6/24/16 Win-21 PBYTE to LPSTR
 	DWORD		dwSize = 0;
-	PBYTE		pbMessage = NULL;
-	BYTE		pbPass[33] = "0";
+	LPSTR		pbMessage = NULL; // WJF 6/24/16 Win-21 PBYTE to LPSTR
+	CHAR		pbPass[33] = "0"; // WJF 6/24/16 Win-21 BYTE TO CHAR
 	DWORD		dwPassLength = 0;
 	DWORD		BUFFER_SIZE = 0;
-	BYTE		IV[17] = "0";
+	CHAR		IV[17] = "0"; // WJF 6/24/16 Win-21 BYTE TO CHAR
 	DWORD		dwIVLength;
-	BYTE		tempIV[17] = "0";
+	CHAR		tempIV[17] = "0"; // WJF 6/24/16 Win-21 BYTE TO CHAR
 	DWORD		error = 0;
 	LPCSTR		myContainer = "MyContainer";
 
 	__try{
-
 		dwSize = PA_GetTextParameter(params, 1, pbMessage);
-		
-		if (!(pbMessage = (BYTE *)malloc(dwSize+1))){
+
+		if (!(pbMessage = malloc(dwSize + 1))){ // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 			__leave;
 		}
 
@@ -7377,7 +7329,7 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 
 		dwIVLength = PA_GetTextParameter(params, 3, tempIV);
 
-		for (int i = 0; i < 16; i++){
+		for (DWORD i = 0; i < 16; i++){ // WJF 6/24/16 Win-21 int -> DWORD
 			if (i <= dwIVLength){
 				if (tempIV[i] == '\0'){
 					IV[i] = '0';
@@ -7393,7 +7345,7 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 
 		// Clean decryption input
 		if (bDecrypt){
-			for (int i = 0; i < strlen(pbMessage); i++){
+			for (size_t i = 0; i < strlen(pbMessage); i++){ // WJF 6/24/16 Win-21 int -> size_t
 				if (pbMessage[i] <= 32) {
 					memmove(&pbMessage[i], &pbMessage[i + 1], strlen(pbMessage) - i);
 					dwSize--;
@@ -7421,7 +7373,7 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		}
 
 		// Hash the password
-		if (!(CryptHashData(hHash, pbPass, dwPassLength, 0))){
+		if (!(CryptHashData(hHash, (PBYTE)pbPass, dwPassLength, 0))){ // WJF 6/24/16 Win-21 Casting to PBYTE
 			__leave;
 		}
 
@@ -7438,7 +7390,7 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			hHash = 0;
 		}
 
-		if (!(CryptSetKeyParam(hKey, KP_IV, &IV, 0))){
+		if (!(CryptSetKeyParam(hKey, KP_IV, (PBYTE)IV, 0))){ // WJF 6/24/16 Win-21 Removed unneccessary addressof operator and casting to PBYTE
 			__leave;
 		}
 
@@ -7449,14 +7401,14 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			BUFFER_SIZE = ((dwSize + AES_BLOCK_SIZE) / (AES_BLOCK_SIZE))*AES_BLOCK_SIZE;
 		}
 
-		pbBuffer = (BYTE *)malloc(BUFFER_SIZE); // Allocate to AES block size
+		pbBuffer = malloc(BUFFER_SIZE); // Allocate to AES block size // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 
 		strncpy_s(pbBuffer, BUFFER_SIZE, pbMessage, dwSize); // WJF 6/29/16 Win-18 memcpy_s -> strncpy_s
 
 		if (bDecrypt){
-			pbBuffer = base64_decode(pbBuffer, dwSize, &dwSize); // Decode from base64
+			pbBuffer = (LPSTR)base64_decode(pbBuffer, dwSize, (size_t *)&dwSize); // Decode from base64 // WJF 6/24/16 Win-21 Cast to LPSTR and size_t *
 			// Decrypt the message
-			if (!(CryptDecrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize))){
+			if (!(CryptDecrypt(hKey, 0, TRUE, 0, (PBYTE)pbBuffer, &dwSize))){ // WJF 6/24/16 Win-21 Cast to PBYTE
 				__leave;
 			}
 			else { // WJF 6/29/16 Win-18
@@ -7465,13 +7417,13 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		}
 		else {
 			// Encrypt the message
-			if (!(CryptEncrypt(hKey, 0, TRUE, 0, pbBuffer, &dwSize, BUFFER_SIZE))) {
+			if (!(CryptEncrypt(hKey, 0, TRUE, 0, (PBYTE)pbBuffer, &dwSize, BUFFER_SIZE))) { // WJF 6/24/16 Win-21 Cast to PBYTE
 				__leave;
 			}
 		}
 
 		if (!bDecrypt){
-			pbBuffer = base64_encode(pbBuffer, dwSize, &dwSize); // Encode to Base64
+			pbBuffer = base64_encode((PBYTE)pbBuffer, dwSize, (size_t *)&dwSize); // Encode to Base64  // WJF 6/24/16 Win-21 Cast to PBYTE and size_t
 		}
 	}
 	__finally {
@@ -7484,7 +7436,7 @@ void textEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			CryptDestroyHash(hHash);
 			hHash = 0;
 		}
-		if (hProv){ 
+		if (hProv){
 			CryptReleaseContext(hProv, 0);
 			hProv = 0;
 		}
@@ -7523,13 +7475,12 @@ void sys_GetDiskFreeSpace(PA_PluginParameters params){
 
 	if (GetDiskFreeSpaceEx(directoryPath, NULL, NULL, &ulintFreeBytes)){
 		returnCode = ERROR_SUCCESS;
-		lResult = ((ulintFreeBytes.QuadPart) / (pow(1024, 3)));
+		lResult = (LONG)((ulintFreeBytes.QuadPart) / (1024 * 1024 * 1024)); // WJF 6/24/16 Win-21 Pow -> 1024 * 1024 * 1024 and casting to LONG
 	}
 
 	PA_SetLongParameter(params, 2, lResult);
 
 	PA_ReturnLong(params, returnCode);
-	
 }
 
 //  FUNCTION:   killProcessByName(const char * processName, LONG_PTR lMode, BOOL bCleanFirst)
@@ -7541,18 +7492,17 @@ void sys_GetDiskFreeSpace(PA_PluginParameters params){
 //	DATE:		WJF 12/17/15 Win-7
 LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigCleanFirst){
 	LONG returnCode = 0;
-	
+
 	HANDLE hProcessSnap;				// Handle to the process snapshot
-	
+
 	HANDLE hProcess;					// Handle to the process itself
 
 	PROCESSENTRY32 pe32;				// ProcessEntry to get info about processes
 
 	BOOL bCleanFirst = FALSE;			// Boolean to see if we should try to cleanly close the app
-										// before killing it mercilessly
+	// before killing it mercilessly
 
 	BOOL bDone = FALSE;					// This will keep track of whether or not we are finished looping through processes.
-
 
 	// Take a snapshot of all processes in the system.
 	// If we fail, return the error code
@@ -7579,11 +7529,9 @@ LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigClean
 	// display information about each process in turn
 	do
 	{
-
 		// Check the name
 		if (strcmp(pe32.szExeFile, processName) == 0)
 		{
-
 			bCleanFirst = bOrigCleanFirst;
 			// Get the process
 			// We need to make sure that we have the TERMINATE right
@@ -7620,7 +7568,7 @@ LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigClean
 					// If not, then we will need to keep going
 					if (lMode == 1) {
 						bDone = TRUE;
-					} // end 
+					} // end
 				}
 				else {
 					// Fail!
@@ -7636,7 +7584,6 @@ LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigClean
 			CloseHandle(hProcess);
 		} // end if
 		Process32Next(hProcessSnap, &pe32); // WJF 6/2/15 #42839 Moved out of while condition
-
 	} while ((GetLastError() != 18) && (!bDone)); // WJF 6/2/15 #42839 Added GetLastError Check, corrected logical or syntax, and added inversion to bDone
 
 	// Close the handle and return success
@@ -7651,7 +7598,7 @@ LONG killProcessByName(const char * processName, LONG_PTR lMode, BOOL bOrigClean
 //
 //  PURPOSE:	Starts a process synchronously, unlike sys_ShellExecute
 //
-//  COMMENTS:	
+//  COMMENTS:
 //
 //	DATE:		WJF 4/20/16 Win-14
 void sys_ProcessStart(PA_PluginParameters params){
@@ -7666,7 +7613,7 @@ void sys_ProcessStart(PA_PluginParameters params){
 
 	dwSize = PA_GetTextParameter(params, 2, NULL);
 
-	if (parameters = (char *)malloc(dwSize+1)) {
+	if (parameters = malloc(dwSize + 1)) { // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 		dwSize = PA_GetTextParameter(params, 2, parameters);
 	}
 
@@ -7698,7 +7645,6 @@ void sys_ProcessStart(PA_PluginParameters params){
 	}
 
 	PA_ReturnLong(params, dwExitCode);
-
 }
 
 //  FUNCTION:   sys_IsWow64Process(PA_PluginParameters params)

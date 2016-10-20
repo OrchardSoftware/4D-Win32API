@@ -8,6 +8,7 @@
 //
 // ---------------------------------------------------------------
 
+#pragma warning(push,0) // WJF 6/24/16 Win-21
 #include "4DPluginAPI.h"
 #include "PrivateTypes.h"
 #include "EntryPoints.h"
@@ -8418,3 +8419,4 @@ char PA_IsAreaVisible( PA_PluginParameters params )
 
 	return visible;
 }
+#pragma warning(pop) // WJF 6/24/16 Win-21

@@ -1,5 +1,5 @@
 // Mark De Wever #12225
-/* 
+/*
 ** Definition of the messages used.
 */
 
@@ -21,7 +21,7 @@ struct message_list {
 };
 
 /* messages in English */
-static struct message_list message_list_english = { 
+static struct message_list message_list_english = {
 	"Invalid Operation",								// InvalidOperation
 	"Invalid HowToShow Constant",						// InvalidShowConstant
 	"File Not Found",									// FileNotFound
@@ -39,7 +39,7 @@ static struct message_list message_list_english = {
 };
 
 /* messages in Dutch */
-static struct message_list message_list_dutch = { 
+static struct message_list message_list_dutch = {
 	"Onjuiste actie",										// InvalidOperation
 	"Onjuiste toon constante",								// InvalidShowConstant
 	"Bestand niet gevonden",								// FileNotFound

@@ -1,4 +1,3 @@
-
 #include "4DPluginAPI.h"
 #include "4DPlugin.h"
 
@@ -7,36 +6,34 @@
 
 #include <Windows.h>
 
-
 //#include "psapi.h"  // for enumerating processes in NT & 2000
 #include "utilities.h"
 
-
 // ------------------------------------------------
-// 
+//
 //  FUNCTION: sys_GetDocumentList( PA_PluginParameters params )
 //
 //  PURPOSE:  Return a list of files in a directory.
-//        
+//
 //	DATE:	  MJG 6/4/04 (3.6)
 //
-//  UPDATES:  MJG 7/5/05 (3.6.2)  Updated to set the 4D variable, Error, 
-//								  when an error occurs. 
+//  UPDATES:  MJG 7/5/05 (3.6.2)  Updated to set the 4D variable, Error,
+//								  when an error occurs.
 //
-//			  AMS 9/16/14 #40405 (6.4)  Updated to return the oldest entries first 
-//		   								 and take in a starting index for specifying 
-//										 where the list of returned files begins.			
+//			  AMS 9/16/14 #40405 (6.4)  Updated to return the oldest entries first
+//		   								 and take in a starting index for specifying
+//										 where the list of returned files begins.
 //
 //
 // ------------------------------------------------
 void sys_GetDocumentList(PA_PluginParameters params)
 {
-	LONG_PTR lReturnValue = 0;
-	LONG_PTR lFileCount = 0;
-	LONG_PTR lArraySize = 0;
-	LONG_PTR lEndIndex = 0;
-	LONG_PTR lCount = 0;
-	const LONG_PTR lFileLimit = 1000;
+	LONG lReturnValue = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG lFileCount = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG lArraySize = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG lEndIndex = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG lCount = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	const LONG lFileLimit = 1000;
 	char fullPath[MAXBUF];
 	WIN32_FIND_DATA fFindData;
 	DWORD ret = 0;
@@ -48,11 +45,10 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	// parameter variables
 	char *patPathName = NULL;
 	char *patFilePattern = NULL;
-	LONG_PTR palMaxFilesToReturn = 0;
-	LONG_PTR palFileSort = 0;
-	LONG_PTR palStartIndex = 0;
+	LONG palMaxFilesToReturn = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG palFileSort = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG palStartIndex = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	PA_Variable paReturnFileList;
-
 
 	// Get the function parameters.
 	patPathName = getTextParameter(params, 1);
@@ -66,7 +62,7 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	PA_ResizeArray(&paReturnFileList, 0);
 
 	// AMS2 9/19/14 #40405 Passing in the start index is optional, if a value is passed in then it is assumed that the user put in a number relative to a starting index of 1 instead of 0 for c/c++ arrays
-	if ((palStartIndex != NULL) || (palStartIndex > 0))
+	if ((palStartIndex != 0) || (palStartIndex > 0)) // WJF 6/24/16 Win-21 NULL -> 0
 	{
 		palStartIndex--;
 	}
@@ -97,13 +93,12 @@ void sys_GetDocumentList(PA_PluginParameters params)
 				snprintf(fullPath, MAXBUF, "%s%s%s", patPathName, patPathName[strlen(patPathName) - 1] == PATHCHAR ? "" : PATHSTR, patFilePattern);
 			}
 
-
 			// Get the first file.
 			NextFind = FindFirstFile(fullPath, &fFindData);
 
 			if (NextFind != INVALID_HANDLE_VALUE)
 			{
-				// AMS2 9/18/14 #40405  Loop through the files in the directory and build a list to sort. Currently the max files that can be stored from a directory is 1000. 
+				// AMS2 9/18/14 #40405  Loop through the files in the directory and build a list to sort. Currently the max files that can be stored from a directory is 1000.
 				lastError = ERROR_NO_MORE_FILES;
 				bGetAllFiles = (palMaxFilesToReturn <= 0);
 
@@ -114,7 +109,6 @@ void sys_GetDocumentList(PA_PluginParameters params)
 						// AMS2 9/19/14 #40405 When a file match is found, insert it into the file list array.
 						fileList[lFileCount] = fFindData;
 						lFileCount++;   // Count the number of files that match the pattern.
-
 					}
 					if (!FindNextFile(NextFind, &fFindData))
 					{
@@ -152,7 +146,7 @@ void sys_GetDocumentList(PA_PluginParameters params)
 					lEndIndex = lFileCount;
 				}
 
-				// AMS2 9/22/14 #40405 As long as the end index is within the file limit, insert the requested file names into the return array 
+				// AMS2 9/22/14 #40405 As long as the end index is within the file limit, insert the requested file names into the return array
 				// starting at the specified start index  and end at the start index + the max number of files to return.
 				if (lEndIndex <= lFileLimit)
 				{
@@ -165,11 +159,10 @@ void sys_GetDocumentList(PA_PluginParameters params)
 							lArraySize = lCount + ARRAY_LOAD_VALUE;
 							PA_ResizeArray(&paReturnFileList, lArraySize);
 						}
-						
+
 						PA_SetTextInArray(paReturnFileList, lCount, fileList[i].cFileName, strlen(fileList[i].cFileName));
 					}
 				}
-
 			}
 			else
 			{

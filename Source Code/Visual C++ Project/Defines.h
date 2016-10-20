@@ -1,24 +1,25 @@
 // --- defines etc
 
-typedef BOOL (CALLBACK* LPFNDLLFUNC1) (PFLASHWINFO);
-typedef DWORD (CALLBACK* LPFNDLLFUNC2) (PFIXED_INFO, PULONG);
-typedef DWORD (CALLBACK* LPFNDLLFUNC3) (PMIB_IPFORWARDTABLE, PULONG, BOOL);
-typedef BOOL (CALLBACK* LPFNDLLFUNC4) (LPDWORD, DWORD);
+typedef BOOL(CALLBACK* LPFNDLLFUNC1) (PFLASHWINFO);
+typedef DWORD(CALLBACK* LPFNDLLFUNC2) (PFIXED_INFO, PULONG);
+typedef DWORD(CALLBACK* LPFNDLLFUNC3) (PMIB_IPFORWARDTABLE, PULONG, BOOL);
+typedef BOOL(CALLBACK* LPFNDLLFUNC4) (LPDWORD, DWORD);
 
 //
-typedef BOOL (CALLBACK* LPFNENUMPROC) ( DWORD*, DWORD, DWORD*);
-typedef BOOL (CALLBACK* LPFNENUMPROCMODS) (HANDLE, HMODULE*, DWORD, LPDWORD);
-typedef DWORD (CALLBACK* LPFNGETMODFNAME) (HANDLE, HMODULE, char *, DWORD);
-typedef HANDLE (CALLBACK* LPFNCREATETOOLHELPSNAP) (DWORD, DWORD);
-typedef BOOL (CALLBACK* LPFNPROCFIRST) (HANDLE, VOID *);
-typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
+typedef BOOL(CALLBACK* LPFNENUMPROC) (DWORD*, DWORD, DWORD*);
+typedef BOOL(CALLBACK* LPFNENUMPROCMODS) (HANDLE, HMODULE*, DWORD, LPDWORD);
+typedef DWORD(CALLBACK* LPFNGETMODFNAME) (HANDLE, HMODULE, char *, DWORD);
+typedef HANDLE(CALLBACK* LPFNCREATETOOLHELPSNAP) (DWORD, DWORD);
+typedef BOOL(CALLBACK* LPFNPROCFIRST) (HANDLE, VOID *);
+typedef BOOL(CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 
 // number of array elements for region settings
 #ifndef NBR_ELEMENTS
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 7.2.2
+#define WIN32API_VERSION 8.0
+#define NUM_COMMANDS 137 // WJF 7/11/16 Win-20
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2
@@ -37,7 +38,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define UPONELEVELBUTTON  40961
 #define NEWBUTTONFOLDER		40962
 #define LOOK_IN_COMBO			1137
-#define EDIT_FIELD				1152 
+#define EDIT_FIELD				1152
 #define LAST_LISTVIEW_MSG 4146
 
 // more string constants
@@ -77,7 +78,6 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define IDE_SELECTED				1022
 #define IDE_PATH					102
 #define	IDC_BUTTON1					1023
-
 
 // OS Constants
 #define OS_WIN95		1
@@ -133,7 +133,7 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define TT_CLOSE_ON_CLICK		7
 
 // This block added by Mark De Wever
-// Added these or-ing of 
+// Added these or-ing of
 // negative numbers with their positive counter part
 // gives strange results due to many bits set in -4
 #define RW_DISABLE_MIN				64
@@ -154,29 +154,29 @@ typedef BOOL (CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NIF_SHOW						0x0200
 
 struct listNode {
-     HWND targetWHndl;  // this may not be required
-     LONG_PTR	iconID;
-     LONG_PTR procNbr;
-		 struct listNode* nextPtr;
+	HWND targetWHndl;  // this may not be required
+	LONG iconID; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG procNbr; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	struct listNode* nextPtr;
 };
 
 typedef struct listNode TI;
 typedef TI* pTI;
 
 struct linkedList {
-     HWND			hWnd;  
-     WNDPROC	wpProc;
-		 LONG_PTR			type;
-     LONG_PTR			dataLong1;
-		 LONG_PTR			dataLong2;
-		 char*		dataPtrStr;
-		 void*		dataPtr;
-		 struct	linkedList* nextPtr;
+	HWND			hWnd;
+	WNDPROC	wpProc;
+	LONG_PTR			type;
+	LONG_PTR			dataLong1;
+	LONG_PTR			dataLong2;
+	char*		dataPtrStr;
+	void*		dataPtr;
+	struct	linkedList* nextPtr;
 };
 
-enum structData {LL_hWnd = 1, LL_wpProc, LL_type, LL_dataLong1, LL_dataLong2, LL_dataPtrStr, LL_dataPtr};
+enum structData { LL_hWnd = 1, LL_wpProc, LL_type, LL_dataLong1, LL_dataLong2, LL_dataPtrStr, LL_dataPtr };
 
-enum listType {LL_Restrict};
+enum listType { LL_Restrict };
 
 typedef struct linkedList LL;
 typedef LL* pLL;
@@ -226,10 +226,9 @@ typedef LL* pLL;
 #define TB_NOTIFICATION			"<>TB_NOTIFICATION"
 
 #define MAXBUF					2048
-#define MAXLABELBUF				4096  // REB 6/5/08 #17022				
+#define MAXLABELBUF				4096  // REB 6/5/08 #17022
 #define MEDBUF					1024
 #define SMLBUF					256
-
 
 // gui_GetSysColor
 #define COLOR_UNUSED			25

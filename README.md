@@ -4,7 +4,7 @@ Win32API is a plugin for 4th Dimension that lets your Windows applications take 
 
 Win32API is provided free of charge to the 4D developer community, with complete source code. 
 
-Download the latestest stable release [here](https://github.com/OrchardSoftware/4D-Win32API/releases/latest).
+Download the latest stable release [here](https://github.com/OrchardSoftware/4D-Win32API/releases/latest).
 
 Win32API is developed in Visual Studio 2013 and is not compatible with older versions of Visual Studio. 
 

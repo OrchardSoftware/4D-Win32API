@@ -214,10 +214,10 @@
       <ObjectFileName>.\Objs/Debug/</ObjectFileName>
       <ProgramDataBaseFileName>.\Objs/Debug/</ProgramDataBaseFileName>
       <BrowseInformation>true</BrowseInformation>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <DisableSpecificWarnings>4100;4706</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>

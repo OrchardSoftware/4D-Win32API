@@ -2332,47 +2332,35 @@ void gui_DelMenuItem(PA_PluginParameters params, BOOL isEx)
 //
 void gui_GetOpenFileName(PA_PluginParameters params)
 {
-	LONG_PTR		windowTitle_len;
-	char		windowTitle[100];
-	LONG_PTR		filePattern_len;
-	char		filePattern[100];
-	LONG_PTR		fileDescription_len;
-	char		fileDescription[100];
-	LONG_PTR		startFolder_len;
-	char		startFolder[255];
-	LONG_PTR		fileNameShort_len;
-	char		fileNameShort[255];
-	char		fileNameSuggested[255];
-	LONG_PTR		fileNameSuggested_len;
-	LONG_PTR		fileNameFull_len;
-	char		fileNameFull[255];
-	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
-	OPENFILENAME ofn;
-	char fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
-	LONG_PTR		mustExistOption = 0;
-	BOOL		bUnhookSuccess;
-	HWND		hWnd;
-	char		plugInPath[255];
+	LONG_PTR			windowTitle_len;
+	char				windowTitle[100];
+	LONG_PTR			filePattern_len;
+	char				filePattern[100];
+	LONG_PTR			fileDescription_len;
+	char				fileDescription[100];
+	LONG_PTR			startFolder_len;
+	char				startFolder[255];
+	LONG_PTR			fileNameShort_len;
+	char				fileNameShort[255];
+	char				fileNameSuggested[255];
+	LONG_PTR			fileNameSuggested_len;
+	LONG_PTR			fileNameFull_len;
+	char				fileNameFull[255];
+	LONG				returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	OPENFILENAME		ofn;
+	char				fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
+	LONG_PTR			mustExistOption = 0;
+	BOOL				bUnhookSuccess;
+	HWND				hWnd;
+	char				plugInPath[255];
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
 	char				cCurrentPath[FILENAME_MAX];
+	DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40
 
 	_getcwd(cCurrentPath, sizeof(cCurrentPath)); // WJF 2/20/15 #41921 Back up the current working directory
 	g_FolderSelected = FALSE;  // MJG 6/15/05
 	windowHandles.openSaveTBhwnd = NULL;
-
-	if (PA_Is4DServer()){
-		Unistring = PA_GetApplicationFullPath();
-		pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
-		charPos = strrchr(pathName, '\\');
-		*charPos = 0;
-		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-		free(pathName); // WJF 6/9/15 #42792
-	}
-	else{
-		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
-	}
-	//hWnd = (HWND)PA_GetHWND(0);
 
 	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
@@ -2389,6 +2377,28 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 
 	mustExistOption = PA_GetLongParameter(params, 7);
 	FD_Flags = mustExistOption;
+
+	dwHandleIndex = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40
+
+	// WJF 10/26/16 Win-40 Moved below parameter processing
+	if (PA_Is4DServer()){
+		Unistring = PA_GetApplicationFullPath();
+		pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
+		charPos = strrchr(pathName, '\\');
+		*charPos = 0;
+		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+		free(pathName); // WJF 6/9/15 #42792
+	}
+	else{
+		if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+		{
+			hWnd = handleArray_retrieve(dwHandleIndex);
+		}
+		else {
+			hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
+		}
+	}
+	//hWnd = (HWND)PA_GetHWND(0);
 
 	// The pattern consists of two strings, each terminated with a null character
 	sprintf(fileOpenPattern, "%s%c%s%c", fileDescription, '\0', filePattern, '\0');
@@ -2485,45 +2495,33 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 //
 void gui_GetSaveFileName(PA_PluginParameters params)
 {
-	LONG_PTR		windowTitle_len;
-	char		windowTitle[100];
-	LONG_PTR		filePattern_len;
-	char		filePattern[100];
-	LONG_PTR		fileDescription_len;
-	char		fileDescription[100];
-	LONG_PTR		startFolder_len;
-	char		startFolder[255];
-	LONG_PTR		fileNameShort_len;
-	char		fileNameShort[255];
-	char		fileNameSuggested[255];
-	LONG_PTR		fileNameSuggested_len;
-	LONG_PTR		fileNameFull_len;
-	char		fileNameFull[255];
-	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
-	OPENFILENAME ofn;
-	char fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
-	LONG_PTR		mustExistOption = 0;
-	BOOL		bUnhookSuccess;
-	HWND		hWnd;
-	char		plugInPath[255];
+	LONG_PTR			windowTitle_len;
+	char				windowTitle[100];
+	LONG_PTR			filePattern_len;
+	char				filePattern[100];
+	LONG_PTR			fileDescription_len;
+	char				fileDescription[100];
+	LONG_PTR			startFolder_len;
+	char				startFolder[255];
+	LONG_PTR			fileNameShort_len;
+	char				fileNameShort[255];
+	char				fileNameSuggested[255];
+	LONG_PTR			fileNameSuggested_len;
+	LONG_PTR			fileNameFull_len;
+	char				fileNameFull[255];
+	LONG				returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	OPENFILENAME		ofn;
+	char				fileOpenPattern[80]; // WJF 6/24/16 Win-21 unsigned char[] -> char[]
+	LONG_PTR			mustExistOption = 0;
+	BOOL				bUnhookSuccess;
+	HWND				hWnd;
+	char				plugInPath[255];
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
+	DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40
 
 	g_FolderSelected = FALSE;  // MJG 6/15/05
 	windowHandles.openSaveTBhwnd = NULL;
-
-	if (PA_Is4DServer()){
-		Unistring = PA_GetApplicationFullPath();
-		pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
-		charPos = strrchr(pathName, '\\');
-		*charPos = 0;
-		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
-		free(pathName); // WJF 6/25/15 #42792
-	}
-	else{
-		hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
-	}
-	//hWnd = (HWND)	PA_GetHWND(0);
 
 	windowTitle_len = PA_GetTextParameter(params, 1, windowTitle);
 	windowTitle[windowTitle_len] = '\0';  // Explicitly set the length
@@ -2540,6 +2538,29 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 
 	mustExistOption = PA_GetLongParameter(params, 7);
 	FD_Flags = mustExistOption;
+
+	dwHandleIndex = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40
+
+	// WJF 10/26/16 Win-40 Moved below parameter assignment
+	if (PA_Is4DServer()){
+		Unistring = PA_GetApplicationFullPath();
+		pathName = UnistringToCString(&Unistring); // REB 4/20/11 #27322
+		charPos = strrchr(pathName, '\\');
+		*charPos = 0;
+		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+		free(pathName); // WJF 6/25/15 #42792
+	}
+	else{
+		if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+		{
+			hWnd = handleArray_retrieve(dwHandleIndex);
+		}
+		else
+		{
+			hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
+		}
+	}
+	//hWnd = (HWND)	PA_GetHWND(0);
 
 	// The pattern consists of two strings, each terminated with a null character
 	sprintf(fileOpenPattern, "%s%c%s%c", fileDescription, '\0', filePattern, '\0');

@@ -48,10 +48,10 @@
         "syntax": "gui_DelMenuItem(&L;&L;&L):L"
     }, {
         "theme": "Win32API Commands",
-        "syntax": "gui_GetOpenFileName(&T;&T;&T;&T;&T;&T;&L):L"
+        "syntax": "gui_GetOpenFileName(&T;&T;&T;&T;&T;&T;&L;&L):L"
     }, {
         "theme": "Win32API Commands",
-        "syntax": "gui_GetSaveFileName(&T;&T;&T;&T;&T;&T;&L):L"
+        "syntax": "gui_GetSaveFileName(&T;&T;&T;&T;&T;&T;&L;&L):L"
     }, {
         "theme": "Win32API Commands",
         "syntax": "gui_LoadIcon(&T;&L):L"

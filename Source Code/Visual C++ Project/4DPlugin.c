@@ -4469,6 +4469,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	SHELLEXECUTEINFO	utilities;
 	DWORD				dwExitCode = 0;
 	BOOL				bSuccess = FALSE;
+	BOOL				bDoNotAddSuffix = FALSE; // WJF 10/27/16 Win-41
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
@@ -4476,6 +4477,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	debug = PA_GetLongParameter(params, 2);
 
 	get64 = PA_GetLongParameter(params, 3);
+
+	bDoNotAddSuffix = PA_GetLongParameter(params, 4); // WJF 10/27/16 Win-41
 
 	returnValue = 1;
 
@@ -4540,7 +4543,12 @@ void TWAIN_GetSources(PA_PluginParameters params)
 				else { // Valid Product Name
 					pos = strrchr(source, '\n');
 					strcpy_s(pos, 256, "\0");
-					strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+
+					if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
+					{
+						strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+					}
+
 					PA_ResizeArray(&atSources, index);
 					PA_SetTextInArray(atSources, index, source, strlen(source));
 					++index;
@@ -4584,7 +4592,12 @@ void TWAIN_GetSources(PA_PluginParameters params)
 				if (strcmp(source, "") != 0){
 					pos = strrchr(source, '\n');
 					strcpy_s(pos, 256, "\0");
-					strcat_s(source, 256, "-WIA");
+
+					if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
+					{
+						strcat_s(source, 256, "-WIA");
+					}
+
 					PA_ResizeArray(&atSources, index);
 					PA_SetTextInArray(atSources, index, source, strlen(source));
 					++index;

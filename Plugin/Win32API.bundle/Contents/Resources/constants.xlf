@@ -461,6 +461,9 @@
 	<trans-unit d4:value="1000" id="154">
 	  <source>OS_WIN10</source>
 	</trans-unit>
+	<trans-unit d4:value="1001" id="155">
+	  <source>OS_SERVER2016</source>
+	</trans-unit>
   </group>
 
   <group id="154" restype="x-4DK#">

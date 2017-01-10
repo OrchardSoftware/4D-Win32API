@@ -2356,7 +2356,9 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
 	char				cCurrentPath[FILENAME_MAX];
-	DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40
+	PA_long32			parentWindowFlag = 0; // WJF 1/6/17 Win-45
+	PA_long32			windowReference = 0; // WJF 1/6/17 Win-45
+	// DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40 // WJF 1/6/17 Win-45 Removed
 
 	_getcwd(cCurrentPath, sizeof(cCurrentPath)); // WJF 2/20/15 #41921 Back up the current working directory
 	g_FolderSelected = FALSE;  // MJG 6/15/05
@@ -2378,7 +2380,9 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	mustExistOption = PA_GetLongParameter(params, 7);
 	FD_Flags = mustExistOption;
 
-	dwHandleIndex = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40
+	parentWindowFlag = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40 // WJF 1/6/17 Win-45 dwHandleIndex -> parentWindowFlag
+
+	windowReference = PA_GetLongParameter(params, 9); // WJF 1/6/17 Win-45
 
 	// WJF 10/26/16 Win-40 Moved below parameter processing
 	if (PA_Is4DServer()){
@@ -2389,14 +2393,29 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 		hWnd = FindWindowEx(NULL, NULL, pathName, NULL);
 		free(pathName); // WJF 6/9/15 #42792
 	}
-	else{
-		if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+	else {
+
+		// WJF 1/6/17 Win-45 Rewrote below as switch and changed fucntionality
+		switch (parentWindowFlag)
 		{
-			hWnd = handleArray_retrieve(dwHandleIndex);
+		case 1: // 4D Window Reference
+			hWnd = (HWND)PA_GetHWND((PA_WindowRef)windowReference);
+			break;
+		case 2: // Win32API Window Handle Index
+			hWnd = (HWND)handleArray_retrieve(windowReference);
+			break;
+		default:
+			hWnd = (HWND)NULL;
+			break;
 		}
-		else {
-			hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
-		}
+
+		//if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+		//{
+		//	hWnd = handleArray_retrieve(dwHandleIndex);
+		//}
+		//else {
+		//	hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
+		//}
 	}
 	//hWnd = (HWND)PA_GetHWND(0);
 
@@ -2518,7 +2537,9 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	char				plugInPath[255];
 	PA_Unistring		Unistring;
 	char				*pathName, *charPos;
-	DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40
+	PA_long32			parentWindowFlag = 0; // WJF 1/6/17 Win-45
+	PA_long32			windowReference = 0; // WJF 1/6/17 Win-45
+	// DWORD				dwHandleIndex = -1; // WJF 10/26/16 Win-40 // WJF 1/6/17 Win-45 Removed
 
 	g_FolderSelected = FALSE;  // MJG 6/15/05
 	windowHandles.openSaveTBhwnd = NULL;
@@ -2539,7 +2560,9 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	mustExistOption = PA_GetLongParameter(params, 7);
 	FD_Flags = mustExistOption;
 
-	dwHandleIndex = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40
+	parentWindowFlag = PA_GetLongParameter(params, 8); // WJF 10/26/16 Win-40 // WJF 1/6/17 Win-45 dwHandleIndex -> parentWindowFlag
+
+	windowReference = PA_GetLongParameter(params, 9); // WJF 1/6/17 Win-45
 
 	// WJF 10/26/16 Win-40 Moved below parameter assignment
 	if (PA_Is4DServer()){
@@ -2551,14 +2574,28 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 		free(pathName); // WJF 6/25/15 #42792
 	}
 	else{
-		if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+		// WJF 1/6/17 Win-45 Rewrote below as switch and changed fucntionality
+		switch (parentWindowFlag)
 		{
-			hWnd = handleArray_retrieve(dwHandleIndex);
+		case 1: // 4D Window Reference
+			hWnd = (HWND)PA_GetHWND((PA_WindowRef)windowReference);
+			break;
+		case 2: // Win32API Window Handle Index
+			hWnd = (HWND)handleArray_retrieve(windowReference);
+			break;
+		default:
+			hWnd = (HWND)NULL;
+			break;
 		}
-		else
-		{
-			hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
-		}
+
+
+		//if (dwHandleIndex >= 0) // WJF 10/26/16 Win-40 Allow the parent window handle to be passed in
+		//{
+		//	hWnd = handleArray_retrieve(dwHandleIndex);
+		//}
+		//else {
+		//	hWnd = (HWND)PA_GetHWND(NULL); // the current frontmost window // WJF 6/24/16 Win-21 Casting to HWND
+		//}
 	}
 	//hWnd = (HWND)	PA_GetHWND(0);
 

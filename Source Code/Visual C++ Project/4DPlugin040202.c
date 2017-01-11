@@ -74,11 +74,14 @@ void sys_GetCommandLine(PA_PluginParameters params)
 	char				*pMarker;
 	LONG				returnValue = 0, commandLine_len = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	LONG_PTR			charsToCopy;
-	LPTSTR				pCommandLineStr, pTemp;
+	LPTSTR				pCommandLineStr = NULL, pTemp = NULL; // WJF 11/9/16 Win-43 Initializing to NULL now
+	LPWSTR				lpwCmdLine = NULL; // WJF 11/9/16 Win-43
 	PA_Variable			parameters;
 	BOOL				bInQuotes = FALSE, bDone = FALSE;
 	LONG				paramCount = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	LONG				action = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	int					destSize = 0; // WJF 11/9/16 Win-43
+	BOOL				bUsedDefaultChar = FALSE; // WJF 11/9/16 Win-43
 
 	memset(commandLineStr, 0, MAXBUF);
 	memset(paramElement, 0, MAXBUF);
@@ -87,7 +90,13 @@ void sys_GetCommandLine(PA_PluginParameters params)
 	parameters = PA_GetVariableParameter(params, 1);
 	action = PA_GetLongParameter(params, 2);
 
-	pCommandLineStr = GetCommandLine();
+	// pCommandLineStr = GetCommandLine(); // WJF 11/9/16 Win-43 Removed
+ 
+	// WJF 11/9/16 Win-43 In 4Dv15 we need to get the widechar arguments and convert to mutlibyte manually
+	lpwCmdLine = GetCommandLineW();
+	destSize = WideCharToMultiByte(CP_ACP, 0, lpwCmdLine, -1, NULL, destSize, NULL, &bUsedDefaultChar);
+	pCommandLineStr = malloc(destSize + 1);
+	destSize = WideCharToMultiByte(CP_ACP, 0, lpwCmdLine, -1, pCommandLineStr, destSize, NULL, &bUsedDefaultChar);
 
 	if (pCommandLineStr == NULL) {
 		returnValue = 0;
@@ -191,6 +200,10 @@ void sys_GetCommandLine(PA_PluginParameters params)
 		PA_SetTextInArray(parameters, 1, executableString, strlen(executableString));
 		PA_SetTextInArray(parameters, 0, commandLineStr, strlen(commandLineStr));
 		PA_SetVariableParameter(params, 1, parameters, 0);
+
+		// WJF 11/9/16 Win-43
+		free(pCommandLineStr);
+		pCommandLineStr = NULL;
 	} // (pCommandLineStr == NULL)
 
 	PA_ReturnLong(params, returnValue);

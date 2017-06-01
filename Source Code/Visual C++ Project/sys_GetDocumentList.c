@@ -86,11 +86,11 @@ void sys_GetDocumentList(PA_PluginParameters params)
 			// Build the full path name.
 			if (patFilePattern[0] == '\0')
 			{
-				snprintf(fullPath, MAXBUF, "%s%s*.*", patPathName, patPathName[strlen(patPathName) - 1] == PATHCHAR ? "" : PATHSTR);
+				_snprintf_s(fullPath, sizeof(fullPath), MAXBUF, "%s%s*.*", patPathName, patPathName[strlen(patPathName) - 1] == PATHCHAR ? "" : PATHSTR);  // ZRW 4/12/17 WIN-39 snprintf -> _snprintf_s
 			}
 			else
 			{
-				snprintf(fullPath, MAXBUF, "%s%s%s", patPathName, patPathName[strlen(patPathName) - 1] == PATHCHAR ? "" : PATHSTR, patFilePattern);
+				_snprintf_s(fullPath, sizeof(fullPath), MAXBUF, "%s%s%s", patPathName, patPathName[strlen(patPathName) - 1] == PATHCHAR ? "" : PATHSTR, patFilePattern);  // ZRW 4/12/17 WIN-39 snprintf -> _snprintf_s
 			}
 
 			// Get the first file.

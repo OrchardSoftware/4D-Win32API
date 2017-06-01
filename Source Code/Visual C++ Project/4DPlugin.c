@@ -308,7 +308,7 @@ extern "C" __declspec(dllexport) {
 		BOOL result = TRUE;
 		char fullpath[512] = "";
 		GetModuleFileName(hinstDLL, fullpath, sizeof (fullpath)); // Get the path to the 4DX
-		strcpy((char *)pathName, (char *)fullpath);
+		strcpy_s((char *)pathName, sizeof(pathName), (char *)fullpath);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		return result;
 	}
 #ifdef _cplusplus
@@ -328,13 +328,13 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 
 	// WJF 6/17/16 Win-18
 	if ((selector > 0) && (selector < NUM_COMMANDS)) { // WJF 7/11/16 Win-20 200 -> NUM_COMMANDS, <= -> <
-		strcpy_s(szCommandID, 128, win32Commands[selector-1]); // WJF 7/11/16 Win-20 szCommandConst -> win32Commands[selector-1]
+		strcpy_s(szCommandID, sizeof(szCommandID), win32Commands[selector-1]); // WJF 7/11/16 Win-20 szCommandConst -> win32Commands[selector-1]  // ZRW 3/23/17 WIN-39 128 -> sizeof(szCommandID)
 		
 		// WJF 7/11/16 Win-20 Removed
 		//_itoa_s(selector, szSelector, 128, 10);
 		//strcat_s(szCommandID, 128, szSelector);
 		
-		strcat_s(szCommandID, 128, "\r\n");
+		strcat_s(szCommandID, sizeof(szCommandID), "\r\n"); // ZRW 4/5/17 WIN-39 128 -> sizeof(szCommandID)
 		writeLogFile(szCommandID);
 	}
 
@@ -389,7 +389,10 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 			if (IsWindow(NexthWnd)){
 				GetWindowText(NexthWnd, WindowName, 255);
 				GetClassName(NexthWnd, szClassName, 255);
-				if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+
+				  // ZRW 4/12/17 WIN-39 Modified to use _strlwr_s instead
+				_strlwr_s(szClassName, sizeof(szClassName));
+				if (strcmp(szClassName, "mdiclient") == 0){
 					//windowHandles.MDIs_4DhWnd =  NexthWnd; // AMS 8/12/14 #39693 This was not the correct handle to use for the MDI Client. It was causing toolbars to work incorrectly.
 					windowHandles.MDIhWnd = NexthWnd; // AMS 8/12/14 #39693 This is the correct handle for the MDI Client.
 					break;
@@ -462,7 +465,10 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 					if (IsWindow(NexthWnd)){
 						GetWindowText(NexthWnd, WindowName, 255);
 						GetClassName(NexthWnd, szClassName, 255);
-						if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+						
+						// ZRW 4/12/17 WIN-39 Modified to use _strlwr_s instead
+						_strlwr_s(szClassName, sizeof(szClassName));
+						if (strcmp(szClassName, "mdiclient") == 0){
 							windowHandles.MDIs_4DhWnd = NexthWnd;
 							break;
 						}
@@ -905,7 +911,10 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 					if (IsWindow(NexthWnd)){
 						GetWindowText(NexthWnd, WindowName, 255);
 						GetClassName(NexthWnd, szClassName, 255);
-						if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+						
+						// ZRW 4/12/17 WIN-39 Modified to use _strlwr_s instead
+						_strlwr_s(szClassName, sizeof(szClassName));
+						if (strcmp(szClassName, "mdiclient") == 0){
 							windowHandles.MDIs_4DhWnd = NexthWnd;
 							break;
 						}
@@ -1134,7 +1143,7 @@ void sys_EnumPrinters(PA_PluginParameters params)
 	//PA_ResizeArray (&localPrinters, dwNumItems);
 	for (dwItem = 0; dwItem < dwNumItems; dwItem++)
 	{
-		strcpy(printerName, lpInfo1[dwItem].pName);
+		strcpy_s(printerName, sizeof(printerName), lpInfo1[dwItem].pName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		printerName[strlen(printerName)] = '\0';
 		PA_SetTextInArray(printerArray, dwItem + 1, printerName, strlen(printerName));
 	}
@@ -1209,7 +1218,7 @@ void sys_EnumPrinters(PA_PluginParameters params)
 	{
 		lSize = PA_GetTextInArray(printerArray, dwItem + 1, printerName);
 		printerName[lSize] = '\0';
-		strcpy(printer_driver_port, "");
+		strcpy_s(printer_driver_port, sizeof(printer_driver_port), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 		bPrinterSuccess = OpenPrinter(printerName, &hPrinter, NULL); //&ptrDef );
 
@@ -1244,22 +1253,24 @@ void sys_EnumPrinters(PA_PluginParameters params)
 					return;
 				}
 
-				strcpy(printer_driver_port, lpInfo2[0].pPrinterName);
-				strcat(printer_driver_port, ",");
-				strcat(printer_driver_port, lpInfo2[0].pDriverName);
-				strcat(printer_driver_port, ",");
-				strcat(printer_driver_port, lpInfo2[0].pPortName);
+				strcpy_s(printer_driver_port, sizeof(printer_driver_port), lpInfo2[0].pPrinterName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+				
+				  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+				strcat_s(printer_driver_port, sizeof(printer_driver_port), ",");
+				strcat_s(printer_driver_port, sizeof(printer_driver_port), lpInfo2[0].pDriverName);
+				strcat_s(printer_driver_port, sizeof(printer_driver_port),  ",");
+				strcat_s(printer_driver_port, sizeof(printer_driver_port),  lpInfo2[0].pPortName);
 			}
 			else {
-				strcpy(printer_driver_port, printerName);
+				strcpy_s(printer_driver_port, sizeof(printer_driver_port), printerName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			}
 
 			bPrinterSuccess = ClosePrinter(hPrinter); // REB 10/29/09 #21643 This was not getting closed.
 		}
 		else {
-			strcpy(printer_driver_port, printerName); // chg made to populate array with name if add'l info can't be retrieved
+			strcpy_s(printer_driver_port, sizeof(printer_driver_port), printerName); // chg made to populate array with name if add'l info can't be retrieved  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			if (!bNamesOnly) {
-				strcat(printer_driver_port, ": Could Not Open");
+				strcat_s(printer_driver_port, sizeof(printer_driver_port),  ": Could Not Open");  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 			}
 		}
 
@@ -1332,7 +1343,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	execCommand_len = (DWORD)PA_GetTextParameter(params, 2, executeCommand); // WJF 6/30/16 Win-19 Cast to DWORD
 	executeCommand[execCommand_len] = '\0';
 	if (execCommand_len == 0) { // the default is Print Settings
-		strcpy(executeCommand, "Print Settings");
+		strcpy_s(executeCommand, sizeof(executeCommand), "Print Settings");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		execCommand_len = (DWORD)strlen(executeCommand); // WJF 6/30/16 Win-19 Cast to DWORD
 	}
 
@@ -1359,7 +1370,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		ret = GetProfileString("windows", "device", ",,,", printerName, printerName_len);
 		pComma = strstr(printerName, ",");
 		printerName[pComma - printerName] = '\0';
-		strcpy(printerSettings.printerSelection, printerName);
+		strcpy_s(printerSettings.printerSelection, sizeof(printerSettings.printerSelection), printerName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		PA_SetTextInArray(printer, 1, printerSettings.printerSelection,
 			strlen(printerSettings.printerSelection));
 		returnValue = 1;
@@ -1440,28 +1451,28 @@ void sys_GetPrintJob(PA_PluginParameters params)
 		PA_SetTextInArray(printer, 4, printerSettings.copies,
 			strlen(printerSettings.copies));
 		if (printerSettings.portraitLandscape == PS_PORTRAIT) {
-			strcpy(returnString, "Portrait");
+			strcpy_s(returnString, sizeof(returnString), "Portrait");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		else {
-			strcpy(returnString, "Landscape");
+			strcpy_s(returnString, sizeof(returnString), "Landscape");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		PA_SetTextInArray(printer, 5, returnString,
 			strlen(returnString));
 
 		if (printerSettings.printToFile == TRUE) {
-			strcpy(returnString, "Printed To File");
+			strcpy_s(returnString, sizeof(returnString), "Printed To File");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		else {
-			strcpy(returnString, "");
+			strcpy_s(returnString, sizeof(returnString), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		PA_SetTextInArray(printer, 6, returnString,
 			strlen(returnString));
 
 		if (printerSettings.printPreview == TRUE) {
-			strcpy(returnString, "Print Preview");
+			strcpy_s(returnString, sizeof(returnString), "Print Preview");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		else {
-			strcpy(returnString, "");
+			strcpy_s(returnString, sizeof(returnString), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 		PA_SetTextInArray(printer, 7, returnString, strlen(returnString));
 
@@ -1489,7 +1500,7 @@ void sys_GetPrintJob(PA_PluginParameters params)
 	g_intrProcMsg = PS_IDLE;
 	activeCalls.bPrinterCapture = FALSE;
 
-	strcpy(printerSettings.printerSelection, "");
+	strcpy_s(printerSettings.printerSelection, sizeof(printerSettings.printerSelection), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	PA_SetVariableParameter(params, 1, printer, 0);
 	PA_ReturnLong(params, returnValue);
 }
@@ -1544,60 +1555,62 @@ void	sys_GetNetworkInfo(PA_PluginParameters params)
 			}
 			else {
 				returnValue = 1;
-				strcpy(infoString, fixedInfo->HostName);
-				strcat(infoString, ",");
-				strcat(infoString, fixedInfo->DomainName);
-				strcat(infoString, ",");
+				strcpy_s(infoString, sizeof(infoString), fixedInfo->HostName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+				
+				// ZRW 4/5/17 WIN-39 strcat -> strcat_s
+				strcat_s(infoString, sizeof(infoString),  ",");
+				strcat_s(infoString, sizeof(infoString),  fixedInfo->DomainName);
+				strcat_s(infoString, sizeof(infoString),  ",");
 				switch ((UINT)fixedInfo->NodeType)
 				{
 				case BROADCAST_NODETYPE:
-					strcat(infoString, "Broadcast");
+					strcat_s(infoString, sizeof(infoString), "Broadcast");
 					break;
 				case PEER_TO_PEER_NODETYPE:
-					strcat(infoString, "Peer-to-peer");
+					strcat_s(infoString, sizeof(infoString), "Peer-to-peer");
 					break;
 				case MIXED_NODETYPE:
-					strcat(infoString, "Mixed");
+					strcat_s(infoString, sizeof(infoString),  "Mixed");
 					break;
 				case HYBRID_NODETYPE:
-					strcat(infoString, "Hybid");
+					strcat_s(infoString, sizeof(infoString),  "Hybid");
 				}
-				strcat(infoString, ",");
+				strcat_s(infoString, sizeof(infoString),  ",");
 				switch (fixedInfo->EnableDns)
 				{
 				case 0:
-					strcat(infoString, "DNS No");
+					strcat_s(infoString, sizeof(infoString),  "DNS No");
 					break;
 				default:
-					strcat(infoString, "DNS Enabled");
+					strcat_s(infoString, sizeof(infoString), "DNS Enabled");
 				}
 
-				strcat(infoString, ",");
+				strcat_s(infoString, sizeof(infoString), ",");
 				switch (fixedInfo->EnableRouting)
 				{
 				case 0:
-					strcat(infoString, "Routing No");
+					strcat_s(infoString, sizeof(infoString), "Routing No");
 					break;
 				default:
-					strcat(infoString, "Routing Enabled");
+					strcat_s(infoString, sizeof(infoString), "Routing Enabled");
 				}
 
-				strcat(infoString, ",");
+				strcat_s(infoString, sizeof(infoString), ",");
 				switch (fixedInfo->EnableProxy)
 				{
 				case 0:
-					strcat(infoString, "Proxy No");
+					strcat_s(infoString, sizeof(infoString), "Proxy No");
 					break;
 				default:
-					strcat(infoString, "Proxy Enabled");
+					strcat_s(infoString, sizeof(infoString), "Proxy Enabled");
 				}
 				if (strlen(fixedInfo->DnsServerList.IpAddress.String) > 0) {
-					strcat(infoString, ",");
-					strcat(infoString, fixedInfo->DnsServerList.IpAddress.String);
+					strcat_s(infoString, sizeof(infoString), ",");
+					strcat_s(infoString, sizeof(infoString), fixedInfo->DnsServerList.IpAddress.String);
 					pIPAddr = fixedInfo->DnsServerList.Next;
 					while (pIPAddr) {
-						strcat(infoString, ",");
-						strcat(infoString, pIPAddr->IpAddress.String);
+						strcat_s(infoString, sizeof(infoString), ",");
+						strcat_s(infoString, sizeof(infoString), pIPAddr->IpAddress.String);
 						pIPAddr = pIPAddr->Next;
 					}
 				}
@@ -1672,36 +1685,36 @@ void	sys_GetRoutes(PA_PluginParameters params)
 			returnValue = tableEntries;
 			PA_ResizeArray(&table, tableEntries);
 
-			strcpy(routeString, "");
+			strcpy_s(routeString, sizeof(routeString), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			for (i = 0; i < tableEntries; i++)
 			{
+				// ZRW 4/5/17 WIN-39 strcat -> strcat_s
 				FormatIP(routeString, (LPARAM)pTable->table[i].dwForwardDest);
-				strcat(routeString, ",");
+				strcat_s(routeString, sizeof(routeString), ",");
 				FormatIP(routeString, (LPARAM)pTable->table[i].dwForwardMask);
-				strcat(routeString, ",");
+				strcat_s(routeString, sizeof(routeString), ",");
 				FormatIP(routeString, (LPARAM)pTable->table[i].dwForwardNextHop);
-				strcat(routeString, ",");
-
+				strcat_s(routeString, sizeof(routeString), ",");
 				switch ((INT_PTR)pTable->table[i].dwForwardType)
 				{
 				case 1:
-					strcat(routeString, "Not specified");
+					strcat_s(routeString, sizeof(routeString), "Not specified");
 					break;
 				case 2:
-					strcat(routeString, "Logically deleted");
+					strcat_s(routeString, sizeof(routeString), "Logically deleted");
 					break;
 				case 3:
-					strcat(routeString, "Local - next hop final");
+					strcat_s(routeString, sizeof(routeString), "Local - next hop final");
 					break;
 				case 4:
-					strcat(routeString, "Remote");
+					strcat_s(routeString, sizeof(routeString), "Remote");
 				}
-				strcat(routeString, ",");
+				strcat_s(routeString, sizeof(routeString), ",");
 				_ultoa(pTable->table[i].dwForwardAge, numToString, 10);
-				strcat(routeString, numToString);
+				strcat_s(routeString, sizeof(routeString), numToString);
 
 				PA_SetTextInArray(table, i + 1, routeString, strlen(routeString));
-				strcpy(routeString, "");
+				strcpy_s(routeString, sizeof(routeString), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			}
 
 			// free memory
@@ -1744,25 +1757,25 @@ void sys_GetGUID(PA_PluginParameters params)
 	switch (rpc_status)
 	{
 	case RPC_S_OK:
-		strcpy(guidStatus, "OK");
+		strcpy_s(guidStatus, sizeof(guidStatus), "OK");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		break;
 
 	case RPC_S_UUID_LOCAL_ONLY:
-		strcpy(guidStatus, "Local Only");
+		strcpy_s(guidStatus, sizeof(guidStatus), "Local Only"); // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		break;
 
 	case RPC_S_UUID_NO_ADDRESS:
-		strcpy(guidStatus, "Cannot get Ethernet hardware address");
+		strcpy_s(guidStatus, sizeof(guidStatus), "Cannot get Ethernet hardware address");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		returnValue = 0;
 		break;
 
 	default:
-		strcpy(guidStatus, "Unknown status");
+		strcpy_s(guidStatus, sizeof(guidStatus), "Unknown status");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		returnValue = 0;
 	}
 
 	rpc_status = UuidToString(&uGuid, &cGuid);
-	strncpy(guidString, (LPSTR)cGuid, MAXBUF); // WJF 6/24/16 Win-21 Casting to LPSTR
+	strncpy_s(guidString, sizeof(guidString), (LPSTR)cGuid, MAXBUF); // WJF 6/24/16 Win-21 Casting to LPSTR  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
 	RpcStringFree(&cGuid);
 
 	guidString_len = strlen(guidString);
@@ -1808,10 +1821,13 @@ void gui_GetWindow(PA_PluginParameters params, HWND hWnd)
 		windowHandle = (LONG_PTR)hWnd;
 	}
 	else {
+
+		_strlwr_s(windowTitle, MAXBUF);  // ZRW 4/12/17 WIN-39 Use the more secure lowercase method here; using MAXBUF since windowTitle is a pointer
+
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
 			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
 		}
-		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
+		else if ((strcmp(windowTitle, "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {  // ZRW 4/12/17 WIN-39 _strlwr(windowTitle) -> windowTitle
 			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
 		}
 		else {
@@ -2074,7 +2090,7 @@ void sys_GetUserName(PA_PluginParameters params)
 		returnValue = 1;
 	}
 	else {
-		strcpy(userName, "");
+		strcpy_s(userName, sizeof(userName), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		returnValue = 0;
 	}
 
@@ -2420,7 +2436,7 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	//hWnd = (HWND)PA_GetHWND(0);
 
 	// The pattern consists of two strings, each terminated with a null character
-	sprintf(fileOpenPattern, "%s%c%s%c", fileDescription, '\0', filePattern, '\0');
+	sprintf_s(fileOpenPattern, sizeof(fileOpenPattern), "%s%c%s%c", fileDescription, '\0', filePattern, '\0');  // ZRW 4/24/17 WIN-39 sprintf -> sprintf_s
 
 	GetPlugInFullName(plugInPath);
 
@@ -2443,8 +2459,8 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	ofn.Flags = OFN_EXPLORER;
 
 	// Set the return strings to empty
-	strcpy(fileNameShort, "");
-	strcpy(fileNameFull, "");
+	strcpy_s(fileNameShort, sizeof(fileNameShort), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+	strcpy_s(fileNameFull, sizeof(fileNameFull), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	if ((FD_Flags & FD_HIDE_UP_BUTTON) | (FD_Flags & FD_DISABLE_EDIT_FIELD)
 		| (FD_Flags & FD_DISABLE_LOOKIN_FIELD) | (FD_Flags & FD_FILES_ONLY)
@@ -2462,7 +2478,7 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	}
 
 	if (FD_Flags == FD_SELECT_DIRECTORY) {
-		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename
+		strcpy_s(ofn.lpstrFile, sizeof(ofn.lpstrFile), ""); //with this option, cannot use a suggested filename  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		ofn.Flags = ofn.Flags | OFN_ENABLETEMPLATE;
 	}
 
@@ -2485,11 +2501,11 @@ void gui_GetOpenFileName(PA_PluginParameters params)
 	// At this point, the file name fields are either empty or filled
 	// with valid values.  Return these values to the user in either case.
 	if (FD_Flags & FD_SELECT_DIRECTORY) {
-		strcpy(fileNameShort, intrProcStr1);
-		strcpy(fileNameFull, intrProcStr1);
+		strcpy_s(fileNameShort, sizeof(fileNameShort), intrProcStr1);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+		strcpy_s(fileNameFull, sizeof(fileNameFull), intrProcStr1);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	}
 	else {
-		strcpy(fileNameFull, fileNameSuggested);
+		strcpy_s(fileNameFull, sizeof(fileNameFull), fileNameSuggested);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	}
 
 	fileNameShort_len = strlen(fileNameShort);
@@ -2600,11 +2616,11 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	//hWnd = (HWND)	PA_GetHWND(0);
 
 	// The pattern consists of two strings, each terminated with a null character
-	sprintf(fileOpenPattern, "%s%c%s%c", fileDescription, '\0', filePattern, '\0');
+	sprintf_s(fileOpenPattern, sizeof(fileOpenPattern), "%s%c%s%c", fileDescription, '\0', filePattern, '\0');  // ZRW 4/24/17 WIN-39 sprintf -> sprintf_s
 
 	// Set the return strings to empty
-	strcpy(fileNameShort, "");
-	strcpy(fileNameFull, "");
+	strcpy_s(fileNameShort, sizeof(fileNameShort), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+	strcpy_s(fileNameFull, sizeof(fileNameFull), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	GetPlugInFullName(plugInPath);
 
@@ -2642,7 +2658,7 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	}
 
 	if (FD_Flags == FD_SELECT_DIRECTORY) {
-		strcpy(ofn.lpstrFile, ""); //with this option, cannot use a suggested filename
+		strcpy_s(ofn.lpstrFile, ofn.nMaxFile, ""); //with this option, cannot use a suggested filename  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		ofn.Flags = ofn.Flags | OFN_ENABLETEMPLATE;
 	}
 
@@ -2665,11 +2681,11 @@ void gui_GetSaveFileName(PA_PluginParameters params)
 	// At this point, the file name fields are either empty or filled
 	// with valid values.  Return these values to the user in either case.
 	if (FD_Flags & FD_SELECT_DIRECTORY) {
-		strcpy(fileNameShort, intrProcStr1);
-		strcpy(fileNameFull, intrProcStr1);
+		strcpy_s(fileNameShort, sizeof(fileNameShort), intrProcStr1);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+		strcpy_s(fileNameFull, sizeof(fileNameFull), intrProcStr1);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	}
 	else {
-		strcpy(fileNameFull, fileNameSuggested);
+		strcpy_s(fileNameFull, sizeof(fileNameFull), fileNameSuggested);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	}
 
 	fileNameShort_len = strlen(fileNameShort);
@@ -2862,19 +2878,19 @@ void sys_GetRegionSettings(PA_PluginParameters params, BOOL arraySupplied)
 
 	for (i = requestedSetting; i < loopStop; i++)
 	{
-		strcpy(sz, resultString);
+		strcpy_s(sz, sizeof(sz), resultString);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		// resultSize = strlen(sz); // WJF 6/30/16 Win-21 This wasn't used anywhere
 		gliReturnValue = GetLocaleInfo(LOCALE_USER_DEFAULT, infoType[i], sz, bufSize);
 		if (gliReturnValue = 0) {
-			strcpy(sz, "n/a"); // some keyNames may be there & some may not
+			strcpy_s(sz, sizeof(sz), "n/a"); // some keyNames may be there & some may not  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		}
 
 		if (infoType[i] == LOCALE_IMEASURE) {
 			if (sz[0] == '0') {
-				strcpy(sz, "Metric");
+				strcpy_s(sz, sizeof(sz), "Metric");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			}
 			else {
-				strcpy(sz, "U.S.");
+				strcpy_s(sz, sizeof(sz), "U.S.");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			} //(sz[0] == '0')
 		} //(infoType[i] == LOCALE_IMEASURE)
 
@@ -2921,21 +2937,28 @@ void sys_GetRegionSettings(PA_PluginParameters params, BOOL arraySupplied)
 void sys_GetTimeZone(PA_PluginParameters params)
 {
 	LONG_PTR		standardName_len;
-	char		standardName[255];
+	char		*standardName = (char *)malloc(255);  // ZRW 4/24/17 WIN-39 standardName[255] -> standardName = (char *)malloc(255)
 	LONG_PTR		daylightName_len;
-	char		daylightName[255];
+	char		*daylightName = (char *)malloc(255);  // ZRW 4/24/17 WIN-39 daylightName[255] -> daylightName = (char *)malloc(255)
 	BOOL		autoDaylight = 0; // WJF 6/30/16 Win-21 LONG_PTR -> BOOL
 	LONG		returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	TIME_ZONE_INFORMATION TimeZoneInformation; // REB 1/21/09 #19035
+	size_t      numChars;  // ZRW 4/24/17 WIN-39 Not needed, but required by wcstombs_s
 
 	returnValue = 1;
 
 	GetTimeZoneInformation(&TimeZoneInformation);
 
-	wcstombs(standardName, TimeZoneInformation.StandardName, 255);
+	  // ZRW 4/24/17 WIN-39 Use more secure version of method
+	//wcstombs(standardName, TimeZoneInformation.StandardName, 255);
+	wcstombs_s(&numChars, standardName, 255, TimeZoneInformation.StandardName, 255);  // Using 255 for parameter 3 since that is the size of the memory allocation when we declare the variable
+
 	standardName_len = strlen(standardName);
 
-	wcstombs(daylightName, TimeZoneInformation.DaylightName, 255);
+	// ZRW 4/24/17 WIN-39 Use more secure version of method
+	//wcstombs(daylightName, TimeZoneInformation.DaylightName, 255);
+	wcstombs_s(&numChars, daylightName, 255, TimeZoneInformation.DaylightName, 255);  // Using 255 for parameter 3 since that is the size of the memory allocation when we declare the variable
+
 	daylightName_len = strlen((char *)daylightName);
 
 	if (TimeZoneInformation.DaylightBias != 0){
@@ -2961,7 +2984,7 @@ void sys_GetTimeZone(PA_PluginParameters params)
 void sys_GetUTCOffset(PA_PluginParameters params)
 {
 	LONG						returnValue = 1; // WJF 6/30/16 Win-21 LONG_PTR -> LONG // WJF 10/8/16 Win-33 0 -> 1
-	LONG						bias = 0, weekNum = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	LONG						bias = 0; // weekNum = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG  // ZRW 2/13/17 WIN-39 weekNum initialized but not referenced
 	DWORD						dwOperatingMode = 0;
 
 	//struct _timeb tstruct;
@@ -3113,7 +3136,7 @@ void gui_GetDisplayFontDPI(PA_PluginParameters params)
 
 	returnValue = 0;
 
-	strcpy(subKey, "Software\\Microsoft\\Windows NT\\CurrentVersion\\FontDPI");
+	strcpy_s(subKey, sizeof(subKey), "Software\\Microsoft\\Windows NT\\CurrentVersion\\FontDPI");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	hKey = HKEY_LOCAL_MACHINE;
 	errorCode = RegOpenKeyEx(hKey, subKey, 0, KEY_READ, &hKey);
 	if (errorCode != ERROR_SUCCESS) {
@@ -3163,7 +3186,7 @@ void sys_GetDefPrinter(PA_PluginParameters params)
 	memset(pDefaultPrinter, 0, dwBytesNeeded);
 
 	returnValue = GetDefaultPrinter(pDefaultPrinter, &dwBytesNeeded);
-	strcpy(printerName, pDefaultPrinter);
+	strcpy_s(printerName, sizeof(printerName), pDefaultPrinter);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	free(pDefaultPrinter); // WJF 6/4/15 #42921
 
@@ -3195,7 +3218,7 @@ void sys_SetDefPrinter(PA_PluginParameters params)
 	// REB 3/6/09 #17333 Remove spooler info from printer name.
 	printerName_len = strcspn(printerName, separator);
 	if (printerName_len > 0){
-		strncpy(tempName, printerName, printerName_len);
+		strncpy_s(tempName, sizeof(tempName), printerName, printerName_len);  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
 		tempName[printerName_len] = '\0';
 		returnValue = SetDefaultPrinter(tempName);
 	}
@@ -3299,7 +3322,7 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 		GetTempPath(MAX_PATH, filePath);
 
 		// WJF 3/29/16 Win-11 Begin Changes
-		strcat_s(filePath, MAX_PATH, "osVersion.txt");
+		strcat_s(filePath, sizeof(filePath), "osVersion.txt");  // ZRW 4/5/187 WIN-39 MAX_PATH -> sizeof(filePath)
 
 		strcpy_s(utilitiesPath, MAX_PATH, pathName);
 
@@ -3328,7 +3351,8 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 				bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
 			} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
 
-			fp = fopen(filePath, "r");
+			//fp = fopen(filePath, "r");
+			fopen_s(&fp, filePath, "r");  // ZRW 4/13/17 WIN-39 Using the more scure method
 
 			if (fp){
 				fgets(osVer, 16, fp);
@@ -3386,7 +3410,7 @@ LONG_PTR sys_GetOSVersion(BOOL bInternalCall, PA_PluginParameters params)
 
 	if (!bInternalCall) {
 		PA_SetLongParameter(params, 1, returnValue);
-		strcpy(servicePackInfo, osvinfo.szCSDVersion);
+		strcpy_s(servicePackInfo, sizeof(servicePackInfo), osvinfo.szCSDVersion);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 		PA_SetTextParameter(params, 2, servicePackInfo, strlen(servicePackInfo));
 		PA_ReturnLong(params, returnValue);
 	}
@@ -3427,7 +3451,7 @@ UINT_PTR CALLBACK ComDlg32DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 	case WM_COMMAND:
 		if ((wNotifyCode == BN_CLICKED) & (wID == IDC_BUTTON1)) {
 			GetDlgItemText(g_parentHndl, IDE_SELECTED, szPathName, MAX_PATH);
-			strcpy(intrProcStr1, szPathName);
+			strcpy_s(intrProcStr1, sizeof(intrProcStr1), szPathName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 			// MJG 4/29/05 Invoke cancel button.  Don't forcibly close dialog.
 			//SendMessage(g_parentHndl, WM_COMMAND, (WM_USER + 31488), 0L);
@@ -3510,7 +3534,9 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 	}
 	GetClassName(cwps->hwnd, szClassName, 255);
 
-	if (strcmp(_strlwr(szClassName), "toolbarwindow32") == 0) {
+	_strlwr_s(szClassName, sizeof(szClassName));  // ZRW 4/12/17 WIN-39 Use the more secure lowercase method here
+
+	if (strcmp(szClassName, "toolbarwindow32") == 0) {  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 		if (!tbOnetime) {
 			windowHandles.openSaveTBhwnd = cwps->hwnd;
 			++tbOnetime;
@@ -3519,7 +3545,7 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 			}
 		}
 	}
-	if (strcmp(_strlwr(szClassName), "syslistview32") == 0) {
+	if (strcmp(szClassName, "syslistview32") == 0) {  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 		if ((FD_Flags & FD_HIDE_NEWDIRECTORY_BUTTON) | (FD_Flags & FD_HIDE_UP_BUTTON)) {
 			tbInfo.cbSize = sizeof(TBBUTTONINFO);
 			tbInfo.dwMask = TBIF_STATE;
@@ -3560,7 +3586,7 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 
 		case WM_NOTIFY:
 			bSelectedItem = FALSE;
-			strcpy(szPathName, "");
+			strcpy_s(szPathName, sizeof(szPathName), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 			if (FD_Flags & FD_SELECT_DIRECTORY) {  // 4/14/04 Only perform search if FD_SELECT_DIRECTORY is selected
 				// 4/14/04 Modified the code to directly get the selected item instead of looping
@@ -3571,7 +3597,7 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 				//for( i = 0; i < count; i++)
 				if (i != -1)
 				{
-					strcpy(szItemName, "");
+					strcpy_s(szItemName, sizeof(szItemName), "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					item.mask = LVIF_TEXT | LVIF_STATE;
 					item.iItem = i;
 					item.iSubItem = 0;
@@ -3582,11 +3608,11 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 					if (GetFileAttributes(szItemName) & FILE_ATTRIBUTE_DIRECTORY) {
 						//if ( FD_Flags & FD_SELECT_DIRECTORY) {
 						if (item.state & LVIS_SELECTED) {
-							strcpy(szPathName, intrProcStr1);
+							strcpy_s(szPathName, sizeof(szPathName), intrProcStr1);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 							if (szPathName[strlen(szPathName) - 1] != '\\') {
-								strcat(szPathName, "\\");
+								strcat_s(szPathName, sizeof(szPathName), "\\");  // ZRW 3/22/17 WIN-39 strcat -> strcat_s
 							}
-							strcat(szPathName, szItemName);
+							strcat_s(szPathName, sizeof(szPathName), szItemName);  // ZRW 3/22/17 WIN-39 strcat -> strcat_s
 							SetDlgItemText(g_parentHndl, IDE_SELECTED, szPathName);
 							bSelectedItem = TRUE;
 							//break;
@@ -3596,7 +3622,7 @@ LRESULT CALLBACK theHook(INT hCode, WPARAM wParam, LPARAM lParam)
 				}  //end if
 
 				if (!bSelectedItem) {
-					strcpy(szPathName, intrProcStr2);
+					strcpy_s(szPathName, sizeof(szPathName), intrProcStr2);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					if (strlen(szPathName) > 0) {
 						SetDlgItemText(g_parentHndl, IDE_SELECTED, intrProcStr1);
 					}
@@ -3664,11 +3690,11 @@ BOOL NEAR PASCAL TestNotify(HWND hDlg, LPOFNOTIFY pofn)
 							   if (CommDlg_OpenSave_GetFilePath(GetParent(hDlg),
 								   szFile, sizeof(szFile)) <= sizeof(szFile))
 							   {
-								   strcpy(intrProcStr2, szFile);
+								   strcpy_s(intrProcStr2, sizeof(intrProcStr2), szFile);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 							   }
 							   if (CommDlg_OpenSave_GetFolderPath(GetParent(hDlg), szFile, sizeof(szFile))
 								   <= sizeof(szFile)) {
-								   strcpy(intrProcStr1, szFile);
+								   strcpy_s(intrProcStr1, sizeof(intrProcStr1), szFile);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 							   }
 	}
 		break;
@@ -3707,7 +3733,7 @@ void GetPlugInFullName(char *PlugInFullName)
 	strcat(PlugInFullName, "win4dx\\win32api.4dx");
 	}
 	*/
-	strcpy(PlugInFullName, pathName);
+	strcpy_s(PlugInFullName, 512, pathName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s, using 512 instead of sizeof(PlugInFullName) because the size of PlugInFullName is not defined, but it is filled with a variable whose size is defined to be 512
 	return;
 }
 
@@ -3779,22 +3805,24 @@ void	FormatIP(char *rStr, LPARAM dwIP)
 	char			addrSegment[4];
 	BYTE			firstAddr, secondAddr, thirdAddr, fourthAddr;
 
-	strcpy(rStr, "");
+	strcpy_s(rStr, 255, "");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s setting to 255 since routeString, the only variable passed to this method, is defined with a size of 255
 	firstAddr = FIRST_IPADDRESS(dwIP);
 	secondAddr = SECOND_IPADDRESS(dwIP);
 	thirdAddr = THIRD_IPADDRESS(dwIP);
 	fourthAddr = FOURTH_IPADDRESS(dwIP);
 	_itoa(fourthAddr, addrSegment, 10);
-	strcat(rStr, addrSegment);
-	strcat(rStr, ".");
+
+    // ZRW 4/5/17 WIN-39 strcat -> strcat_s setting to 255 since routeString, the only variable passed to this method, is defined with a size of 255
+	strcat_s(rStr, 255, addrSegment);
+	strcat_s(rStr, 255, ".");
 	_itoa(thirdAddr, addrSegment, 10);
-	strcat(rStr, addrSegment);
-	strcat(rStr, ".");
+	strcat_s(rStr, 255, addrSegment);
+	strcat_s(rStr, 255, ".");
 	_itoa(secondAddr, addrSegment, 10);
-	strcat(rStr, addrSegment);
-	strcat(rStr, ".");
+	strcat_s(rStr, 255, addrSegment);
+	strcat_s(rStr, 255, ".");
 	_itoa(firstAddr, addrSegment, 10);
-	strcat(rStr, addrSegment);
+	strcat_s(rStr, 255, addrSegment);
 
 	return;
 }
@@ -3807,14 +3835,21 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 	LONG_PTR			windowTitle_len;
 
 	windowTitle_len = strlen(windowTitle);
+
+	_strlwr_s(windowTitle, MAXBUF);  // ZRW 4/12/17 WIN-39 Added here since we only need to do this once; Using MAXBUF since windowTitle is a pointer
+
 	if (IsWindow(hWnd)) {
 		NexthWnd = hWnd;
 		GetClassName(NexthWnd, szClassName, 255);
 		do {
-			if (strcmp(_strlwr(szClassName), "mdiclient") == 0) {
+			
+			_strlwr_s(szClassName, sizeof(szClassName));  // ZRW 4/12/17 WIN-39 
+						
+			if (strcmp(szClassName, "mdiclient") == 0){  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 				windowHandles.MDIhWnd = NexthWnd;
 				MDIhWnd = NexthWnd;
-				if (strcmp(_strlwr(windowTitle), "mdi") == 0) {
+				
+				if (strcmp(windowTitle, "mdi") == 0){  // ZRW 4/12/17 WIN-39 _strlwr(windowTitle) -> windowTitle
 					return NexthWnd;
 				}
 				else {
@@ -3863,7 +3898,10 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 				if (IsChild(MDIhWnd, ChildhWnd)) {
 					GetWindowText(ChildhWnd, WindowName, 256);
 					GetClassName(ChildhWnd, szClassName, 255);
-					if ((strcmp(_strlwr(szClassName), "mdiclient") == 0) && (strcmp(_strlwr(windowTitle), "mdi") == 0)){
+
+					_strlwr_s(szClassName, (sizeof(szClassName)));  // ZRW 4/12/17 WIN-39
+					
+					if ((strcmp(szClassName, "mdiclient") == 0) && (strcmp(windowTitle, "mdi") == 0)){  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName, _strlwr(windowTitle) -> windowTitle
 						return ChildhWnd;
 					}
 					NexthWnd = GetNextWindow(ChildhWnd, GW_HWNDNEXT);
@@ -3872,7 +3910,7 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 					returnValue = 0;
 					return returnValue;
 				}
-			} while (strcmp(_strlwr(windowTitle), _strlwr(WindowName)) != 0);
+			} while (strcmp(windowTitle, WindowName) != 0);  // ZRW 4/12/17 WIN-39 _strlwr(WindowName) -> WindowName, _strlwr(windowTitle) -> windowTitle
 			// Match found
 			returnValue = ChildhWnd;
 		}
@@ -3963,10 +4001,10 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// g_intrProcMsg will be PS_IDLE unless print dialogs have been requested
 		if ((g_intrProcMsg != PS_IDLE) && (count % 5 == 0) && (g_intrProcMsg < 2)) {
 			if (g_intrProcMsg == 0) { // 12/12/01
-				strcpy(dlgCaption, "Print Setup");
+				strcpy_s(dlgCaption, sizeof(dlgCaption), "Print Setup");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			}
 			else {
-				strcpy(dlgCaption, "Print");
+				strcpy_s(dlgCaption, sizeof(dlgCaption), "Print");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 			}
 			if ((g_intrProcMsg == 0) || ((g_intrProcMsg == 1) && (strcmp(dlgCaption, "Print") == 0))) {
 				nexthWnd = GetWindow(hwnd, GW_HWNDPREV);
@@ -3974,7 +4012,7 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					childhWnd = nexthWnd;
 					GetWindowText(childhWnd, windowName, 256);
 					if (strcmp("Print", windowName) == 0){  // AMS2 11/19/14 #40697 Fixed detection of Print Job window, previously the method assumed that it would always see Print Setup before Print Job.
-						strcpy(dlgCaption, "Print");
+						strcpy_s(dlgCaption, sizeof(dlgCaption), "Print");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 						g_intrProcMsg = 1;
 					}
 					nexthWnd = GetNextWindow(childhWnd, GW_HWNDPREV);
@@ -3987,7 +4025,7 @@ LRESULT APIENTRY newProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				printWndHndl = childhWnd;
 
 				if (printWndHndl > 0) {
-					strcpy(dlgCaption, "Print");
+					strcpy_s(dlgCaption, sizeof(dlgCaption), "Print");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					g_intrProcMsg += 1;
 					switch (g_intrProcMsg)
 					{
@@ -4113,7 +4151,9 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 
 	GetClassName(hWnd, szClassName, 255);
 
-	if (strcmp(_strlwr(szClassName), "combobox") == 0) {
+	_strlwr_s(szClassName, sizeof(szClassName));  // ZRW 4/12/17 WIN-39 
+
+	if (strcmp(szClassName, "combobox") == 0) {  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 		ID = GetDlgCtrlID(hWnd);
 		switch (ID)
 		{
@@ -4132,7 +4172,7 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 			break;
 		}
 	}
-	if (strcmp(_strlwr(szClassName), "button") == 0) {
+	if (strcmp(szClassName, "button") == 0) {  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 		ID = GetDlgCtrlID(hWnd);
 
 		switch (ID)
@@ -4166,7 +4206,7 @@ BOOL CALLBACK EnumChildProc2(HWND hWnd, LPARAM lParam)
 			break;
 		}
 	}
-	if (strcmp(_strlwr(szClassName), "edit") == 0) {
+	if (strcmp(szClassName, "edit") == 0) {  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 		// REB 5/13/08 #16829 Storing control ID in ID now.
 		ID = GetDlgCtrlID(hWnd);
 		switch (ID)
@@ -4224,7 +4264,7 @@ LONG enumPrintersUsingRegistry(PA_Variable *printerArray)
 	char					sz[150], szData[150], defPrinter[150];
 
 	// get default printer
-	strcpy(subKey, "Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows");
+	strcpy_s(subKey, sizeof(subKey), "Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	rootKey = HKEY_CURRENT_USER; //HKEY_LOCAL_MACHINE;
 	hKeyWindows = HKEY_CURRENT_USER; // will get new handle of open key
@@ -4238,11 +4278,11 @@ LONG enumPrintersUsingRegistry(PA_Variable *printerArray)
 	if (errorCode != ERROR_SUCCESS) {
 	}
 	else {
-		strcpy(defPrinter, szData);
+		strcpy_s(defPrinter, sizeof(defPrinter), szData);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	} //(errorCode != ERROR_SUCCESS)
 	errorCode = RegCloseKey(hKeyWindows);
 
-	strcpy(subKey, "Software\\Microsoft\\Windows NT\\CurrentVersion\\Devices");
+	strcpy_s(subKey, sizeof(subKey), "Software\\Microsoft\\Windows NT\\CurrentVersion\\Devices");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 	errorCode = RegOpenKeyEx(rootKey, subKey, 0, KEY_READ, &hKeyDevices);
 	if (errorCode != ERROR_SUCCESS) {
 		return returnValue;;
@@ -4254,8 +4294,10 @@ LONG enumPrintersUsingRegistry(PA_Variable *printerArray)
 		if (errorCode == ERROR_SUCCESS) {
 			// get data for device (printer)
 			PA_ResizeArray(printerArray, (LONG_PTR)dwIndex + 1);
-			strcat(sz, ",");
-			strcat(sz, szData);
+			
+			  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+			strcat_s(sz, sizeof(sz), ",");
+			strcat_s(sz, sizeof(sz), szData);
 			if (strcmp(sz, defPrinter) == 0) {
 				returnValue = dwIndex + 1;
 			}
@@ -4282,62 +4324,8 @@ LONG enumPrintersUsingRegistry(PA_Variable *printerArray)
 //
 //	DATE:			dcc 04/20/02
 //
+// ZRW 4/26/17 WIN-39 Removed the method, it isn't used anywhere and I didn't want to update strtok to strtok_s for no reason. You can see this method in previous versions
 
-LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray)
-{
-	LONG					returnValue = 0, count = 0, pSectionBuf_len = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
-	char					szSectionName[80], szKeyName[80], szDefault[80];
-	char					defPrinter[80], szSectionBuf[1000], szDevice[80], sep[3]; // increased sep from 2 to 3
-	char					*pToken = NULL, *pSectionBuf = NULL;
-	DWORD					dwSize = 80, dwReturn;
-
-	// get default printer
-	strcpy(szSectionName, "Windows");
-	strcpy(szKeyName, "Device");
-	dwReturn = GetProfileString(szSectionName, szKeyName, szDefault, defPrinter, dwSize);
-
-	//now get all printers registered
-	strcpy(szSectionName, "Devices");
-	dwSize = 1000;
-
-	dwReturn = GetProfileSection(szSectionName, szSectionBuf, dwSize);
-	strcpy(sep, ",=");
-	pSectionBuf = szSectionBuf;
-	pToken = strtok(szSectionBuf, sep);
-	pSectionBuf = pToken;
-	strcpy(szDevice, "");
-	count = 0;
-	while (pToken != NULL)
-	{
-		if (szDevice[0] == '\0') {
-			strcpy(szDevice, pToken);
-			count++;
-		}
-		else {
-			strcat(szDevice, ",");
-			strcat(szDevice, pToken);
-		}
-		pToken = strtok(NULL, sep);
-		// write info to array and then look for next device
-		if (pToken == NULL) {
-			if (strcmp(szDevice, defPrinter) == 0) {
-				returnValue = count;
-			}
-			PA_ResizeArray(printerArray, count);
-			PA_SetTextInArray(*printerArray, count, szDevice, strlen(szDevice));
-			pSectionBuf_len = (LONG)strlen(pSectionBuf); // WJF 6/30/16 Win-21 Cast to LONG
-			pSectionBuf = pSectionBuf + (pSectionBuf_len + 1);
-			if (*pSectionBuf != '\0') {
-				strcpy(szDevice, "");
-				pToken = strtok(pSectionBuf, sep);
-			}
-		}
-		else {
-			pSectionBuf = pToken;
-		}
-	}
-	return returnValue;
-}
 
 // ------------------------------------------------
 //
@@ -4349,7 +4337,6 @@ LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray)
 //
 //
 //  REB 4/6/09 #19472
-//
 
 void sys_GetTimeZoneList(PA_PluginParameters params)
 {
@@ -4361,13 +4348,13 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 	LONG			returnValue, errorCode; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	HKEY			hkTimeZone, hkRootKey;
 	char			TimeStr[255];
-	char			hours[2];
-	char			mins[2];
-	char			secs[2];
+	char			hours[3];  // ZRW 5/4/17 WIN-39 Increased from 2 to 3 to account for the null terminator
+	char			mins[3];  // ZRW 5/4/17 WIN-39 Increased from 2 to 3 to account for the null terminator
+	char			secs[3];  // ZRW 5/4/17 WIN-39 Increased from 2 to 3 to account for the null terminator
 	char			DateStr[255];
-	char			month[2];
-	char			day[2];
-	char			year[10];
+	char			month[3];  // ZRW 5/4/17 WIN-39 Increased from 2 to 3 to account for the null terminator
+	char			day[3];  // ZRW 5/4/17 WIN-39 Increased from 2 to 3 to account for the null terminator
+	char			year[11];  // ZRW 5/4/17 WIN-39 Increased from 10 to 11 to account for the null terminator
 	char			TZ[512];
 	DWORD			dwSubKeys, dwValues, dwDataSize;
 	REG_TZI_FORMAT	TZInfoFormat;
@@ -4379,7 +4366,8 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 	FILETIME		ftLastWrite;
 	TIME_ZONE_INFORMATION TimeZoneInformation;
 	SYSTEMTIME		SystemTimeNow, LocalTime;
-
+	size_t          *numConverted = NULL;  // ZRW 5/1/17 WIN-39
+	
 	// For some reason we are unable to return 3 arrays to 4D.  Instead we'll return
 	// a single array with all three data items in semicolon delimited elements.
 
@@ -4414,26 +4402,28 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 					dwDataSize = 255;
 					if (RegQueryValueEx(hkTimeZone, "Display", NULL, NULL, (LPBYTE)&displayName, &dwDataSize) != ERROR_SUCCESS)
 					{
-						strcpy(displayName, "n/a");
+						strcpy_s(displayName, sizeof(displayName), "n/a");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					}
 					displayName_len = strlen(displayName);
 
-					strcpy(TZ, displayName);
+					strcpy_s(TZ, sizeof(TZ), displayName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 					dwDataSize = 255;
 					if (RegQueryValueEx(hkTimeZone, "Dlt", NULL, NULL, (LPBYTE)&daylightName, &dwDataSize) != ERROR_SUCCESS)
 					{
-						strcpy(daylightName, "n/a");
+						strcpy_s(daylightName, sizeof(daylightName), "n/a");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					}
 
-					mbstowcs(TimeZoneInformation.DaylightName, daylightName, dwDataSize);
+					//mbstowcs(TimeZoneInformation.DaylightName, daylightName, dwDataSize);
+					mbstowcs_s(numConverted, TimeZoneInformation.DaylightName, sizeof(TimeZoneInformation.DaylightName), daylightName, dwDataSize);  // ZRW 5/1/17 WIN-39 mbstowcs -> mbstowcs_s
 
 					dwDataSize = 255;
 					if (RegQueryValueEx(hkTimeZone, "Std", NULL, NULL, (LPBYTE)&standardName, &dwDataSize) != ERROR_SUCCESS)
 					{
-						strcpy(standardName, "n/a");
+						strcpy_s(standardName, sizeof(standardName), "n/a");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 					}
-					mbstowcs(TimeZoneInformation.StandardName, standardName, dwDataSize);
+					//mbstowcs(TimeZoneInformation.StandardName, standardName, dwDataSize);
+					mbstowcs_s(numConverted, TimeZoneInformation.StandardName, sizeof(TimeZoneInformation.StandardName), standardName, dwDataSize);  // ZRW 5/1/17 WIN-39 mbstowcs -> mbstowcs_s
 
 					RegCloseKey(hkTimeZone);
 
@@ -4443,37 +4433,40 @@ void sys_GetTimeZoneList(PA_PluginParameters params)
 					// Get the current time in the specified time zone.
 					SystemTimeToTzSpecificLocalTime(&TimeZoneInformation, &SystemTimeNow, &LocalTime);
 
+					// ZRW 5/4/17 WIN-39 Apparently converting a WORD variable to a character variable here was causing a buffer overflow; rather than use itoa or itoa_s to convert to a char array, we'll convert to a string first, then grab the first two characters of that string
+					
 					_itoa(LocalTime.wHour, hours, 10);
 					_itoa(LocalTime.wMinute, mins, 10);
 					_itoa(LocalTime.wSecond, secs, 10);
 
-					strcpy(TimeStr, hours);
-					strcat(TimeStr, ":");
-					strcat(TimeStr, mins);
-					strcat(TimeStr, ":");
-					strcat(TimeStr, secs);
+					//  ZRW 4/5/17 WIN-39 strcat -> strcat_s for the rest of this method
+					strcpy_s(TimeStr, sizeof(TimeStr), hours);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+					strcat_s(TimeStr, sizeof(TimeStr), ":");
+					strcat_s(TimeStr, sizeof(TimeStr), mins);
+					strcat_s(TimeStr, sizeof(TimeStr), ":");
+					strcat_s(TimeStr, sizeof(TimeStr), secs);
 
-					strcat(TZ, ";");
-					strcat(TZ, TimeStr);
+					strcat_s(TZ, sizeof(TZ), ";");
+					strcat_s(TZ, sizeof(TZ), TimeStr);
 
 					_itoa(LocalTime.wDay, day, 10);
 					_itoa(LocalTime.wMonth, month, 10);
 					_itoa(LocalTime.wYear, year, 10);
 
-					strcpy(DateStr, month);
-					strcat(DateStr, "/");
-					strcat(DateStr, day);
-					strcat(DateStr, "/");
-					strcat(DateStr, year);
+					strcpy_s(DateStr, sizeof(DateStr), month);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+					strcat_s(DateStr, sizeof(DateStr), "/");
+					strcat_s(DateStr, sizeof(DateStr), day);
+					strcat_s(DateStr, sizeof(DateStr), "/");
+					strcat_s(DateStr, sizeof(DateStr), year);
 
-					strcat(TZ, ";");
-					strcat(TZ, DateStr);
+					strcat_s(TZ, sizeof(TZ), ";");
+					strcat_s(TZ, sizeof(TZ), DateStr);
 
-					strcpy(TZ, displayName);
-					strcat(TZ, ";");
-					strcat(TZ, TimeStr);
-					strcat(TZ, ";");
-					strcat(TZ, DateStr);
+					strcpy_s(TZ, sizeof(TZ), displayName);  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
+					strcat_s(TZ, sizeof(TZ), ";");
+					strcat_s(TZ, sizeof(TZ), TimeStr);
+					strcat_s(TZ, sizeof(TZ), ";");
+					strcat_s(TZ, sizeof(TZ), DateStr);
 
 					PA_SetTextInArray(atTZ, index, TZ, strlen(TZ));
 				}
@@ -4525,11 +4518,11 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	pos = strrchr(pluginPath, '\\');
 
-	strcpy(pos, "\0");
+	strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	pos = strrchr(pluginPath, '\\');
 
-	strcpy(pos, "\\\0");
+	strcpy_s(pos, MAX_PATH, "\\\0");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	// WJF 9/21/15 #43940 OrchardTwain -> Orchard_Utilities
 	if (get64){
@@ -4541,7 +4534,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	GetTempPath(MAX_PATH, filePath);
 
-	strcat_s(filePath, MAX_PATH, "twainSources.txt");
+	strcat_s(filePath, sizeof(filePath), "twainSources.txt");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(filePath)
 
 	// WJF 3/29/16 Win-11 Begin Changes
 	utilities.cbSize = sizeof(SHELLEXECUTEINFO);
@@ -4564,7 +4557,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 			PA_YieldAbsolute();
 		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
 
-		fp = fopen(filePath, "r");
+		//fp = fopen(filePath, "r");
+		fopen_s(&fp, filePath, "r");  // ZRW 4/13/17 WIN-39 Using the more scure method
 
 		if (fp){
 			while (fgets(source, 256, fp) != NULL){
@@ -4579,11 +4573,11 @@ void TWAIN_GetSources(PA_PluginParameters params)
 				}
 				else { // Valid Product Name
 					pos = strrchr(source, '\n');
-					strcpy_s(pos, 256, "\0");
+					strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 256 -> MAX_PATH
 
 					if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
 					{
-						strcat_s(source, 256, "-TWAIN"); // WJF 9/21/15 #43940
+						strcat_s(source, sizeof(source), "-TWAIN"); // WJF 9/21/15 #43940  // ZRW 4/5/17 WIN-39 256 -> sizeof(source)
 					}
 
 					PA_ResizeArray(&atSources, index);
@@ -4605,9 +4599,9 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	GetTempPath(MAX_PATH, filePath);
 
-	strcat_s(filePath, MAX_PATH, "wiaSources.txt");
+	strcat_s(filePath, sizeof(filePath), "wiaSources.txt");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(filePath)
 
-	strcpy_s(lpParameters, 16, "-ws");
+	strcpy_s(lpParameters, sizeof(lpParameters), "-ws");  // ZRW 3/22/17 WIN-39 16 -> sizeof(lpParameters)
 
 	utilities.hProcess = NULL;
 	utilities.lpParameters = lpParameters;
@@ -4622,17 +4616,18 @@ void TWAIN_GetSources(PA_PluginParameters params)
 			PA_YieldAbsolute();
 		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
 
-		fp = fopen(filePath, "r");
+		//fp = fopen(filePath, "r");
+		fopen_s(&fp, filePath, "r");  // ZRW 4/13/17 WIN-39 Using the more scure method
 
 		if (fp){
 			while (fgets(source, 256, fp) != NULL){
 				if (strcmp(source, "") != 0){
 					pos = strrchr(source, '\n');
-					strcpy_s(pos, 256, "\0");
+					strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 256 -> MAX_PATH
 
 					if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
 					{
-						strcat_s(source, 256, "-WIA");
+						strcat_s(source, sizeof(source), "-WIA");  // ZRW 4/5/17 WIN-39 256 -> sizeof(source)
 					}
 
 					PA_ResizeArray(&atSources, index);
@@ -4848,11 +4843,11 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 
 	pos = strrchr(pluginPath, '\\');
 
-	strcpy(pos, "\0");
+	strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	pos = strrchr(pluginPath, '\\');
 
-	strcpy(pos, "\\\0");
+	strcpy_s(pos, MAX_PATH, "\\\0");  // ZRW 3/22/17 WIN-39 strcpy -> strcpy_s
 
 	if (Get64){
 		strcpy_s(pos, MAX_PATH, "\\Windows64\\Orchard_Utilities.exe");
@@ -4875,7 +4870,7 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 		}
 
 		// WJF 9/24/15 #43940
-		strcpy_s(sourceName, 256, twainSource);
+		strcpy_s(sourceName, sizeof(sourceName), twainSource);  // ZRW 3/22/17 WIN-39 256 -> sizeof(sourceName)
 		pos = NULL;
 		pos = strrchr(sourceName, '-');
 
@@ -4885,33 +4880,34 @@ long __stdcall OrchTwain_Get(const char * filePath, BOOL Get64, BOOL ShowUI, BOO
 	}
 
 	if (IsWIA){ // WJF 9/21/15 #43940
-		strcpy_s(lpParameters, MAX_PATH_PLUS, "-wa ");
+		strcpy_s(lpParameters, sizeof(lpParameters), "-wa ");  // ZRW 3/22/17 WIN-39 MAX_PATH_PLUS -> sizeof(lpParamters)
 	}
 	else {
-		strcpy_s(lpParameters, MAX_PATH_PLUS, "-A ");
+		strcpy_s(lpParameters, sizeof(lpParameters), "-A ");  // ZRW 3/22/17 WIN-39 MAX_PATH_PLUS -> sizeof(lpParamters)
 	}
 
-	strcat_s(lpParameters, MAX_PATH_PLUS, filePath);
+	  // ZRW 4/5/17 WIN-39 MAX_PATH_PLUS -> sizeof(lpParamters)
+	strcat_s(lpParameters, sizeof(lpParameters), filePath);
 
 	if (GetMultiple){
-		strcat_s(lpParameters, MAX_PATH_PLUS, " 1");
+		strcat_s(lpParameters, sizeof(lpParameters), " 1");
 	}
 	else {
-		strcat_s(lpParameters, MAX_PATH_PLUS, " 0");
+		strcat_s(lpParameters, sizeof(lpParameters), " 0");
 	}
 
 	if (ShowUI){
-		strcat_s(lpParameters, MAX_PATH_PLUS, " 1 ");
+		strcat_s(lpParameters, sizeof(lpParameters), " 1 ");
 	}
 	else {
-		strcat_s(lpParameters, MAX_PATH_PLUS, " 0 ");
+		strcat_s(lpParameters, sizeof(lpParameters), " 0 ");
 	}
 
 	if (twainSource){
 		if (strcmp(sourceName, "") != 0){
-			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
-			strcat_s(lpParameters, MAX_PATH_PLUS, sourceName);
-			strcat_s(lpParameters, MAX_PATH_PLUS, "\"");
+			strcat_s(lpParameters, sizeof(lpParameters), "\"");
+			strcat_s(lpParameters, sizeof(lpParameters), sourceName);
+			strcat_s(lpParameters, sizeof(lpParameters), "\"");
 		}
 	}
 
@@ -5092,7 +5088,7 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 
 			i++;
 
-			strcpy_s(filePath, MAX_PATH, TWAINCapture->filePath);
+			strcpy_s(filePath, sizeof(filePath), TWAINCapture->filePath);  // ZRW 3/23/17 WIN-39 MAX_PATH -> sizeof(filePath)
 
 			pos = strrchr(filePath, '.');
 
@@ -5100,7 +5096,7 @@ unsigned __stdcall TWAIN_GetImage(void *arg)
 
 			strcpy_s(pos, MAX_PATH, iterator);
 
-			strcat_s(filePath, MAX_PATH, ".bmp");
+			strcat_s(filePath, sizeof(filePath), ".bmp");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(filePath)
 
 			if ((GetFileAttributes(filePath) == INVALID_FILE_ATTRIBUTES) || (GetLastError() == ERROR_FILE_NOT_FOUND)){
 				bContinue = FALSE;
@@ -5164,9 +5160,9 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	//	PA_DisposeUnistring(&Unistring); // WJF 6/29/15 #42792
 	GetTempPath(MAX_PATH, pathName);
 	charPos = strrchr(pathName, '\\');
-	strncpy(fileName, pathName, (charPos - pathName + 1));
-	strncat_s(fileName, 255, "TWNIMG.bmp", strlen("TWNIMG.bmp"));
-
+	strncpy_s(fileName, sizeof(fileName), pathName, (charPos - pathName + 1));  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
+	strncat(fileName, "TWNIMG.bmp", strlen("TWNIMG.bmp"));  // ZRW 4/10/17 WIN-39 "strncat_s(fileName, 255, "TWNIMG.bmp", strlen("TWNIMG.bmp"))" -> "strncat(fileName, "TWNIMG.bmp", strlen("TWNIMG.bmp"))"; rather than hardcoding the size allowed we'll used the defined macro to use the size of fileName instead
+	
 	// Allow the image dialog to display if so desired.
 	// WJF 9/10/15 #43727 Changed to use a new variable instead of the EZTWAIN function
 	if (showDialog){
@@ -5218,10 +5214,10 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 	// Updated so that return code is 1 for success, 0 for cancel and negative for error codes.
 	// Suppress eztwain error dialogs
 	// WJF 9/10/15 #43727 We are now checking to see if the file exists rather than for a valid DIB handle
-	strcpy_s(fileName3, 255, fileName);
+	strcpy_s(fileName3, sizeof(fileName3), fileName);  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName3)
 	charPos = strrchr(fileName3, '.');
 	strcpy_s(charPos, 255, "1");
-	strcat_s(fileName3, 255, ".bmp");
+	strcat_s(fileName3, sizeof(fileName3), ".bmp");  // ZRW 4/5/17 WIN-39 255 -> sizeof(fileName3)
 	if ((GetFileAttributes(fileName3) != INVALID_FILE_ATTRIBUTES) && (GetLastError() != ERROR_FILE_NOT_FOUND)){
 		// returnValue = TWAIN_WriteNativeToFilename(DIBHandle, fileName2); // WJF 9/10/15 #43727 Removed
 
@@ -5229,7 +5225,7 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 		if (returnValue == 0) {
 			returnValue = 1;
 
-			strcpy_s(fileName3, 255, fileName); // WJF 9/21/15 #43940 Backup the file name
+			strcpy_s(fileName3, sizeof(fileName3), fileName); // WJF 9/21/15 #43940 Backup the file name  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName3)
 
 			if (len == 0) // AMS 7/3/14 #39391 Use PA_ExecuteMethod if no blob was passed in.
 			{
@@ -5256,12 +5252,12 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 					pch = fileName;
 
 					// WJF 9/21/15 #43940
-					strcpy_s(fileName, 255, fileName3);
+					strcpy_s(fileName, sizeof(fileName), fileName3);  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName)
 					charPos = strrchr(fileName, '.');
 					_itoa(i + 1, iterator, 10);
 					strcpy_s(charPos, 255, iterator);
-					strcat_s(fileName, 255, ".bmp");
-					strcpy_s(fileName2, 255, "");
+					strcat_s(fileName, sizeof(fileName), ".bmp");  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName)
+					strcpy_s(fileName2, sizeof(fileName2), "");  // ZRW 3/23/17 WIN-39 255 -> fileName2
 
 					charPos = strchr(fileName, '\\');
 					while (charPos != NULL){
@@ -5269,21 +5265,23 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						pch = charPos;
 						charPos = strchr((charPos + 1), '\\');
 						if (charPos != NULL){
-							strcat(fileName2, "\\");
+							strcat_s(fileName2, sizeof(fileName2), "\\");  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 						}
 						else{
 							// add the remainder of fileName to fileName2.
-							strcat(fileName2, "\\");
-							strcat(fileName2, pch);
+							strcat_s(fileName2, sizeof(fileName2), "\\");  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+							strcat_s(fileName2, sizeof(fileName2), pch);  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 						}
 					}
 
 					if (getMultiple){ // WJF 9/22/15 #43940
 						//strcpy(command, "DOCUMENT TO BLOB(\"");
-						strncpy(command, cName, sizeof(command));
-						strcat(command, "(\"");
-						strcat(command, fileName2);
-						strcat(command, "\";xTempTWAINBlob)");
+						strncpy_s(command, sizeof(command), cName, sizeof(command));  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
+						
+						  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+						strcat_s(command, sizeof(command), "(\"");
+						strcat_s(command, sizeof(command), fileName2);
+						strcat_s(command, sizeof(command), "\";xTempTWAINBlob)");
 
 						Unistring = CStringToUnistring(command);
 						PA_ExecuteMethod(&Unistring);
@@ -5304,8 +5302,8 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 							}
 						}
 
-						strcpy_s(command2, 255, cName2);
-						strcat_s(command2, 255, "(xTempTWAINBlob;xTWAINBlob;*)");
+						strcpy_s(command2, sizeof(command2), cName2);  // ZRW 3/23/17 WIN-39 255 -> sizeof(command2)
+						strcat_s(command2, sizeof(command2), "(xTempTWAINBlob;xTWAINBlob;*)");  // ZRW 4/5/17 WIN-39 255 -> sizeof(command2)
 
 						Unistring = CStringToUnistring(command2); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
@@ -5313,10 +5311,12 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 					}
 					else {
 						//strcpy(command, "DOCUMENT TO BLOB(\"");
-						strncpy(command, cName, sizeof(command));
-						strcat(command, "(\"");
-						strcat(command, fileName2);
-						strcat(command, "\";xTWAINBLOB)");
+						strncpy_s(command, sizeof(command), cName, sizeof(command));  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
+
+						  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+ 						strcat_s(command, sizeof(command), "(\"");
+						strcat_s(command, sizeof(command), fileName2);
+						strcat_s(command, sizeof(command), "\";xTWAINBLOB)");
 
 						// REB 4/20/11 #27322 Conver the C string to a Unistring
 						Unistring = CStringToUnistring(command); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
@@ -5351,12 +5351,12 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 				for (int i = 0; i < TWAINCapture.numPictures; i++){
 					pch = fileName;
 
-					strcpy_s(fileName, 255, fileName3);
+					strcpy_s(fileName, sizeof(fileName), fileName3);  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName)
 					charPos = strrchr(fileName, '.');
 					_itoa(i + 1, iterator, 10);
 					strcpy_s(charPos, 255, iterator);
-					strcat_s(fileName, 255, ".bmp");
-					strcpy_s(fileName2, 255, "");
+					strcat_s(fileName, sizeof(fileName), ".bmp");  // ZRW 4/5/17 WIN-39 255 -> sizeof(fileName)
+					strcpy_s(fileName2, sizeof(fileName2), "");  // ZRW 3/23/17 WIN-39 255 -> sizeof(fileName2)
 
 					charPos = strchr(fileName, '\\');
 					while (charPos != NULL){
@@ -5364,20 +5364,22 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 						pch = charPos;
 						charPos = strchr((charPos + 1), '\\');
 						if (charPos != NULL){
-							strcat(fileName2, "\\");
+							strcat_s(fileName2, sizeof(fileName2), "\\");  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 						}
 						else{
 							// add the remainder of fileName to fileName2.
-							strcat(fileName2, "\\");
-							strcat(fileName2, pch);
+							strcat_s(fileName2, sizeof(fileName2), "\\");  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+							strcat_s(fileName2, sizeof(fileName2), pch);  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 						}
 					}
 
 					if (getMultiple){
-						strncpy(command, cName, sizeof(command));
-						strcat(command, "(\"");
-						strcat(command, fileName2);
-						strcat(command, "\";xTempTWAINBlob)");
+						strncpy_s(command, sizeof(command), cName, sizeof(command));  // ZRW 4/7/17 WIN-39 strncpy -> strncpy_s
+
+						  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+						strcat_s(command, sizeof(command), "(\"");
+						strcat_s(command, sizeof(command), fileName2);
+						strcat_s(command, sizeof(command), "\";xTempTWAINBlob)");
 
 						Unistring = CStringToUnistring(command); // WJF 6/24/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
@@ -5397,23 +5399,24 @@ void TWAIN_AcquireImage(PA_PluginParameters params)
 								j++;
 							}
 						}
-
-						strcpy_s(command2, 255, cName2);
-						strcat_s(command2, 255, "(xTempTWAINBlob;");
-						strcat_s(command2, 255, BLOB);
-						strcat_s(command2, 255, ";*)");
+						// ZRW 3/23/17 WIN-39 255 -> sizeof(command2)
+						strcpy_s(command2, sizeof(command2), cName2);  
+						strcat_s(command2, sizeof(command2), "(xTempTWAINBlob;");
+						strcat_s(command2, sizeof(command2), BLOB);
+						strcat_s(command2, sizeof(command2), ";*)");
 
 						Unistring = CStringToUnistring(command2); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
 						PA_DisposeUnistring(&Unistring);
 					}
 					else {
-						strcpy_s(command, 255, cName);
-						strcat_s(command, 255, "(\"");
-						strcat_s(command, 255, fileName2);
-						strcat_s(command, 255, "\";");
-						strcat_s(command, 255, BLOB);
-						strcat_s(command, 255, ")");
+						// ZRW 3/23/17 WIN-39 255 -> sizeof(command)
+						strcpy_s(command, sizeof(command), cName);  
+						strcat_s(command, sizeof(command), "(\"");
+						strcat_s(command, sizeof(command), fileName2);
+						strcat_s(command, sizeof(command), "\";");
+						strcat_s(command, sizeof(command), BLOB);
+						strcat_s(command, sizeof(command), ")");
 
 						Unistring = CStringToUnistring(command); // WJF 6/21/16 Win-21 Removed unneccessary addressof operator
 						PA_ExecuteMethod(&Unistring);
@@ -6904,10 +6907,13 @@ void gui_GetWindowEx(PA_PluginParameters params, HWND hWnd)
 		windowHandle = (LONG_PTR)hWnd;
 	}
 	else {
+		
+		_strlwr_s(windowTitle, MAXBUF); // ZRW 4/12/17 WIN-39 using the more secure _s method; using MAXBUF since windowTitle is a pointer
+		
 		if ((strlen(windowTitle) == 0) && (windowHandles.MDIs_4DhWnd != NULL)) {
 			windowHandle = (LONG_PTR)windowHandles.fourDhWnd;
 		}
-		else if ((strcmp(_strlwr(windowTitle), "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {
+		else if ((strcmp(windowTitle, "mdi") == 0) && (windowHandles.MDIhWnd != NULL)) {  // ZRW 4/12/17 WIN-39 _strlwr(windowTitle) -> windowTitle
 			windowHandle = (LONG_PTR)windowHandles.MDIhWnd;
 		}
 		else {
@@ -7272,30 +7278,30 @@ void sys_HashText(PA_PluginParameters params){
 		switch (lAlgorithm){
 		case 0:
 			algorithm = CALG_MD5;
-			strcpy_s(provider, 64, MS_DEF_PROV);
+			strcpy_s(provider, sizeof(provider), MS_DEF_PROV);  // ZRW 3/23/17 WIN-39 64 -> sizeof(provider)
 			provType = PROV_RSA_FULL;
 			break;
 		case 1:
 			algorithm = CALG_SHA1;
-			strcpy_s(provider, 64, MS_DEF_PROV);
+			strcpy_s(provider, sizeof(provider), MS_DEF_PROV);  // ZRW 3/23/17 WIN-39 64 -> sizeof(provider)
 			provType = PROV_RSA_FULL;
 			break;
 
 		case 2:
 			algorithm = CALG_SHA_256;
-			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			strcpy_s(provider, sizeof(provider), MS_ENH_RSA_AES_PROV);  // ZRW 3/23/17 WIN-39 64 -> sizeof(provider)
 			provType = PROV_RSA_AES;
 			break;
 
 		case 3:
 			algorithm = CALG_SHA_384;
-			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			strcpy_s(provider, sizeof(provider), MS_ENH_RSA_AES_PROV);  // ZRW 3/23/17 WIN-39 64 -> sizeof(provider)
 			provType = PROV_RSA_AES;
 			break;
 
 		case 4:
 			algorithm = CALG_SHA_512;
-			strcpy_s(provider, 64, MS_ENH_RSA_AES_PROV);
+			strcpy_s(provider, sizeof(provider), MS_ENH_RSA_AES_PROV);  // ZRW 3/23/17 WIN-39 64 -> sizeof(provider)
 			provType = PROV_RSA_AES;
 			break;
 
@@ -7346,7 +7352,8 @@ void sys_HashText(PA_PluginParameters params){
 		lpOutput = malloc(dwOutSize); // WJF 7/13/16 Win-21 Removed typecasting on malloc to follow C best practices
 		pOutput = lpOutput;
 		for (DWORD i = 0; i < dwDataSize; i++){ // WJF 6/24/16 Win-21 int -> DWORD
-			pOutput += sprintf(pOutput, "%02X", pbData[i]);
+			pOutput += sprintf_s(pOutput, MAXBUF, "%02X", pbData[i]);  // ZRW 4/24/17 WIN-39 sprintf -> sprintf_s
+			//pOutput += sprintf(pOutput, "%02X", pbData[i]);  // ZRW 4/24/17 WIN-39 sprintf -> sprintf_s
 		}
 
 		returnCode = ERROR_SUCCESS;

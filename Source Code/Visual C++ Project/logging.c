@@ -51,7 +51,7 @@ void writeLogFile(const char * szLog){
 	SYSTEMTIME lt; // WJF 7/11/16 Win-20 localTime -> lt
 	CHAR szOutput[128]; // WJF 7/11/16 Win-20 1024 -> 128
 	DWORD logLength = 0; // WJF 6/30/16 Win-21 size_t -> DWORD
-	LPSTR dateString = NULL; // WJF 7/11/16 Win-20
+	// LPSTR dateString = NULL; // WJF 7/11/16 Win-20  // ZRW 2/13/17 WIN-39 Initialized but not referenced
 	CHAR dateComp[16]; // WJF 7/11/16 Win-20
 
 	if (bLogIsOpen) { // WJF 7/8/16 Win-20 Don't bother doing this if the log isn't open
@@ -69,7 +69,7 @@ void writeLogFile(const char * szLog){
 			// MM/DD/YYYY H:M:S:MS - 
 			// WJF 7/11/16 Win-20 Rewrote to be simpler
 			sprintf_s(szOutput, 128, "%02u/%02u/%04u %02u:%02u:%02u:%03u - ", lt.wMonth, lt.wDay, lt.wYear, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
-			strcat_s(szOutput, 128, szLog);
+			strcat_s(szOutput, sizeof(szOutput), szLog);  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
 
 			logLength = (DWORD)strlen(szOutput); // WJF 6/30/16 Win-21 Cast to DWORD
 
@@ -102,11 +102,11 @@ LONG logMaintenance() {
 	ULONGLONG qwResult = 0;
 	char searchPath[MAX_PATH];
 	char deletePath[MAX_PATH];
-	LONG lTextLength = 0;
+//	LONG lTextLength = 0;  // ZRW 2/13/17 WIN-39 Initialized but not referenced
 	LONG lNumDeleted = 0;
 
-	strcpy_s(searchPath, MAX_PATH, szLogsPath); // WJF 7/11/16 Win-20 parameter -> global
-	strcat_s(searchPath, MAX_PATH, "*.*");
+	strcpy_s(searchPath, sizeof(searchPath), szLogsPath); // WJF 7/11/16 Win-20 parameter -> global  // ZRW 3/23/17 WIN-39 MAX_PATH -> sizeof(searchPath)
+	strcat_s(searchPath, sizeof(searchPath), "*.*");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(searchPath)
 
 	GetSystemTimeAsFileTime(&ftCurrent);
 
@@ -126,8 +126,8 @@ LONG logMaintenance() {
 
 			// Delete files older than the specified number of days
 			if (qwResult > (lNumDays * _DAY)){ // WJF 7/8/16 Win-20 30 -> lNumDays, >= -> >
-				strcpy_s(deletePath, MAX_PATH, szLogsPath);
-				strcat_s(deletePath, MAX_PATH, ffd.cFileName);
+				strcpy_s(deletePath, sizeof(deletePath), szLogsPath);  // ZRW 3/23/17 WIN-39 MAX_PATH -> sizeof(deletePath)
+				strcat_s(deletePath, sizeof(deletePath), ffd.cFileName);  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(deletePath)
 				if (DeleteFile(deletePath)) {
 					lNumDeleted++; // WJF 7/11/16 Win-20
 				}
@@ -144,7 +144,7 @@ LONG logOpenFile() {
 	LONG returnValue = 0;
 
 	if (szLogsPath != NULL) {
-		strcpy_s(logFilePath, MAX_PATH, szLogsPath);
+		strcpy_s(logFilePath, sizeof(logFilePath), szLogsPath);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 		// strcat_s(logFilePath, MAX_PATH, "Win32API\\"); 
 
@@ -154,14 +154,14 @@ LONG logOpenFile() {
 			logMaintenance();
 		}
 
-		strcat_s(logFilePath, MAX_PATH, "Win32API_");
+		strcat_s(logFilePath, sizeof(logFilePath), "Win32API_"); // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(logFilePath)
 
 		GetLocalTime(&lt);
 
 		sprintf_s(dateOpened, 16, "%04u%02u%02u", lt.wYear, lt.wMonth, lt.wDay);
-		strcat_s(logFilePath, MAX_PATH, dateOpened);
+		strcat_s(logFilePath, sizeof(logFilePath), dateOpened);  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(logFilePath)
 
-		strcat_s(logFilePath, MAX_PATH, ".log");
+		strcat_s(logFilePath, sizeof(logFilePath), ".log");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(logFilePath)
 
 		hLogFile = CreateFile(logFilePath, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 

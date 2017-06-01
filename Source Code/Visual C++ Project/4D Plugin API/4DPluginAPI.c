@@ -5708,7 +5708,7 @@ void PA_BringProcessToFront( PA_long32 process )
 }
 
 
-PA_long32 PA_NewProcess( void* procPtr, PA_long32 stackSize, PA_Unichar* name )
+PA_long32 PA_NewProcess( void (*procPtr)(void) , PA_long32 stackSize, PA_Unichar* name)  // ZRW 2/14/17 WIN-39 "void* procPtr" -> "void (*procPtr)(void)"
 {
 	EngineBlock eb;
 	eb.fHandle = (PA_Handle) procPtr;

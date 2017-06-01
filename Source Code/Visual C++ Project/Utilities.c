@@ -33,8 +33,8 @@ int compareAlphabetical(WIN32_FIND_DATA* p1, WIN32_FIND_DATA* p2)
 	char a[260];
 	char b[260];
 
-	strcpy(a, p1->cFileName);
-	strcpy(a, p2->cFileName);
+	strcpy_s(a, sizeof(a), p1->cFileName);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
+	strcpy_s(a, sizeof(a), p2->cFileName);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 	ret = strcmp(a, b);
 
@@ -89,6 +89,7 @@ LONG PA_GetTextParameter(PA_PluginParameters params, short index, char* text)
 	PA_Unistring			*UnistringText;
 	LONG					length; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char					*textParameter;
+	size_t                  numChars;  // ZRW 4/24/17 WIN-39 Not needed, but required by wcstombs_s
 
 	UnistringText = PA_GetStringParameter(params, index);
 
@@ -96,10 +97,13 @@ LONG PA_GetTextParameter(PA_PluginParameters params, short index, char* text)
 		textParameter = malloc((UnistringText->fLength + 1) * sizeof(char));
 		memset(textParameter, 0, ((UnistringText->fLength + 1) * sizeof(char)));
 
-		wcstombs(textParameter, UnistringText->fString, UnistringText->fLength);
+		  // ZRW 4/24/17 WIN-39 Use more secure version of method
+		//wcstombs(textParameter, UnistringText->fString, UnistringText->fLength);
+		wcstombs_s(&numChars, textParameter, MAXBUF, UnistringText->fString, UnistringText->fLength);  // Using MAXBUF since textParameter is a pointer
+		
 		textParameter[strlen(textParameter)] = '\0';
 
-		strcpy(text, textParameter);
+		strcpy_s(text, 32000, textParameter);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s; the largest variable passed to PA_GetTextParameter that I found is messageText at 32000
 
 		free(textParameter);
 
@@ -119,16 +123,20 @@ void PA_SetTextParameter(PA_PluginParameters params, short index, char* text, LO
 	PA_Unistring		*UnistringParam;
 	PA_Unichar			*translatedText;
 	LONG_PTR			length;
+	size_t              sizeLength;  // ZRW 5/4/17 WIN-39
 
 	if (len > 0){
-		length = mbstowcs(0, text, len) + 1;
+		// ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
+		//length = mbstowcs(0, text, len) + 1;
+		mbstowcs_s(&sizeLength, 0, 0, text, len);
+		length = (LONG_PTR)(sizeLength);
 
 		translatedText = malloc(length * sizeof(PA_Unichar));
 
 		if (translatedText != NULL){
 			memset(translatedText, 0, (length * sizeof(PA_Unichar)));
 
-			mbstowcs(translatedText, text, len);
+			mbstowcs_s(&sizeLength, translatedText, strlen(text) + 1, text, len);  // ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
 
 			UnistringParam = PA_GetStringParameter(params, index);
 
@@ -147,15 +155,19 @@ void PA_SetTextInArray(PA_Variable array4D, LONG index, char* text, LONG_PTR len
 	PA_Unistring		UnistringText;
 	PA_Unichar			*translatedText = NULL;
 	LONG_PTR			length = 0;
+	size_t              sizeLength;  // ZRW 5/4/17 WIN-39
 
-	length = mbstowcs(0, text, len) + 1;
+	// ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
+	//length = mbstowcs(0, text, len) + 1;
+	mbstowcs_s(&sizeLength, 0, 0, text, len);
+	length = (LONG_PTR)(sizeLength);
 
 	translatedText = malloc(length * sizeof(PA_Unichar));
 
 	if (translatedText != NULL){
 		memset(translatedText, 0, (length * sizeof(PA_Unichar)));
 
-		mbstowcs(translatedText, text, len);
+		mbstowcs_s(&sizeLength, translatedText, strlen(text) + 1, text, len);  // ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
 
 		UnistringText = PA_CreateUnistring(translatedText);
 
@@ -173,6 +185,7 @@ LONG PA_GetTextInArray(PA_Variable array4D, LONG index, char* text)
 	PA_Unistring		UnistringText;
 	char				*translatedText;
 	LONG				length = 0; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
+	size_t                  numChars;  // ZRW 4/24/17 WIN-39 Not needed, but required by wcstombs_s
 
 	UnistringText = PA_GetStringInArray(array4D, index);
 
@@ -182,11 +195,13 @@ LONG PA_GetTextInArray(PA_Variable array4D, LONG index, char* text)
 		if (translatedText != NULL){
 			memset(translatedText, 0, ((UnistringText.fLength + 1)* sizeof(char)));
 
-			wcstombs(translatedText, UnistringText.fString, UnistringText.fLength);
+			// ZRW 4/24/17 WIN-39 Use more secure version of method
+			//wcstombs(translatedText, UnistringText.fString, UnistringText.fLength);
+			wcstombs_s(&numChars, translatedText, MAXBUF, UnistringText.fString, UnistringText.fLength);  // Using MAXBUF since translatedText is a pointer
 
 			translatedText[strlen(translatedText)] = '\0';
 
-			strcpy(text, translatedText);
+			strcpy_s(text, 32000, translatedText);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 			free(translatedText);
 
@@ -205,15 +220,19 @@ LONG PA_GetTextInArray(PA_Variable array4D, LONG index, char* text)
 void PA_ReturnText(PA_PluginParameters params, char* text, LONG_PTR len){
 	PA_Unichar			*translatedText;
 	LONG_PTR			length;
+	size_t              sizeLength;  // ZRW 5/4/17 WIN-39
 
-	length = mbstowcs(0, text, len) + 1;
+	// ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
+	//length = mbstowcs(0, text, len) + 1;
+	mbstowcs_s(&sizeLength, 0, 0, text, len);
+	length = (LONG_PTR)(sizeLength);
 
 	translatedText = malloc(length * sizeof(PA_Unichar));
 
 	if (translatedText != NULL){
 		memset(translatedText, 0, (length * sizeof(PA_Unichar)));
 
-		mbstowcs(translatedText, text, len);
+		mbstowcs_s(&sizeLength, translatedText, strlen(text) + 1, text, len);  // ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
 
 		PA_ReturnString(params, translatedText);
 
@@ -253,15 +272,19 @@ PA_Unistring CStringToUnistring(char* text)
 	PA_Unistring		UnistringText;
 	PA_Unichar			*translatedText = NULL;
 	LONG_PTR			length = 0;
+	size_t              sizeLength;  // ZRW 5/4/17 WIN-39
 
-	length = mbstowcs(0, text, strlen(text)) + 1;
-
+	// ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
+	//length = mbstowcs(0, text, strlen(text)) + 1;
+	mbstowcs_s(&sizeLength, 0, 0, text, strlen(text));
+	length = (LONG_PTR)(sizeLength);
+	
 	translatedText = malloc(length * sizeof(PA_Unichar));
 
 	if (translatedText != NULL){
 		memset(translatedText, 0, (length * sizeof(PA_Unichar)));
 
-		mbstowcs(translatedText, text, strlen(text));
+		mbstowcs_s(&sizeLength, translatedText, strlen(text) + 1, text, strlen(text));  // ZRW 5/4/17 WIN-39 mbstowcs -> mbstowcs_s
 
 		UnistringText = PA_CreateUnistring(translatedText);
 
@@ -281,13 +304,16 @@ char* UnistringToCString(PA_Unistring* UnistringText)
 	char* translatedText;
 	const char * strError = "Error allocating memory of string.";
 	size_t errLength = strlen(strError);
+	size_t numChars;  // ZRW 4/24/17 WIN-39 Not needed, but required by wcstombs_s
 
 	translatedText = malloc((UnistringText->fLength + 1)* sizeof(char));
 
 	if (translatedText != NULL){
 		memset(translatedText, 0, ((UnistringText->fLength + 1)* sizeof(char)));
 
-		wcstombs(translatedText, UnistringText->fString, UnistringText->fLength);
+		// ZRW 4/24/17 WIN-39 Use more secure version of method
+		//wcstombs(translatedText, UnistringText->fString, UnistringText->fLength);
+		wcstombs_s(&numChars, translatedText, MAXBUF, UnistringText->fString, UnistringText->fLength);  // Using MAXBUF since translatedText is a pointer
 
 		translatedText[strlen(translatedText)] = '\0';
 

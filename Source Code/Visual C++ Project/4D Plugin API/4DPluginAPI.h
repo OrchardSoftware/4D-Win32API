@@ -678,7 +678,7 @@ void PA_YieldAbsolute           ( );
 char PA_WaitNextEvent		    ( PA_Event* event );
 void PA_UpdateProcessVariable   ( PA_long32 process );
 void PA_BringProcessToFront     ( PA_long32 process );
-PA_long32 PA_NewProcess				( void* procPtr, PA_long32 stackSize, PA_Unichar* name );
+PA_long32 PA_NewProcess         ( void (*procPtr)(void) , PA_long32 stackSize, PA_Unichar* name);  // ZRW 2/14/17 WIN-39 "void* procPtr" -> "void (*procPtr)(void)"
 void PA_PostMacEvent            ( PA_long32 process, PA_Event* event );
 
 // Execute some C code in Main Process. Function should be declared as void myFunc(void*)

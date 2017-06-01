@@ -270,3 +270,17 @@ typedef LL* pLL;
 #endif
 
 #define HANDLEARRAY_CAPACITY 4096 // WJF 9/1/15 #43731 32 KB in 64-bit, 16 in 32-bit
+
+  // ZRW 4/10/17 WIN-39  
+  // Whilst working on converting strncpy I noticed #12225 above; apparently you can use #define to have one command execute as another
+  // I wish I had discovered this before making many, many sweeping changes to strcpy, strcat, and strncpy. So keep in mind if we ever have to replace one command with another
+  // we can use #define instead of having to manually replace each call
+
+  // ZRW 4/10/17 WIN-39 Have the following commands use their more secure "_s" methods instead. 
+  // Note that these will only work when the destination variable is a static variable; if using a dynamic pointer instead you'll have to use the _s method manually in the code
+  // converting strcpy -> strcpy_s here would be a good idea at some point
+  // converting strcat -> strcat_s here would be a good idea at some point
+  // converting strncpy -> strncpy_s here would be a good idea at some point 
+#define strncat(destination, source, sourceLength) strncat_s(destination, sizeof(destination), source, sourceLength)
+#define _ultoa(number, destination, radix) _ultoa_s(number, destination, sizeof(destination), radix)
+#define _itoa(number, destination, radix) _itoa_s(number, destination, sizeof(destination), radix)

@@ -3899,6 +3899,7 @@ HWND getWindowHandle(char* windowTitle, HWND hWnd)
 					GetWindowText(ChildhWnd, WindowName, 256);
 					GetClassName(ChildhWnd, szClassName, 255);
 
+					_strlwr_s(WindowName, (sizeof(WindowName))); // SDL 8/25/17 WIN-39
 					_strlwr_s(szClassName, (sizeof(szClassName)));  // ZRW 4/12/17 WIN-39
 					
 					if ((strcmp(szClassName, "mdiclient") == 0) && (strcmp(windowTitle, "mdi") == 0)){  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName, _strlwr(windowTitle) -> windowTitle

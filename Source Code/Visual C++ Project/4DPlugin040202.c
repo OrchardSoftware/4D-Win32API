@@ -114,7 +114,7 @@ void sys_GetCommandLine(PA_PluginParameters params)
 		while (!((*(++pTemp) == ' ' && !bInQuotes) || (*pTemp == '"' && bInQuotes) || *pTemp == '\0'));
 
 		charsToCopy = (pTemp - pMarker);
-		strncpy(executableString, pMarker, charsToCopy);
+		strncpy_s(executableString, sizeof(executableString), pMarker, charsToCopy);  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 		commandLine_len = (LONG)charsToCopy; // WJF 6/30/16 Win-21 Cast to LONG
 		executableString[charsToCopy] = '\0';
 
@@ -141,29 +141,31 @@ void sys_GetCommandLine(PA_PluginParameters params)
 				}
 			}
 
-			strncpy(paramElement, pMarker, pTemp - pMarker);
+			strncpy_s(paramElement, sizeof(paramElement), pMarker, pTemp - pMarker);  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 			paramElement[pTemp - pMarker] = '\0';
 			if (strlen(paramElement) == 0) {
 				PA_ResizeArray(&parameters, 1);
-				strcpy(commandLineStr, executableString);
+				strcpy_s(commandLineStr, sizeof(commandLineStr), executableString);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				returnValue = 1;
 			}
 			else {
 				PA_ResizeArray(&parameters, 2);
 				PA_SetTextInArray(parameters, 2, paramElement, strlen(paramElement));
-				strcpy(commandLineStr, executableString);
-				strcat(commandLineStr, " ");
-				strcat(commandLineStr, paramElement);
+				strcpy_s(commandLineStr, sizeof(commandLineStr), executableString);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
+				
+				// ZRW 3/23/17 WIN-39 strcat -> strcat_s
+				strcat_s(commandLineStr, sizeof(commandLineStr), " ");
+				strcat_s(commandLineStr, sizeof(commandLineStr), paramElement);
 				returnValue = 2;
 			}
 		}
 		else {
 			paramCount = 1;
-			strcpy(commandLineStr, executableString);
+			strcpy_s(commandLineStr, sizeof(commandLineStr), executableString);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			PA_ResizeArray(&parameters, paramCount);
 
 			while (!bDone) {
-				strcpy(paramElement, "");
+				strcpy_s(paramElement, sizeof(paramElement), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				while (*pTemp >= 0) {
 					pTemp++;
 					//two nulls in a row also end
@@ -181,14 +183,16 @@ void sys_GetCommandLine(PA_PluginParameters params)
 					}
 				} // end while
 
-				strncpy(paramElement, pMarker, pTemp - pMarker);
+				strncpy_s(paramElement, sizeof(paramElement), pMarker, pTemp - pMarker);  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				paramElement[pTemp - pMarker] = '\0';
 				if (strlen(paramElement) > 0) {
 					PA_ResizeArray(&parameters, paramCount);
 					PA_SetTextInArray(parameters, paramCount, paramElement, strlen(paramElement));
 					pMarker = pTemp + 1;
-					strcat(commandLineStr, " ");
-					strcat(commandLineStr, paramElement);
+					
+					  // ZRW 4/5/17 WIN-39 strcat -> strcat_s
+					strcat_s(commandLineStr, sizeof(commandLineStr), " ");
+					strcat_s(commandLineStr, sizeof(commandLineStr), paramElement);
 				}
 				else {
 					bDone = TRUE;
@@ -253,91 +257,91 @@ void gui_GetWindowStyle(PA_PluginParameters params, BOOL isEx)
 			bFoundOne = FALSE;
 
 			if ((testValue & WS_THICKFRAME) == WS_THICKFRAME) {
-				strcpy(styleText, "WS_THICKFRAME");
+				strcpy_s(styleText, sizeof(styleText), "WS_THICKFRAME");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_THICKFRAME;
 			}
 			else if
 				((testValue & WS_POPUP) == WS_POPUP) {
-				strcpy(styleText, "WS_POPUP");
+				strcpy_s(styleText, sizeof(styleText), "WS_POPUP");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_POPUP;
 			}
 			else if
 				((testValue & WS_CHILD) == WS_CHILD) {
-				strcpy(styleText, "WS_CHILD");
+				strcpy_s(styleText, sizeof(styleText), "WS_CHILD");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_CHILD;
 			}
 			else if
 				((testValue & WS_MINIMIZEBOX) == WS_MINIMIZEBOX) {
-				strcpy(styleText, "WS_MINIMIZEBOX");
+				strcpy_s(styleText, sizeof(styleText), "WS_MINIMIZEBOX");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_MINIMIZEBOX;
 			}
 			else if
 				((testValue & WS_VISIBLE) == WS_VISIBLE) {
-				strcpy(styleText, "WS_VISIBLE");
+				strcpy_s(styleText, sizeof(styleText), "WS_VISIBLE");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_VISIBLE;
 			}
 			else if
 				((testValue & WS_DISABLED) == WS_DISABLED) {
-				strcpy(styleText, "WS_DISABLED");
+				strcpy_s(styleText, sizeof(styleText), "WS_DISABLED");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_DISABLED;
 			}
 			else if
 				((testValue & WS_CLIPSIBLINGS) == WS_CLIPSIBLINGS) {
-				strcpy(styleText, "WS_CLIPSIBLINGS");
+				strcpy_s(styleText, sizeof(styleText), "WS_CLIPSIBLINGS");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_CLIPSIBLINGS;
 			}
 			else if
 				((testValue & WS_CLIPCHILDREN) == WS_CLIPCHILDREN) {
-				strcpy(styleText, "WS_CLIPCHILDREN");
+				strcpy_s(styleText, sizeof(styleText), "WS_CLIPCHILDREN");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_CLIPCHILDREN;
 			}
 			else if
 				((testValue & WS_MAXIMIZEBOX) == WS_MAXIMIZEBOX) {
-				strcpy(styleText, "WS_MAXIMIZEBOX");
+				strcpy_s(styleText, sizeof(styleText), "WS_MAXIMIZEBOX");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_MAXIMIZEBOX;
 			}
 			else if
 				((testValue & WS_CAPTION) == WS_CAPTION) {
-				strcpy(styleText, "WS_CAPTION");
+				strcpy_s(styleText, sizeof(styleText), "WS_CAPTION");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_CAPTION;
 			}
 			else if
 				((testValue & WS_BORDER) == WS_BORDER) {
-				strcpy(styleText, "WS_BORDER");
+				strcpy_s(styleText, sizeof(styleText), "WS_BORDER");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_BORDER;
 			}
 			else if
 				((testValue & WS_DLGFRAME) == WS_DLGFRAME) {
-				strcpy(styleText, "WS_DLGFRAME");
+				strcpy_s(styleText, sizeof(styleText), "WS_DLGFRAME");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_DLGFRAME;
 			}
 			else if
 				((testValue & WS_VSCROLL) == WS_VSCROLL) {
-				strcpy(styleText, "WS_VSCROLL");
+				strcpy_s(styleText, sizeof(styleText), "WS_VSCROLL");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_VSCROLL;
 			}
 			else if
 				((testValue & WS_HSCROLL) == WS_HSCROLL) {
-				strcpy(styleText, "WS_HSCROLL");
+				strcpy_s(styleText, sizeof(styleText), "WS_HSCROLL");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_HSCROLL;
 			}
 			else if
 				((testValue & WS_SYSMENU) == WS_SYSMENU) {
-				strcpy(styleText, "WS_SYSMENU");
+				strcpy_s(styleText, sizeof(styleText), "WS_SYSMENU");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 				bFoundOne = TRUE;
 				testValue = testValue ^ WS_SYSMENU;
 			}
@@ -350,7 +354,7 @@ void gui_GetWindowStyle(PA_PluginParameters params, BOOL isEx)
 		} // end while
 
 		if (testValue == 0) {
-			strcpy(styleText, "WS_OVERLAPPED");
+			strcpy_s(styleText, sizeof(styleText), "WS_OVERLAPPED");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			PA_ResizeArray(&styles, i);
 			PA_SetTextInArray(styles, i, styleText, strlen(styleText));
 		}
@@ -523,7 +527,7 @@ LRESULT APIENTRY ProToolsProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 					err = GetWindowText(hwnd, title, 128);
 					for (n = 0; n < SMLBUF; n++) {
 						if (strcmp(toolBarRestrictions.minimizedWindows[n], title) == 0){
-							strcpy(toolBarRestrictions.minimizedWindows[n], "");
+							strcpy_s(toolBarRestrictions.minimizedWindows[n], sizeof(toolBarRestrictions.minimizedWindows[n]), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 							//break;
 						}
 					}
@@ -556,7 +560,7 @@ LRESULT APIENTRY ProToolsProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 					err = GetWindowText(hwnd, title, 128);
 					for (n = 0; n < SMLBUF; n++) {
 						if (strcmp(toolBarRestrictions.minimizedWindows[n], title) == 0){
-							strcpy(toolBarRestrictions.minimizedWindows[n], "");
+							strcpy_s(toolBarRestrictions.minimizedWindows[n], sizeof(toolBarRestrictions.minimizedWindows[n]), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 							//break;
 						}
 					}
@@ -572,7 +576,7 @@ LRESULT APIENTRY ProToolsProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 					err = GetWindowText(hwnd, title, 128);
 					for (n = 0; n < SMLBUF; n++) {
 						if (strcmp(toolBarRestrictions.minimizedWindows[n], title) == 0){
-							strcpy(toolBarRestrictions.minimizedWindows[n], "");
+							strcpy_s(toolBarRestrictions.minimizedWindows[n], sizeof(toolBarRestrictions.minimizedWindows[n]), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 							//break;
 						}
 					}
@@ -600,7 +604,7 @@ LRESULT APIENTRY ProToolsProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 				err = GetWindowText(hwnd, title, 128);
 				for (n = 0; n < SMLBUF; n++) {
 					if ((strcmp(toolBarRestrictions.minimizedWindows[n], "") == 0) || (strcmp(toolBarRestrictions.minimizedWindows[n], title) == 0)){
-						strcpy(toolBarRestrictions.minimizedWindows[n], title);
+						strcpy_s(toolBarRestrictions.minimizedWindows[n], sizeof(toolBarRestrictions.minimizedWindows[n]), title);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 						break;
 					}
 				}

@@ -123,11 +123,11 @@ void sys_ShellExecute(PA_PluginParameters params)
 		(lstrcmpiW(operation, L"explore") != 0) &&
 		(lstrcmpiW(operation, L"print") != 0) &&
 		(file == NULL || len == 0)) {
-		strncpy(returnText, message->InvalidOperation, 255);
+		strncpy_s(returnText, sizeof(returnText), message->InvalidOperation, 255);  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 	}
 	else if (howToShow > 11) {
 		//strcpy(returnText, "Invalid HowToShow Constant");
-		strncpy(returnText, message->InvalidShowConstant, 255); // Mark De Wever #12225 replaced the line above
+		strncpy_s(returnText, sizeof(returnText), message->InvalidShowConstant, 255); // Mark De Wever #12225 replaced the line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 	}
 	else
 	{
@@ -151,69 +151,69 @@ void sys_ShellExecute(PA_PluginParameters params)
 
 		returnValue = (LONG_PTR)ShellExecuteW(NULL, operation, file, parameters, directory, howToShow);
 
-		strcpy(returnText, "");
+		strcpy_s(returnText, sizeof(returnText), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 		if (returnValue <= 32) { // error occurred
 			switch (returnValue)
 			{
 			case ERROR_FILE_NOT_FOUND:
 				//strcpy(returnText, "File Not Found");
-				strncpy(returnText, message->FileNotFound, 255); // Mark De Wever #12225 replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->FileNotFound, 255); // Mark De Wever #12225 replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case ERROR_PATH_NOT_FOUND:
 				//strcpy(returnText, "Path Not Found");
-				strncpy(returnText, message->PathNotFound, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->PathNotFound, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case ERROR_BAD_FORMAT:
 				//strcpy(returnText, ".EXE File is Invalid");
-				strncpy(returnText, message->BadFormat, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->BadFormat, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_ACCESSDENIED:
 				//strcpy(returnText, "OS Denied Access to File");
-				strncpy(returnText, message->AccessDenied, 255); // Mark De Wever #12225 Replaced line above
-				break;
+				strncpy_s(returnText, sizeof(returnText), message->AccessDenied, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
+				break; 
 
 			case SE_ERR_ASSOCINCOMPLETE:
 				//strcpy(returnText, "File Name Association is Incomplete or Invalid");
-				strncpy(returnText, message->AssocIncomplete, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->AssocIncomplete, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_DDEBUSY:
 			case SE_ERR_DDEFAIL:
 				//strcpy(returnText, "DDE Transaction Could Not be Completed");
-				strncpy(returnText, message->DDEFail, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->DDEFail, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_DDETIMEOUT:
 				//strcpy(returnText, "DDE Request Timed Out");
-				strncpy(returnText, message->DDETimeOut, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->DDETimeOut, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_DLLNOTFOUND:
 				//strcpy(returnText, "DLL Libray Not Found");
-				strncpy(returnText, message->DLLNotFound, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->DLLNotFound, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_NOASSOC:
 				//strcpy(returnText, "No Application Associated with File Extenstion");
-				strncpy(returnText, message->NoAssoc, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->NoAssoc, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_OOM:
 				//strcpy(returnText, "Insufficient Memory");
-				strncpy(returnText, message->OOM, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->OOM, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			case SE_ERR_SHARE:
 				//strcpy(returnText, "Sharing Violation Occurred");
-				strncpy(returnText, message->ShareViolation, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->ShareViolation, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 
 			default:
 				//strcpy(returnText, "Unknown error occurred");
-				strncpy(returnText, message->Default, 255); // Mark De Wever #12225 Replaced line above
+				strncpy_s(returnText, sizeof(returnText), message->Default, 255); // Mark De Wever #12225 Replaced line above  // ZRW 4/7/17 WIN-39 strncpy -> strcpy_s
 				break;
 			}
 		}
@@ -343,13 +343,18 @@ BOOL reviewProcesses(HANDLE hPSapiDLL, LPFNENUMPROC lpfnEnumProc, LPFNENUMPROCMO
 				pe32.dwSize = sizeof(PROCESSENTRY32);
 
 				if (lpfnProcessFirst(hProcessSnap, &pe32)) {
-					if (strstr(_strlwr(pe32.szExeFile), _strlwr(pAppName)) != NULL) {
+
+					// ZRW 4/12/17 WIN-39
+					_strlwr_s(pe32.szExeFile, sizeof(pe32.szExeFile));  
+					_strlwr_s(pAppName, MAXBUF);  // Using MAXBUF since pAppName is a pointer
+
+					if (strstr(pe32.szExeFile, pAppName) != NULL) {  // ZRW 4/12/17 WIN-39 _strlwr(pe32.szExeFile) -> pe32.szExeFile, _strlwr(pAppName) -> pAppName
 						returnValue = 1;
 					}
 					else {
 						while (lpfnProcessNext(hProcessSnap, &pe32))
 						{
-							if (strstr(_strlwr(pe32.szExeFile), pAppName) != NULL) {
+							if (strstr(pe32.szExeFile, pAppName) != NULL) {  // ZRW 4/12/17 WIN-39 _strlwr(pe32.szExeFile) -> pe32.szExeFile, _strlwr(pAppName) -> pAppName
 								returnValue = 1;
 								break;
 							}
@@ -388,7 +393,12 @@ BOOL reviewProcesses(HANDLE hPSapiDLL, LPFNENUMPROC lpfnEnumProc, LPFNENUMPROCMO
 						// lpfnGetModFName - GetModuleFileNameEx
 						if (lpfnGetModFName(hProcess, hMods[j], szModName, sizeof(szModName))) {
 							//does name contain what we are looking for?
-							if (strstr(_strlwr(szModName), _strlwr(pAppName)) == NULL) {
+
+							// ZRW 4/12/17 WIN-39 Convert these using the more secure method
+							_strlwr_s(szModName, sizeof(szModName));
+							_strlwr_s(pAppName, MAXBUF);  // Using MAXBUF since pAppName is a pointer
+
+							if (strstr(szModName, pAppName) == NULL) {  // ZRW 4/12/17 WIN-39 _strlwr(szModName) -> szModName, _strlwr(pAppName) -> pAppName
 								returnValue = 0;
 							}
 							else { //found it so keep it going
@@ -520,7 +530,7 @@ void gui_RespectToolBar(PA_PluginParameters params)
 	if (position_len > 1) {
 		position[1] = '\0';
 	}
-	_strlwr(position);
+	_strlwr_s(position, sizeof(position));  // ZRW 4/12/17 WIN-39 _strlwr -> _strlwr_s
 
 	if (position_len == 0) {	// pass a negative in and turns it all off
 		toolBarRestrictions.toolBarOnDeck = 0;
@@ -694,6 +704,7 @@ void sys_GetEnv(PA_PluginParameters params)
 	LONG returnValue; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	LONG envLength; // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 	char envName[MAXBUF], *envValue;
+	size_t pMAXBUF;  // ZRW 4/20/17 WIN-39 Stores the size of the envValue buffer; we don't need this as of now but it is required by _dupenv_s
 
 	envValue = NULL;
 	memset(envName, 0, MAXBUF);
@@ -701,7 +712,8 @@ void sys_GetEnv(PA_PluginParameters params)
 	envLength = PA_GetTextParameter(params, 1, envName);
 
 	if (envLength > 0)
-		envValue = getenv(envName);
+		//envValue = getenv(envName);
+		_dupenv_s(&envValue, &pMAXBUF, envName);  //ZRW 4/13/17 WIN-39 _dupenv_s is more secure than getenv; using MAXBUF since envValue is a pointer
 
 	if (envValue == NULL)
 	{

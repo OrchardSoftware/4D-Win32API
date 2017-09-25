@@ -187,7 +187,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 	LONG_PTR								cx = 0, cy = 0, returnValue = 0, location = 0;
 	HWND									hwndTarget;
 	TOOLINFO								toolInfo;
-	LONG_PTR								uId = 0, howToClose = 0, sendMsgReturn;
+	LONG_PTR								uId = 0, howToClose = 0, sendMsgReturn = 0;  // ZRW 2/14/17 WIN-39 initializing sendMsgReturn
 	char									paramMessage[1024], title[255], method[80]; // REB 8/1/08 #17556 Increased size of title from 40 to 255. // WJF 9/23/16 Win-31 255 -> 1024
 	LPTSTR									lpTitle = title;
 	LONG_PTR								paramMessage_len = strlen(paramMessage);
@@ -319,7 +319,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 			case '1':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle); // remove the number indicating the icon
+					strcpy_s(title, sizeof(title), lpTitle); // remove the number indicating the icon  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_INFO;
 				}
@@ -328,7 +328,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 			case '2':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle);
+					strcpy_s(title, sizeof(title), lpTitle);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_WARNING;
 				}
@@ -337,7 +337,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 			case '3':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle);
+					strcpy_s(title, sizeof(title), lpTitle);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_ERROR;
 				}
@@ -349,8 +349,10 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx)
 		if (howToClose == TT_CLOSE_ON_CLICK) {
 			windowHandles.displayedTTOwnerhwnd = hwndTarget;
 			if (method_len != 0) {
-				strcpy(g_methodText, method);
-				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
+				strcpy_s(g_methodText, sizeof(g_methodText), method);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
+
+
+				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)(L"$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *  // ZRW 2/20/17 WIN-39 Added L in front of "$New Process" to denote it as a wide character string
 			}
 		}
 		else {
@@ -395,7 +397,7 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 	LONG_PTR									cx = 0, cy = 0, returnValue = 0;
 	HWND									hwndTarget;
 	TOOLINFO							toolInfo;
-	LONG_PTR									uId = 0, howToClose = 0, sendMsgReturn;
+	LONG_PTR									uId = 0, howToClose = 0, sendMsgReturn = 0;  // ZRW 2/14/17 WIN-39 initializing sendMsgReturn
 	char									paramMessage[1024], title[255], method[80]; // WJF 9/21/16 Win-31 255 -> 1024, 40 -> 255 
 	LPTSTR								lpTitle = title;
 	LONG_PTR									paramMessage_len = strlen(paramMessage);
@@ -464,7 +466,7 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 			case '1':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle); // remove the number indicating the icon
+					strcpy_s(title, sizeof(title), lpTitle); // remove the number indicating the icon  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_INFO;
 				}
@@ -473,7 +475,7 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 			case '2':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle);
+					strcpy_s(title, sizeof(title), lpTitle);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_WARNING;
 				}
@@ -482,7 +484,7 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 			case '3':
 				lpTitle = &title[1];
 				if (*lpTitle != '\0') {
-					strcpy(title, lpTitle);
+					strcpy_s(title, sizeof(title), lpTitle);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					lpTitle = title;
 					icon = NIIF_ERROR;
 				}
@@ -494,8 +496,8 @@ void gui_ToolTipShowOnCoord(PA_PluginParameters params)
 		if (howToClose == TT_CLOSE_ON_CLICK) {
 			windowHandles.displayedTTOwnerhwnd = hwndTarget;
 			if (method_len != 0) {
-				strcpy(g_methodText, method);
-				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)("$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
+				strcpy_s(g_methodText, sizeof(g_methodText), method);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
+				returnValue = PA_NewProcess(createNewProcess, 1024 * 32, (PA_Unichar *)(L"$New_Process")); // WJF 6/24/16 Win-21 Casting to PA_Unichar *  // ZRW 2/20/17 WIN-39 Added L in front of "$New Process" to denote it as a wide character string
 			}
 		}
 		else {
@@ -548,7 +550,7 @@ void gui_ToolTipHide(PA_PluginParameters params)
 	toolInfo.uId = uId;
 	toolInfo.hinst = 0;
 	toolInfo.lpszText = lpttMessage;
-	strcpy(g_methodText, "");
+	strcpy_s(g_methodText, sizeof(g_methodText), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 	sendMsgReturn = SendMessage(windowHandles.hwndTT, TTM_TRACKACTIVATE, (WPARAM)TRUE, (LPARAM)&toolInfo);
 	returnValue = SendMessage(windowHandles.hwndTT, TTM_GETTOOLINFO, 0, (LPARAM)&toolInfo);
@@ -581,7 +583,7 @@ void gui_ToolTipDestroyControl(PA_PluginParameters params)
 	if (hookHandles.systemMsgHook != NULL) {
 		windowHandles.hwndTT = NULL;
 		windowHandles.displayedTTOwnerhwnd = NULL;
-		strcpy(g_methodText, "");
+		strcpy_s(g_methodText, sizeof(g_methodText), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 		g_displayedTTId = 0;
 		//activeCalls.bToolTips = FALSE; 01/21/03
 		UnhookWindowsHookEx(hookHandles.systemMsgHook);
@@ -737,7 +739,7 @@ void gui_LoadBackground(PA_PluginParameters params, BOOL DeInit)
 	if ((hWnd == 0) && (bmpName_len == 0))  { //if there's no bitmap provided and we don't have one loaded, return & clear
 		PA_ReturnLong(params, 0);
 		hWnd = NULL;
-		strcpy(lastBmpName, "");
+		strcpy_s(lastBmpName, sizeof(lastBmpName), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 		lastTileOrScale = 0;
 		return;
 	}
@@ -775,7 +777,7 @@ void gui_LoadBackground(PA_PluginParameters params, BOOL DeInit)
 		if (bmpName_len == 0)  { //if there's no bitmap provided, return & clear
 			PA_ReturnLong(params, 1);
 			hWnd = NULL;
-			strcpy(lastBmpName, "");
+			strcpy_s(lastBmpName, sizeof(lastBmpName), "");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			lastTileOrScale = 0;
 			return;
 		}
@@ -813,7 +815,10 @@ void gui_LoadBackground(PA_PluginParameters params, BOOL DeInit)
 			if (IsWindow(NexthWnd)){
 				GetWindowText(NexthWnd, WindowName, 255);
 				GetClassName(NexthWnd, szClassName, 255);
-				if (strcmp(_strlwr(szClassName), "mdiclient") == 0){
+				
+				_strlwr_s(szClassName, sizeof(szClassName)); // ZRW 4/12/17 WIN-39 
+				
+				if (strcmp(szClassName, "mdiclient") == 0){  // ZRW 4/12/17 WIN-39 _strlwr(szClassName) -> szClassName
 					windowHandles.MDIs_4DhWnd = NexthWnd;
 					break;
 				}
@@ -843,7 +848,7 @@ void gui_LoadBackground(PA_PluginParameters params, BOOL DeInit)
 			bFuncReturn = SendNotifyMessage(hWnd, (WM_USER + 0x0030), wParam, lParam);
 			bFuncReturn = GetClientRect(hWnd, &rect);
 			bFuncReturn = InvalidateRect(hWnd, &rect, TRUE);
-			strcpy(lastBmpName, bmpName);
+			strcpy_s(lastBmpName, sizeof(lastBmpName), bmpName);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			lastTileOrScale = tileOrScale;
 		}
 		else {
@@ -1295,7 +1300,7 @@ BOOL checkTimeProvider()
 	char			achBuff[80];
 	BOOL			bEnabled = FALSE, bInputProvider = FALSE;
 
-	strcpy(subKey, "SYSTEM\\CurrentControlSet\\Services\\W32Time\\TimeProviders");
+	strcpy_s(subKey, sizeof(subKey), "SYSTEM\\CurrentControlSet\\Services\\W32Time\\TimeProviders");  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 	rootKey = HKEY_LOCAL_MACHINE;
 	hKey1 = HKEY_CURRENT_USER; // will get new handle of open key
@@ -1323,9 +1328,11 @@ BOOL checkTimeProvider()
 		if (retCode == (DWORD)ERROR_SUCCESS) {
 			chKey1_len = MAX_PATH;
 		}
-		strcpy(subKey2, subKey);
-		strcat(subKey2, "\\");
-		strcat(subKey2, chKey1);
+		strcpy_s(subKey2, sizeof(subKey2), subKey);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
+		
+		// ZRW 4/5/17 WIN-39 strcat -> strcat_s
+		strcat_s(subKey2, sizeof(subKey2), "\\");
+		strcat_s(subKey2, sizeof(subKey2), chKey1);
 		errorCode = RegOpenKeyEx(rootKey, subKey2, 0, KEY_READ, &hKey2);
 		if (errorCode != ERROR_SUCCESS) {
 			return FALSE;
@@ -1358,10 +1365,13 @@ BOOL checkTimeProvider()
 					NULL,						 	// &dwType,
 					(LPBYTE)&chData,	// &bData, // WJF 6/24/16 Win-21 char * -> LPBYTE
 					&chDataBuff_len); // &bcData
-				if ((strcmp(_strlwr(achValue), "enabled") == 0) && (chData == 1)) {
+				
+				_strlwr_s(achValue, sizeof(achValue));  // ZRW 4/12/17 WIN-39
+				
+				if ((strcmp(achValue, "enabled") == 0) && (chData == 1)) {  // ZRW 4/12/17 WIN-39 _strlwr(achValue) -> achValue
 					bEnabled = TRUE;
 				}
-				if ((strcmp(_strlwr(achValue), "inputprovider") == 0) && (chData == 1)) {
+				if ((strcmp(achValue, "inputprovider") == 0) && (chData == 1)) {  // ZRW 4/12/17 WIN-39 _strlwr(achValue) -> achValue
 					bInputProvider = TRUE;
 				}
 				achBuff[0] = '\0';

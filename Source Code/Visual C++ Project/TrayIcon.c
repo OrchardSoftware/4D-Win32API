@@ -131,14 +131,14 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 	if (shellOK) {
 		if ((action >= 0) & (flags >= 0x010)) {
 			nid.dwInfoFlags = 0;
-			strcpy(nid.szInfo, szBalloonInfo);
+			strcpy_s(nid.szInfo, sizeof(nid.szInfo), szBalloonInfo);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 
 			switch (szBalloonTitle[0]) // leading 1, 2, 0r 3 causes addition of icon
 			{
 			case '1':
 				pBalloonIconFlag = &szBalloonTitle[1];
 				if (*pBalloonIconFlag != '\0') {
-					strcpy(nid.szInfoTitle, pBalloonIconFlag);
+					strcpy_s(nid.szInfoTitle, sizeof(nid.szInfoTitle), pBalloonIconFlag);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					nid.dwInfoFlags = NIIF_INFO;
 				}
 				break;
@@ -146,7 +146,7 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 			case '2':
 				pBalloonIconFlag = &szBalloonTitle[1];
 				if (*pBalloonIconFlag != '\0') {
-					strcpy(nid.szInfoTitle, pBalloonIconFlag);
+					strcpy_s(nid.szInfoTitle, sizeof(nid.szInfoTitle), pBalloonIconFlag);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					nid.dwInfoFlags = NIIF_WARNING;
 				}
 				break;
@@ -154,12 +154,12 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 			case '3':
 				pBalloonIconFlag = &szBalloonTitle[1];
 				if (*pBalloonIconFlag != '\0') {
-					strcpy(nid.szInfoTitle, pBalloonIconFlag);
+					strcpy_s(nid.szInfoTitle, sizeof(nid.szInfoTitle), pBalloonIconFlag);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 					nid.dwInfoFlags = NIIF_ERROR;
 				}
 				break;
 			default:
-				strcpy(nid.szInfoTitle, szBalloonTitle);
+				strcpy_s(nid.szInfoTitle, sizeof(nid.szInfoTitle), szBalloonTitle);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			}
 
 			nid.uTimeout = 10;
@@ -187,7 +187,7 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 	nid.cbSize = sizeof(NOTIFYICONDATA);
 	nid.hWnd = windowHandles.fourDhWnd;
 	nid.uID = iconID;
-	strcpy(nid.szTip, szTipParam); // can use this if balloon feature not available or not wanted
+	strcpy_s(nid.szTip, sizeof(nid.szTip), szTipParam); // can use this if balloon feature not available or not wanted  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 	nid.uVersion = 0; // REB 3/3/09 #16207
 	nid.uFlags = flags; // REB 2/18/10 #22656
 
@@ -231,7 +231,8 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 //	DATE:			dcc 08/17/01
 //
 // WJF 6/30/16 Win-21 Most LONG_PTR -> LONG
-LONG getTrayIconParams(PA_PluginParameters params, LONG *pAction, LONG *pFlags, LONG *pIconID, LONG *pProcessNbr, LONG_PTR *pIconHndl, char* szTipParam, char* szBalloonInfo, char* szBalloonTitle)
+// ZRW 2/13/17 WIN-39 pIconID LONG -> UINT
+LONG getTrayIconParams(PA_PluginParameters params, LONG *pAction, LONG *pFlags, UINT *pIconID, LONG *pProcessNbr, LONG_PTR *pIconHndl, char* szTipParam, char* szBalloonInfo, char* szBalloonTitle)
 {
 	LONG szTipParam_len, szBalloonInfo_len, szBalloonTitle_len, returnValue = 0;
 
@@ -537,7 +538,7 @@ void processWindowMessage(LONG_PTR source, LONG_PTR hwnd, WPARAM wParam, LPARAM 
 			// REB #17503 8/8/08 in v11 we can no longer call PA_GetVariable from this subclass.
 			//   Instead of setting the ST_TRAYNOTIFICATION variable, we will just do a call
 			//   back to the monitoring process in 4D on double clicks.
-			strcpy(procVar, ST_TRAYNOTIFICATION);
+			strcpy_s(procVar, sizeof(procVar), ST_TRAYNOTIFICATION);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			fourDVar = PA_GetVariable((PA_Unichar *)procVar); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 			if (PA_GetVariableKind(fourDVar) == eVK_Longint) {
 				PA_SetLongintVariable(&fourDVar, (LONG)lParam); // WJF 6/30/16 Win-21 Cast to LONG
@@ -558,7 +559,7 @@ void processWindowMessage(LONG_PTR source, LONG_PTR hwnd, WPARAM wParam, LPARAM 
 		// REB #16207 1/7/09 In v11 we can no longer call PA_GetVariable from this subclass.
 		// Unfortunately we won't be able to support use of <>TB_NOTIFICATION anymore.
 		if ((PA_Get4DVersion() & 0x0000FFFF) < 0x00001100){
-			strcpy(procVar, TB_NOTIFICATION);
+			strcpy_s(procVar, sizeof(procVar), TB_NOTIFICATION);  // ZRW 3/23/17 WIN-39 strcpy -> strcpy_s
 			fourDVar = PA_GetVariable((PA_Unichar *)procVar); // WJF 6/24/16 Win-21 Casting to PA_Unichar *
 			if (PA_GetVariableKind(fourDVar) == eVK_ArrayLongint) {
 				if (PA_GetArrayNbElements(fourDVar) == 4) {

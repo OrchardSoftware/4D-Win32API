@@ -181,7 +181,7 @@ LRESULT APIENTRY ProToolsProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 VOID createNewProcess(VOID); // added 12/17/01
 
 //tray icon related
-LONG getTrayIconParams(PA_PluginParameters params, LONG *pAction, LONG *pFlags, LONG *pIconID, LONG *pProcessNbr, LONG_PTR *pIconHndl, char* szTipParam, char* szBalloonInfo, char* szBalloonTitle); // WJF 6/30/16 Win-21 MOST LONG_PTR -> LONG
+LONG getTrayIconParams(PA_PluginParameters params, LONG *pAction, LONG *pFlags, UINT *pIconID, LONG *pProcessNbr, LONG_PTR *pIconHndl, char* szTipParam, char* szBalloonInfo, char* szBalloonTitle); // WJF 6/30/16 Win-21 MOST LONG_PTR -> LONG  // ZRW 2/13/17 WIN-39 pIconID LONG -> UINT
 LONG findIconID(pTI *, LONG iconID, LONG *pProcNbr); // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 LONG deleteIcon(pTI *, LONG iconID);  // WJF 6/30/16 Win-21 LONG_PTR -> LONG
 BOOL insertIcon(pTI *, LONG iconID, LONG procNbr); // WJF 6/30/16 Win-21 LONG_PTR -> LONG
@@ -195,7 +195,7 @@ void processWindowMessage(LONG_PTR source, LONG_PTR hwnd, WPARAM wParam, LPARAM 
 BOOL checkTimeProvider(void); // added 01/04/02
 
 LONG enumPrintersUsingRegistry(PA_Variable *printerArray); // added 04/20/02 // WJF 6/29/16 Win-21 LONG_PTR -> LONG
-LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray); // added 04/20/02
+//LONG_PTR enumPrintersUsingINI(PA_Variable *printerArray); // added 04/20/02
 
 // linked list related (this is an unordered list)
 // WJF 6/30/16 Win-21 Most LONG_PTR -> LONG

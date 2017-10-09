@@ -4501,6 +4501,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	DWORD				dwExitCode = 0;
 	BOOL				bSuccess = FALSE;
 	BOOL				bDoNotAddSuffix = FALSE; // WJF 10/27/16 Win-41
+	ULONG				flags = 0x0000; // SDL 10/3/17 WIN-51 "optional" parameter. Include WIA by default and create room for future flags
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
@@ -4510,6 +4511,8 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	get64 = PA_GetLongParameter(params, 3);
 
 	bDoNotAddSuffix = PA_GetLongParameter(params, 4); // WJF 10/27/16 Win-41
+
+	flags = PA_GetLongParameter(params, 5); // SDL 10/3/17 WIN-51
 
 	returnValue = 1;
 
@@ -4598,55 +4601,58 @@ void TWAIN_GetSources(PA_PluginParameters params)
 		returnValue = -1;
 	}
 
-	GetTempPath(MAX_PATH, filePath);
+	if (!(flags & TW_FLAG_EXCLUDE_WIA)){ // SDL 10/3/17 WIN-51 Option to include WIA drivers (default)
+		GetTempPath(MAX_PATH, filePath);
 
-	strcat_s(filePath, sizeof(filePath), "wiaSources.txt");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(filePath)
+		strcat_s(filePath, sizeof(filePath), "wiaSources.txt");  // ZRW 4/5/17 WIN-39 MAX_PATH -> sizeof(filePath)
 
-	strcpy_s(lpParameters, sizeof(lpParameters), "-ws");  // ZRW 3/22/17 WIN-39 16 -> sizeof(lpParameters)
+		strcpy_s(lpParameters, sizeof(lpParameters), "-ws");  // ZRW 3/22/17 WIN-39 16 -> sizeof(lpParameters)
 
-	utilities.hProcess = NULL;
-	utilities.lpParameters = lpParameters;
+		utilities.hProcess = NULL;
+		utilities.lpParameters = lpParameters;
 
-	if (ShellExecuteEx(&utilities)) {
-		PA_YieldAbsolute();
-		PA_YieldAbsolute();
-		PA_YieldAbsolute();
-
-		do {
-			bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+		if (ShellExecuteEx(&utilities)) {
 			PA_YieldAbsolute();
-		} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
+			PA_YieldAbsolute();
+			PA_YieldAbsolute();
 
-		//fp = fopen(filePath, "r");
-		fopen_s(&fp, filePath, "r");  // ZRW 4/13/17 WIN-39 Using the more scure method
+			do {
+				bSuccess = GetExitCodeProcess(utilities.hProcess, &dwExitCode);
+				PA_YieldAbsolute();
+			} while ((dwExitCode == STILL_ACTIVE) && (bSuccess));
 
-		if (fp){
-			while (fgets(source, 256, fp) != NULL){
-				if (strcmp(source, "") != 0){
-					pos = strrchr(source, '\n');
-					strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 256 -> MAX_PATH
+			//fp = fopen(filePath, "r");
+			fopen_s(&fp, filePath, "r");  // ZRW 4/13/17 WIN-39 Using the more secure method
 
-					if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
-					{
-						strcat_s(source, sizeof(source), "-WIA");  // ZRW 4/5/17 WIN-39 256 -> sizeof(source)
+			if (fp){
+				while (fgets(source, 256, fp) != NULL){
+					if (strcmp(source, "") != 0){
+						pos = strrchr(source, '\n');
+						strcpy_s(pos, MAX_PATH, "\0");  // ZRW 3/22/17 WIN-39 256 -> MAX_PATH
+
+						if (!bDoNotAddSuffix) // WJF 10/27/16 Win-41 Do not add suffix if this is TRUE
+						{
+							strcat_s(source, sizeof(source), "-WIA");  // ZRW 4/5/17 WIN-39 256 -> sizeof(source)
+						}
+
+						PA_ResizeArray(&atSources, index);
+						PA_SetTextInArray(atSources, index, source, strlen(source));
+						++index;
 					}
-
-					PA_ResizeArray(&atSources, index);
-					PA_SetTextInArray(atSources, index, source, strlen(source));
-					++index;
 				}
+
+				fclose(fp);
+
+				fp = NULL;
 			}
 
-			fclose(fp);
-
-			fp = NULL;
+			DeleteFile(filePath);
 		}
+		else {
+			returnValue = -2;
+		}
+	}
 
-		DeleteFile(filePath);
-	}
-	else {
-		returnValue = -2;
-	}
 	// WJF 3/29/16 Win-11 Rewrote
 	/*
 	utilitiesLock(); // WJF 9/21/15 #43940
@@ -7056,6 +7062,9 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 	DWORD		dwCount = 0;
 	BOOL		fEOF = FALSE;
 	LONG		returnCode = 1;
+	PBYTE		pbBufferAlt = NULL; // SDL 10/2/17 WIN-53
+	BOOL		bCopyAltBuffer = FALSE; // SDL 10/2/17 WIN-53
+	DWORD		dwCountAlt = 0; // SDL 10/2/17 WIN-53
 
 	__try {
 		// WJF 4/18/16 Win-13 Removed
@@ -7168,19 +7177,45 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 			__leave;
 		}
 
+		// SDL 10/2/17 WIN-53
+		if (!(pbBufferAlt = malloc(dwBufferLen))){ 
+			__leave;
+		}
+
 		do{
-			if (!ReadFile(hSourceFile, pbBuffer, dwBlockLen, &dwCount, NULL)){
-				__leave;
+			if (bCopyAltBuffer){ // SDL 10/2/17 WIN-53 If we held onto the alternate buffer, copy it into the primary instead of reading from the file again
+				memcpy_s(pbBuffer, dwBufferLen, pbBufferAlt, dwCountAlt);
+				bCopyAltBuffer = FALSE;
+				dwCount = dwCountAlt;
+			}
+			else{
+				if (!ReadFile(hSourceFile, pbBuffer, dwBlockLen, &dwCount, NULL)){
+					__leave;
+				}
 			}
 
 			if (dwCount < dwBlockLen){
 				fEOF = TRUE;
 			}
 
-			if (bDecrypt){
-				if (!CryptDecrypt(hKey, 0, fEOF, 0, pbBuffer, &dwCount)){
+			if (bDecrypt && !fEOF){ // SDL 10/2/17 WIN-53 Decryption needs a second buffer to determine if we are truly at the end or not
+				if (!ReadFile(hSourceFile, pbBufferAlt, dwBlockLen, &dwCountAlt, NULL)){
 					__leave;
 				}
+					
+				if (dwCountAlt == 0){ // There was nothing left in the file after the first buffer. 
+					fEOF = TRUE; // The first buffer contains everything. Set this to true for the first buffer
+				}
+				else{
+					bCopyAltBuffer = TRUE; // We'll decrypt and write out the primary buffer first, then copy the alternate buffer into the primary at the top.
+				}
+			}
+
+			if (bDecrypt){
+				if (!CryptDecrypt(hKey, 0, fEOF, 0, pbBuffer, &dwCount)){ 
+					__leave;
+				}
+
 			}
 			else {
 				if (!CryptEncrypt(hKey, (HCRYPTHASH)NULL, fEOF, 0, pbBuffer, &dwCount, dwBufferLen)){ // WJF 6/21/16 Win-21 Casting NULL to HCRYPTHASH
@@ -7188,9 +7223,10 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 				}
 			}
 
-			if (!WriteFile(hDestFile, pbBuffer, dwCount, &dwCount, NULL)){
+			if (!WriteFile(hDestFile, pbBuffer, dwCount, &dwCount, NULL)){ 
 				__leave;
 			}
+			
 		} while (!fEOF);
 
 		returnCode = ERROR_SUCCESS;
@@ -7207,6 +7243,12 @@ void fileEncryption(PA_PluginParameters params, BOOL bDecrypt)
 		if (pbBuffer){
 			free(pbBuffer);
 			pbBuffer = NULL;
+		}
+
+		// SDL 10/2/17 WIN-53
+		if (pbBufferAlt){
+			free(pbBufferAlt);
+			pbBufferAlt = NULL;
 		}
 
 		// WJF 4/18/16 Win-13 Removed

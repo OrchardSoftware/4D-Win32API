@@ -851,7 +851,7 @@
     <trans-unit id="282">
       <source>WINAPI_Version</source>
     </trans-unit>
-    <trans-unit d4:value="Win32API Version 8.2.0" id="283">
+    <trans-unit d4:value="Win32API Version 8.2.1" id="283">
       <source>WIN32API_VERSION</source>
     </trans-unit>
   </group>

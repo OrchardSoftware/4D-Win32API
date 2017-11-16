@@ -722,7 +722,13 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 		break;
 
 	case 63:
-		sys_GetDocumentList(params);
+		// SDL 11/16/17 Win-54 This function requires a stack size of about 323kb to run 
+		if (PA_CheckFreeStack(0) >= 330000) {  
+			sys_GetDocumentList(params);
+		}
+		else {
+			PA_ReturnLong(params, STATUS_STACK_OVERFLOW);
+		}
 		break;
 
 	case 64:

@@ -181,7 +181,7 @@ void sys_GetDocumentList(PA_PluginParameters params)
 	{
 		setError(0);
 		PA_ResizeArray(&paReturnFileList, lCount);  // AMS2 9/22/14 #40405 When the file selection has finished with no more files in the dir or a file has not been found, resize the return array to the number of files inserted into the array.
-		lReturnValue = 0;  // SDL 11/20/17 WIN-54 Was 1. This isn't technically a function error. These errors can be interpretted by the array size. 
+		lReturnValue = 1; 
 	}
 	else
 	{

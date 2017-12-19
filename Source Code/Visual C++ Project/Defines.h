@@ -18,7 +18,7 @@ typedef BOOL(CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 8.2.0
+#define WIN32API_VERSION 8.2.1
 #define NUM_COMMANDS 138 // WJF 7/11/16 Win-20
 
 // constants for open file dialog options
@@ -264,6 +264,8 @@ typedef LL* pLL;
 #define AES_BLOCK_SIZE 16 // WJF 5/6/15 #42665
 
 #define MAX_PATH_PLUS 388 // WJF 9/11/15 #43727
+
+#define TW_FLAG_EXCLUDE_WIA 0x0001 // SDL 10/4/17 WIN-51
 
 #ifdef _WIN64
 #define k64Init 0x00000000ffffffff // WJF 9/1/15 #43731/#43732 The selector value is returning this in 64-bit

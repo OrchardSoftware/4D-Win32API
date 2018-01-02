@@ -1579,7 +1579,7 @@ void	sys_GetNetworkInfo(PA_PluginParameters params)
 					strcat_s(infoString, sizeof(infoString),  "Mixed");
 					break;
 				case HYBRID_NODETYPE:
-					strcat_s(infoString, sizeof(infoString),  "Hybid");
+					strcat_s(infoString, sizeof(infoString),  "Hybrid");  // SDL 1/2/18 WIN-56 Was Hybid
 				}
 				strcat_s(infoString, sizeof(infoString),  ",");
 				switch (fixedInfo->EnableDns)

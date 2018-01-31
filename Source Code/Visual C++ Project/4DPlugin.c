@@ -4507,7 +4507,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 	DWORD				dwExitCode = 0;
 	BOOL				bSuccess = FALSE;
 	BOOL				bDoNotAddSuffix = FALSE; // WJF 10/27/16 Win-41
-	ULONG				flags = 0x0000; // SDL 10/3/17 WIN-51 "optional" parameter. Include WIA by default and create room for future flags
+	LONG				flags = 0x0000; // SDL 10/3/17 WIN-51 "optional" parameter. Include WIA by default and create room for future flags // SDL 1/31/18 H-9141 UNLONG -> LONG
 
 	atSources = PA_GetVariableParameter(params, 1);
 	PA_ResizeArray(&atSources, 0);
@@ -4518,7 +4518,7 @@ void TWAIN_GetSources(PA_PluginParameters params)
 
 	bDoNotAddSuffix = PA_GetLongParameter(params, 4); // WJF 10/27/16 Win-41
 
-	flags = PA_GetLongParameter(params, 5); // SDL 10/3/17 WIN-51
+	flags = PA_GetLongParameter(params, 5); // SDL 10/3/17 WIN-51 
 
 	returnValue = 1;
 

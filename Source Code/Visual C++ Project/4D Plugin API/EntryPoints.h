@@ -1,3 +1,11 @@
+/**
+* Copyright (c) 2017-present, 4D, Inc.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+
+
 // ---------------------------------------------------------------
 //
 // 4D Plugin API
@@ -25,7 +33,8 @@
 #define  EX_DELETE_SELECTION						-7		// PA_DeleteSelection
 #define  EX_FIRST_RECORD							-8		// PA_FirstRecord
 #define  EX_COUNT_TABLES							-9		// PA_CountTables
-#define  EX_COUNT_FIELDS							-10		// PA_CountFields
+#define  EX_COUNT_FIELDS							-10		// PA_CountFields (PA_UseVirtualStructure mode)
+#define  EX_COUNT_INVISIBLE_FIELDS_TOO				-717	// PA_CountFields (PA_UseRealStructure mode)
 #define  EX_GET_TABLE_NAME							-11		// PA_GetTableName, PA_IsTableVisible
 #define  EX_FIELD_ATTRIBUTES						-12		// PA_GetFieldName, PA_GetFieldProperties
 #define  EX_ORDER_BY								-13		// PA_CloseOrderBy, PA_OrderBy, PA_OrderByDialog
@@ -36,7 +45,7 @@
 #define  EX_SET_FIELD								-18		// PA_SetXXXField
 #define  EX_GET_VARIABLE							-19		// PA_GetVariable
 #define  EX_SET_VARIABLE							-20		// PA_SetVariable
-	// 21, 22, 23 obsoletes								
+// 21, 22, 23 obsoletes								
 #define  EX_GET_EXPORT_FILTER						-24		// PA_GetExportFilter
 #define  EX_GET_IMPORT_FILTER						-25		// PA_GetImportFilter
 #define  EX_GET_PACKED_RECORD						-26		// PA_GetPackedRecord
@@ -46,47 +55,47 @@
 #define  EX_EXECUTE_METHOD							-30		// PA_ExecuteMethod
 #define  EX_EXECUTE_FUNCTION						-31		// PA_ExecuteFunction
 #define  EX_CREATE_METHOD							-32		// PA_CreateMethod
-	// 31->38 unused									
+// 31->38 unused									
 #define  EX_LOCKED									-40		// PA_Locked
 #define  EX_READ_WRITE								-41		// PA_ReadWrite, PA_ReadOnly
 #define  EX_LOAD_RECORD								-42		// PA_LoadRecord
 #define  EX_RELATE_ONE								-43		// PA_RelateOne
 #define  EX_RELATE_MANY								-44		// PA_RelateMany
-	// 45, 46 obsolete										
+// 45, 46 obsolete										
 #define  EX_STRING									-47		// PA_FormatString
 #define  EX_POPUP_FIELD_LIST						-48		// PA_FieldPopup
 #define  EX_POPUP_TABLE_LIST						-49		// PA_TableAndFieldPopup
 #define  EX_GET_TABLE_FIELD_NUMBER					-50		// PA_GetTableAndFieldNumbers
 #define  EX_SELECTED_RECORD_NUMBER					-51		// PA_SelectedRecordNumber
-	// 52->55 : hotlinks, obsoletes						
+// 52->55 : hotlinks, obsoletes						
 #define  EX_GET_INFORMATION							-56		// PA_Get4DVersion, PA_IsDemoVersion, PA_IsDatabaseLocked, 
-															// PA_IsCompiled, PA_Is4DClient, PA_Is4DServer
-															// PA_IsWebProcess, PA_GetMessagesStatus
+// PA_IsCompiled, PA_Is4DClient, PA_Is4DServer
+// PA_IsWebProcess, PA_GetMessagesStatus
 #define  EX_MESSAGES								-57		// PA_SetMessagesStatus
-	// 58, 59 : hotlinks, obsoletes						
+// 58, 59 : hotlinks, obsoletes						
 #define  EX_COMPARE_MACSTRINGS						-60		// PA_CompareMacStrings
 #define  EX_EVAL_NUMBER								-61		// PA_EvalReal, PA_EvalLongint
-	// 62, 63 : hotlinks, obsoletes						
+// 62, 63 : hotlinks, obsoletes						
 #define  EX_FIND_PACKAGE							-64		// PA_FindPackage
 #define  EX_UPDATE_VARIABLES						-65		// PA_UpdateVariables
 #define  EX_CHANGE_TITLE							-66		// PA_SetPluginWindowTitle
 #define  EX_OPEN_PLUGIN_WINDOW						-67		// PA_OpenPluginWindow
 #define  EX_CLOSE_PLUGIN_WINDOW						-68		// PA_ClosePluginWindow
-	// 69 deprecated
-	// 70, 71, 72 : hotlinks, obsoletes					
+// 69 deprecated
+// 70, 71, 72 : hotlinks, obsoletes					
 #define  EX_RECORD_NUMBER							-73		// PA_RecordNumber
 #define  EX_ADD_TO_SET								-74		// PA_AddToSet
 #define  EX_CREATE_EMPTY_SET						-75		// PA_CreateEmptySet
 #define  EX_DELETE_SET								-76		// PA_DeleteSet
-	// 77 obsolete
-	// 78 hotlinks, obsolete							
-	// 79 obsolete
+// 77 obsolete
+// 78 hotlinks, obsolete							
+// 79 obsolete
 #define  EX_GET_CURRENT_PAGE						-80		// PA_GetCurrentPage
 #define  EX_GET_CURRENT_TEHANDLE					-81		// PA_GetCurrentTEHandle
 #define  EX_TOKENIZE								-82		// PA_Tokenize
 #define  EX_EXEC_TOKEN_PROC							-83		// PA_ExecuteTokens
 #define  EX_EXEC_TOKEN_FUNC							-84		// PA_ExecuteTokensAsFunction
-	// 85 obsolete										
+// 85 obsolete										
 #define  EX_KILL_PROCESS							-86		// PA_KillProcess
 #define  EX_FREEZE_PROCESS							-87		// PA_FreezeProcess
 #define  EX_UNFREEZE_PROCESS						-88		// PA_UnfreezeProcess
@@ -99,48 +108,48 @@
 #define  EX_NB_PROCESS								-95		// PA_CountActiveProcess
 #define  EX_GOTO_RECORD								-96		// PA_GotoRecord
 #define  EX_BRING_PROCESS_TO_FRONT					-97		// PA_BringProcessToFront
-	// 98,99 unused										
+// 98,99 unused										
 #define  EX_READ_DOCUMENT							-100	// PA_ReceiveDocument
 #define  EX_SAVE_DOCUMENT							-101	// PA_SendDocument
 #define  EX_READ_DATA								-102	// PA_ReceiveDataFromServer
 #define  EX_WRITE_DATA								-103	// PA_SendDataToServer
-	// 104, 105, 106 obsolete
+// 104, 105, 106 obsolete
 #define  EX_LOCK_DATABASE							-107	// PA_LockDatabase
 #define  EX_UNLOCK_DATABASE							-108	// PA_UnlockDatabase
-	// 109,110,111 reserved								
+// 109,110,111 reserved								
 #define  EX_GET_USER_LIST							-112	// PA_CountUsers
-	// 113, 114 reserved								
+// 113, 114 reserved								
 #define  EX_GET_PREF_FILE							-115	// PA_Get4DPreferencesFilePath
-	// 116, 117 obsolete
+// 116, 117 obsolete
 #define  EX_CALL_BY_PROCID							-118	// PA_ExecuteMethodByID
-	// 119, 120 obsolete
+// 119, 120 obsolete
 #define  EX_THERMOMETER								-121	// PA_SetThermometerRect
 #define  EX_YIELD_ABSOLUTE							-122	// PA_YieldAbsolute
-	// 123, 124 reserved								
+// 123, 124 reserved								
 #define  EX_GET_INTERPROCESS_VARIABLE				-125	// PA_GetVariable
 #define  EX_SET_INTERPROCESS_VARIABLE				-126	// PA_SetVariable
 #define  EX_EXIST_DOCUMENT_ON_SERVER				-127	// PA_DocumentExistOnServer
-	// 128 reserved										
+// 128 reserved										
 #define  EX_GET_PRINT_INFO							-130	// PA_GetWindowsPRINTDLG, PA_GetWindowsPrintingDC
-															// PA_GetCarbonPageFormat, PA_GetCarbonPrintSettings
+// PA_GetCarbonPageFormat, PA_GetCarbonPrintSettings
 #define  EX_GET_FIELD_RELATIONS						-131	// PA_GetFieldRelation
-	// 132 reserved
-	// 133, 134 obsolete
+// 132 reserved
+// 133, 134 obsolete
 #define  EX_UPDATE_PROCESS_VARIABLE					-135	// PA_UpdateProcessVariable
 #define  EX_QUIT4D									-136	// PA_Quit4D
-	// 137->144 obsolete
+// 137->144 obsolete
 #define  EX_GET_GROUP_LIST							-145	// PA_CountUserGroups
-	// 146, 144, 149->157  obsolete
+// 146, 144, 149->157  obsolete
 #define  EX_NEW_PROCESS								-158	// PA_NewProcess
-	// 159 deprecated
-	// 160 reserved
+// 159 deprecated
+// 160 reserved
 #define  EX_GET_HWND								-161	// PA_GetHWND, PA_GetHDC
 #define  EX_BYTE_SWAP_TOKENS						-162	// PA_ByteSwapTokens
-	// 163	obsolete
+// 163	obsolete
 #define  EX_GET_PLATFORM_INTERFACE					-164	// PA_GetPlatformInterface
 #define  EX_POST_EVENT								-165	// PA_PostEvent
-	// 166 reserved
-	// 167, 168 obsolete
+// 166 reserved
+// 167, 168 obsolete
 #define  EX_PACKAGE_INFO							-169	// PA_PackageInfo
 #define  EX_START_WEB_SERVER						-172	// PA_StartWebServer
 #define  EX_STOP_WEB_SERVER							-173	// PA_StopWebServer
@@ -151,12 +160,12 @@
 #define  EX_GET_TOOLBAR_INFO						-178	// PA_GetToolBarInfo
 #define  EX_SHOW_HIDE_TOOLBAR						-179	// PA_ShowHideToolBar
 #define  EX_DRAG_AND_DROP							-180	// PA_DragAndDrop
-	// 181, 182 obsolete
+// 181, 182 obsolete
 #define  EX_INSTALL_4DWRITE_SPELLER					-183	// PA_Install4DWriteSpeller
 #define  EX_GET_4DWRITE_SPELLER						-184	// PA_Get4DWriteSpellerProcPtr
 #define  EX_DETOKENIZE								-185	// PA_Detokenize
-	// 186 reserved
-	// 187->199 unused
+// 186 reserved
+// 187->199 unused
 #define  EX_DIAL4D_NEW_EMPTY_DIALOG					-200	// PA_NewDialog
 #define  EX_DIAL4D_OPEN_DIALOG						-201	// PA_OpenDialog
 #define  EX_DIAL4D_CLOSE_DIALOG						-202	// PA_CloseDialog
@@ -171,7 +180,7 @@
 #define  EX_DIAL4D_GET_STRING						-211	// PA_Dial4DGetString
 #define  EX_DIAL4D_SET_STRING						-212	// PA_Dial4DSetString
 #define  EX_DIAL4D_SET_PICTURE						-213	// PA_Dial4DSetPictureHandle
-	// 214 unused
+// 214 unused
 #define  EX_DIAL4D_SAVE_VARIABLES					-215	// PA_Dial4DSaveVariables
 #define  EX_DIAL4D_RESTORE_VARIABLES				-216	// PA_Dial4DRestoreVariables
 #define  EX_DIAL4D_GET_ARRAY_REAL					-217	// PA_Dial4DGetArrayReal
@@ -222,12 +231,12 @@
 #define  EX_DIAL4D_WINDOW_FROM_DIAL4D				-262	// PA_Dial4DWindowFromDial4D
 #define  EX_DIAL4D_SET_TABLE_FIELD_HLIST_CURRENT	-263	// PA_Dial4DSetTableFieldHListCurrent
 #define  EX_OPEN_URL								-264	// PA_OpenURL
-	// 265 to 299 : unused
-	// 300 obsolete
+// 265 to 299 : unused
+// 300 obsolete
 #define  EX_VIRTUAL_STRUCTURE_DEFINED				-301	// PA_VirtualStructureDefined
 #define  EX_GET_TRUE_TABLE_NUMBER					-302	// PA_GetTrueTableNumber
 #define  EX_GET_TRUE_FIELD_NUMBER					-303	// PA_GetTrueFieldNumber
-	// 304 : reserved
+// 304 : reserved
 #define  EX_CREATE_TIP								-305	// PA_CreateTip
 #define  EX_GOTO_AREA								-306	// PA_GotoArea
 #define  EX_UPDATE_EDIT_MENU						-307	// PA_UpdateEditMenu
@@ -267,25 +276,25 @@
 #define  EX_DIAL4D_UPDATE_OBJECT_TITLE				-341	// PA_Dial4DUpdateObjectTitle
 #define  EX_OPEN_RESFILE							-342	// PA_OpenResFile
 #define  EX_CLOSE_RESFILE							-343	// PA_CloseResFile
-	// 344,345 unused 
+// 344,345 unused 
 #define  EX_CREATE_RESFILE							-346	// PA_CreateResFile
 #define  EX_GET_DATABASE_RESFILE					-347	// PA_GetDatabaseResFile
 #define  EX_UPDATE_RESFILE							-348	// PA_UpdateResFile
-	// 349->353 reserved
+// 349->353 reserved
 #define  EX_COPY_CUT_NAMED_SELECTION				-354	// PA_CopyNamedSelection, PA_CutNamedSelection
 #define  EX_USE_NAMED_SELECTION						-355	// PA_UseNamedSelection
 #define  EX_CLEAR_NAMED_SELECTION					-356	// PA_ClearNamedSelection
 #define  EX_NEXT_WINDOW_LEVEL						-357	// PA_NewWindow
-	// 358->360 reserved
+// 358->360 reserved
 #define  EX_WAIT_NEXT_EVENT							-361	// PA_WaitNextEvent
-	// 362->378 unused
+// 362->378 unused
 #define  EX_NEW_WINDOW								-379	// PA_NewWindow
 #define  EX_CLOSE_WINDOW							-380	// PA_CloseWindow
-	// 381 reserved
+// 381 reserved
 #define  EX_GET_VIRTUAL_TABLE_NUMBER				-382	// PA_GetVirtualTableNumber
 #define  EX_GET_VIRTUAL_FIELD_NUMBER				-383	// PA_GetVirtualFieldNumber
 #define  EX_USE_RESFILE								-384	// PA_UseResFile()
-	// 385->391 reserved
+// 385->391 reserved
 #define  EX_GET_UNIQUE_RESID						-392	// PA_GetUniqueResID
 #define  EX_DIAL4D_SET_VARIABLE_RECT				-393	// PA_Dial4DSetVariableRect
 #define  EX_DIAL4D_ALLOW_X_RESIZE					-394	// PA_Dial4DAllowXResize
@@ -295,20 +304,20 @@
 #define  EX_DIAL4D_FIND_ARRAY_LONG					-398	// PA_Dial4DFindArrayLong
 #define  EX_DIAL4D_FIND_ARRAY_REAL					-399	// PA_Dial4DFindArrayReal
 #define  EX_GET_CURRENT_USER_ID						-400	// PA_GetCurrentUserID
-	// 401 reserved
+// 401 reserved
 #define  EX_PICTURE_EDITOR							-402	// PA_PictureEditor
 #define  EX_GET_USER_NAME							-403	// PA_GetUserName
-	// 404 reserved
+// 404 reserved
 #define  EX_DIAL4D_GET_LAST_OBJECT					-405	// PA_Dial4DGetLastObject
-	// 406 reserved
+// 406 reserved
 #define  EX_REQUEST									-407	// PA_Request
-	// 408,409 reserved
+// 408,409 reserved
 #define  EX_CLEAR_VARIABLE							-410	// PA_ClearVariable
 #define  EX_GET_STRUCTURE_FULLPATH					-411	// PA_GetStructureFullPath
 #define  EX_RELATE_ONE_SELECTION					-412	// PA_RelateOneSelection
 #define  EX_RELATE_MANY_SELECTION					-413	// PA_RelateManySelection
 #define  EX_IS_PROCESS_DYING						-414	// PA_IsProcessDying
-	// 415 reserved
+// 415 reserved
 #define  EX_DIAL4D_GOTO_VARIABLE					-416	// PA_Dial4DGotoVariable
 #define  EX_GET_RESOURCE_TIMESTAMP					-417	// PA_GetResourceTimeStamp
 #define  EX_SET_WINDOW_FOCUSABLE					-418	// PA_SetWindowFocusable
@@ -319,19 +328,19 @@
 #define  EX_METHOD_EDITOR							-423	// PA_MethodEditor
 #define  EX_CONVERT_STRING							-424	// PA_ConvertString
 #define  EX_DIAL4D_CANCEL_VALIDATE					-425	// PA_Dial4DCancelValidate
-	// 426	obsolete
+// 426	obsolete
 #define  EX_GET_4D_FOLDER							-427	// PA_Get4DFolder
 #define  EX_DIAL4D_HIGHLIGHT_TEXT					-428	// PA_Dial4DHighlightText
 #define  EX_GET_SERIAL_KEY							-429	// PA_GetSerialKey
 #define  EX_GET_REGISTRATION_INFO					-430	// PA_GetRegistredUserName
 #define  EX_GET_USERS_INFO							-431	// PA_CountConnectedUsers
 #define  EX_GET_4D_HINSTANCE						-432	// PA_Get4DHInstance
-	// 433 reserved
+// 433 reserved
 #define  EX_HANDLE_MANAGER							-434	// PA_NewHandle, PA_DisposeHandle,
-															// PA_SetHandleSize, PA_GetHandleSize,
-															// PA_SetHandleState, PA_GetHandleState,
-															// PA_LockHandle, PA_UnlockHandle
-	// 435,436,437 reserved
+// PA_SetHandleSize, PA_GetHandleSize,
+// PA_SetHandleState, PA_GetHandleState,
+// PA_LockHandle, PA_UnlockHandle
+// 435,436,437 reserved
 #define  EX_RESIZE_ARRAY							-438	// PA_ResizeArray
 #define  EX_UNLOCK_RESOURCE							-439	// PA_UnlockResource, PA_UnlockResourceHandle
 #define  EX_METHOD_NAMES							-442	// PA_MethodNames
@@ -375,10 +384,12 @@
 #define  EX_RUN_IN_MAIN_PROCESS						-663	// PA_RunInMainProcess
 #define  EX_GET_PICTURE_DATA						-671	// PA_GetPictureData	(11.3)
 #define  EX_MODIFY_METHOD							-672	// PA_ModifyMethod
-	// -673,-674 reserved
+// -673,-674 reserved
 #define  EX_CONVERT_CHARSET_TO_CHARSET				-675	// PA_ConvertFromCharset	March 2nd 2009   11.3
 
 #define  EX_REDRAW_AREA								-714	// PA_RedrawArea (14.0)
 #define  EX_GET_AREA_PORT_BOUNDS					-715	// PA_GetAreaPortBounds (14.0)
+
+#define EX_GET_MAIN_MDI_WINDOW						-719	// PA_GetMainWindowHWND (16.0)
 
 #endif

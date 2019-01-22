@@ -12,7 +12,7 @@ Win32API has been tested with 4D v15. If you need to support older versions of 4
 
 Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Seth Leeper](mailto:sleeper@orchardsoft.com).
 
-Copyright &copy; 2017 Orchard Software Corporation
+Copyright &copy; 2019 Orchard Software Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -294,7 +294,8 @@ const char * const win32Commands[] = {
 	"sys_LoggingStart",
 	"sys_LoggingStop",
 	"sys_IsWow64Process",
-	"sys_CryptGenRandom"
+	"sys_CryptGenRandom",
+	"gui_SetTrayIconEx"
 };
 
 // MWD 10/21/05 #9246
@@ -643,7 +644,7 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 		break;
 
 	case 41:
-		gui_SetTrayIcon(params);
+		gui_SetTrayIcon(params, FALSE);  // ITH 10/25/19 H-10802 Added 2nd parameter
 		break;
 
 	case 42:
@@ -908,7 +909,7 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 				pathName = UnistringToCString(&Unistring);
 				charPos = strrchr(pathName, '\\');
 				*charPos = 0;
-				windowHandles.fourDhWnd = FindWindowEx(NULL, NULL, pathName, NULL);
+				windowHandles.fourDhWnd = PA_GetMainWindowHWND(); // ITH 7/25/19 WIN-46 FindWindowEx(NULL, NULL, pathName, NULL)->PA_GetMainWindowHWND(). Updated SDK to version 17.0.1
 
 				free(pathName);
 
@@ -1059,6 +1060,9 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params)
 
 	case 138:
 		sys_CryptGenRandom(params); // WJF 8/30/16 Win-30
+		break;
+	case 139:
+		gui_SetTrayIcon(params, TRUE);  // ITH 10/25/19 H-10802 gui_setTrayIconEx
 		break;
 	}
 }

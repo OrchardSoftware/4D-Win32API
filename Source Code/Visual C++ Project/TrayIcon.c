@@ -71,7 +71,7 @@ extern struct		TOOLBARRESTRICT
 //
 //	DATE:			dcc 08/04/01
 //
-void gui_SetTrayIcon(PA_PluginParameters params)
+void gui_SetTrayIcon(PA_PluginParameters params, BOOL isEx)
 {
 	LONG_PTR							iconHndl = 0; // WJF 6/24/16 Win-21 UINT -> LONG_PTR
 	NOTIFYICONDATA		nid;
@@ -102,6 +102,12 @@ void gui_SetTrayIcon(PA_PluginParameters params)
 
 	nbrParams = getTrayIconParams(params, &action, &flags, &iconID, &procNbr,
 		&iconHndl, szTipParam, szBalloonInfo, szBalloonTitle);
+
+	if (isEx){ // ITH 10/25/19 H-10802
+		iconHndl = handleArray_retrieve((DWORD)iconHndl);
+	}
+
+
 	index = findIconID(&startPtr, iconID, &storedProcNbr);
 	if (index == 0) { // not found
 		if (isEmpty(startPtr)) {

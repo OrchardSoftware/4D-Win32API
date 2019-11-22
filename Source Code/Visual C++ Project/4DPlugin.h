@@ -80,7 +80,7 @@ void gui_ToolTipShowOnObject(PA_PluginParameters params, BOOL isEx); // added 12
 void gui_ToolTipShowOnCoord(PA_PluginParameters params); // added 12/17/01
 void gui_ToolTipHide(PA_PluginParameters params); // added 12/17/01
 void gui_ToolTipDestroyControl(PA_PluginParameters params); // added 12/17/01
-void gui_SetTrayIcon(PA_PluginParameters params); // added/revised 12/18/01
+void gui_SetTrayIcon(PA_PluginParameters params, BOOL isEx); // added/revised 12/18/01  ITH 10/25/19 H-10802 Added BOOL isEx
 void sys_FileCheck(PA_PluginParameters params); //added 01/08/02
 void sys_GetCommandLine(PA_PluginParameters params); //added 04/02/02
 void gui_GetWindowStyle(PA_PluginParameters params, BOOL isEx); //added 07/18/02

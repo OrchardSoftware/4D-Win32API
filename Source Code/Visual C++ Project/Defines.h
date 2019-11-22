@@ -18,8 +18,8 @@ typedef BOOL(CALLBACK* LPFNPROCNEXT) (HANDLE, VOID *);
 #define NBR_ELEMENTS 18
 #endif
 
-#define WIN32API_VERSION 8.2.2
-#define NUM_COMMANDS 138 // WJF 7/11/16 Win-20
+#define WIN32API_VERSION 8.3
+#define NUM_COMMANDS 139 // WJF 7/11/16 Win-20
 
 // constants for open file dialog options
 #define FD_OVERWRITE_PROMPT					2

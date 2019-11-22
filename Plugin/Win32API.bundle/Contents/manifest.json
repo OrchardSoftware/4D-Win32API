@@ -415,5 +415,8 @@
     }, {
         "theme": "Win32API Commands",
         "syntax": "sys_CryptGenRandom(&L;&T):L"
+    }, {
+        "theme": "Win32API Commands",
+        "syntax": "gui_SetTrayIconEx(&L;&L;&L;&L;&L;&T;&T;&T):L"
     }]
 }

@@ -10,9 +10,9 @@ Win32API is developed in Visual Studio 2013 and is not compatible with older ver
 
 Win32API has been tested with 4D v15. If you need to support older versions of 4D or versions of Windows older than Windows XP SP3, please use an older version of Win32API.
 
-Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Ian Haas](mailto:ihaas@orchardsoft.com).
+Orchard Software does not provide technical support for this plugin, but we do appreciate hearing about any problems you discover. To report a problem, send an email to [Drew Waddell](mailto:dwaddell@orchardsoft.com).
 
-Copyright &copy; 2019 Orchard Software Corporation
+Copyright &copy; 2020 Orchard Software Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

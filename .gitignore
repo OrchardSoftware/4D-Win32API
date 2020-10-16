@@ -45,3 +45,5 @@ Source Code/Visual C++ Project/Win32API/bin/Release (64-Bit)/Win32API.4DX
 Source Code/Visual C++ Project/Objs/Release/Win32API.lib
 *.ilk
 Source Code/Visual C++ Project/Win32API/bin/Debug/Win32API.ilk
+Source Code/Visual C++ Project/.vs/config/applicationhost.config
+Source Code/Visual C++ Project/Win32API.VC.db
